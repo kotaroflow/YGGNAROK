@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f7f4ee;
+  --foreground: #181510;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --line: rgba(120, 113, 108, 0.18);
+  --muted: #746d65;
+  --brand: #f5c400;
+  --brand-strong: #d69b00;
+}
+
+.dark {
+  --background: #0e0d10;
+  --foreground: #f4f0e8;
+  --surface: rgba(23, 22, 21, 0.76);
+  --surface-strong: rgba(28, 27, 25, 0.92);
+  --line: rgba(255, 255, 255, 0.10);
+  --muted: #a9a29a;
+  --brand: #ffd22e;
+  --brand-strong: #f2b300;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    radial-gradient(circle at 16% 12%, color-mix(in srgb, var(--brand) 18%, transparent) 0%, transparent 28%),
+    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.15) 0%, transparent 32%),
+    linear-gradient(135deg, #f7f0ff 0%, #fbf8f2 44%, #eefaff 100%);
+}
+
+.dark body::before {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(245, 196, 0, 0.10) 0%, transparent 30%),
+    radial-gradient(circle at 84% 10%, rgba(87, 71, 170, 0.22) 0%, transparent 34%),
+    linear-gradient(135deg, #111016 0%, #15120f 52%, #0d1718 100%);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  outline-color: #a16207;
+}
+
+::selection {
+  background: #facc15;
+  color: #171717;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
