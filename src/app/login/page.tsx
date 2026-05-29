@@ -15,7 +15,7 @@ export default async function LoginPage({
   return (
     <AuthFrame
       title="Entrar"
-      description="Acesse seus perfis, jobs de IA, biblioteca, midias e fila de postagem manual."
+      description="Acesse seus perfis, trabalhos de IA, biblioteca e fila de postagem."
       error={getLoginError(params.error)}
       status={getLoginStatus(params.status)}
       action={signIn}

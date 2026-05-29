@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { ThemeToggle } from "./theme-toggle";
+import { signOut } from "@/server/actions/auth";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
 
 const visibleItemLimits: Record<string, number> = {
-  iriguchi: 3,
-  "ura-ichiba": 4,
-  "sosaku-kobo": 4,
+  iriguchi: 4,
+  "ura-ichiba": 3,
+  "sosaku-kobo": 6,
   "sakusen-honbu": 4,
 };
 
@@ -146,7 +147,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
+      <nav className="flex-1 overflow-y-auto px-3 py-3 overscroll-contain">
         {visibleGroups.map((group) => {
           const expanded = expandedGroups[group.id];
           const collapsedItemLimit = visibleItemLimits[group.id] ?? 5;
@@ -231,8 +232,21 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
         })}
       </nav>
 
-      <div className="border-t border-black/5 p-3 dark:border-white/10">
+      <div className="border-t border-black/5 p-3 dark:border-white/10 space-y-1">
         <ThemeToggle compact={collapsed} />
+        <form action={signOut}>
+          <button
+            type="submit"
+            className={[
+              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-950/[0.05] dark:text-stone-400 dark:hover:bg-white/[0.06]",
+              collapsed ? "justify-center" : "",
+            ].join(" ")}
+            title="Sair do sistema"
+          >
+            <LogOut size={18} className="shrink-0" />
+            {!collapsed ? <span className="font-medium">Sair</span> : null}
+          </button>
+        </form>
       </div>
     </aside>
   );

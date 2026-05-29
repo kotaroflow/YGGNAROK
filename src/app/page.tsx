@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Bell, BriefcaseBusiness, FileText, Radio, Sparkles, Users, Zap } from "lucide-react";
+import { BriefcaseBusiness, FileText, Users, Zap } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { tagRows, v1Workflows } from "@/features/dashboard/v1-data";
 import { getDashboardOverview } from "@/server/data/dashboard";
 
 export default async function DashboardPage() {
   const overview = await getDashboardOverview();
-  const hasHealthAlerts = overview.counts.alerts > 0;
   const visibleJobs = overview.jobs.slice(0, 3);
 
   const stats = [
@@ -19,7 +18,7 @@ export default async function DashboardPage() {
       tone: "amber",
     },
     {
-      label: "Jobs em andamento",
+      label: "Trabalhos em andamento",
       value: overview.counts.pendingJobs,
       href: "/jobs-em-andamento",
       icon: BriefcaseBusiness,
@@ -32,13 +31,6 @@ export default async function DashboardPage() {
       icon: FileText,
       tone: "blue",
     },
-    {
-      label: "Avisos simples",
-      value: overview.counts.alerts,
-      href: "/alertas",
-      icon: Bell,
-      tone: "sky",
-    },
   ] as const;
 
   return (
@@ -46,25 +38,22 @@ export default async function DashboardPage() {
       <main className="min-h-screen px-4 py-6 pl-16 text-slate-700 lg:px-8">
         <section className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 pb-6">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Visao operacional da V1</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-stone-50">
-              Dashboard <span className="text-amber-500">YGGNAROK</span> / YGN V1
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-stone-50">
+              <span className="text-amber-500">YGGNAROK</span>
             </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-stone-400">Acompanhe o essencial e entre rapido nos fluxos principais.</p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-stone-400">
+              Acompanhe o essencial e entre rápido nos fluxos principais.
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <ActionButton href="/criar-conteudo" className="bg-amber-300 text-slate-950 hover:bg-amber-200">
               <Zap size={16} />
-              Criar conteudo
+              Criar conteúdo
             </ActionButton>
-            <ActionButton href="/conselho-ia" className="border border-violet-200 bg-violet-100 text-violet-950 hover:bg-violet-200 dark:border-violet-900/50 dark:bg-violet-950/60 dark:text-violet-200">
-              <Radio size={16} />
-              Conectar IA
-            </ActionButton>
-            <ActionButton href="/jobs" className="border border-blue-200 bg-blue-100 text-blue-950 hover:bg-blue-200 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-200">
-              <Sparkles size={16} />
-              Gerar com IA
+            <ActionButton href="/postagem-manual" className="border border-blue-200 bg-blue-100 text-blue-950 hover:bg-blue-200 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-200">
+              <FileText size={16} />
+              Postagem manual
             </ActionButton>
           </div>
         </section>
@@ -87,8 +76,8 @@ export default async function DashboardPage() {
           ))}
         </section>
 
-        <section className="mx-auto mt-7 grid w-full max-w-7xl gap-5 xl:grid-cols-[1.9fr_.95fr]">
-          <Panel title="Ultimos Jobs" href="/jobs" action="Ver todos">
+        <section className="mx-auto mt-7 grid w-full max-w-7xl gap-5">
+          <Panel title="Trabalhos recentes" href="/jobs" action="Ver todos">
             <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
               {visibleJobs.length ? visibleJobs.map((job) => (
                 <Link key={job.id} href={`/jobs/${job.id}`} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-4 text-sm">
@@ -98,31 +87,18 @@ export default async function DashboardPage() {
                   <span className="whitespace-nowrap text-xs text-slate-400">{formatRelativeTime(job.created_at)}</span>
                 </Link>
               )) : (
-                <Empty text="Nenhum job recente." />
+                <Empty text="Nenhum trabalho recente." />
               )}
-            </div>
-          </Panel>
-
-          <Panel title="Saude tecnica" href="/health-logs" action="Ver">
-            <div className="grid min-h-48 place-items-center text-center">
-              <div>
-                <div className={`mx-auto grid size-20 place-items-center rounded-full border-4 ${hasHealthAlerts ? "border-red-200 bg-red-50 text-red-600 dark:border-red-900/70 dark:bg-red-950/40" : "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/70 dark:bg-emerald-950/40"}`}>
-                  <span className="text-xl font-bold">{hasHealthAlerts ? "!" : "OK"}</span>
-                </div>
-                <p className="mt-5 text-sm text-slate-400 dark:text-stone-500">
-                  {hasHealthAlerts ? `${overview.counts.alerts} alerta(s) tecnico(s)` : "Todos os sistemas operacionais"}
-                </p>
-              </div>
             </div>
           </Panel>
         </section>
 
-        <section className="mx-auto mt-5 grid w-full max-w-7xl gap-5 xl:grid-cols-[1.9fr_.95fr]">
-          <Panel title="Fluxo guiado V1" href="/criar-conteudo" action="Abrir">
+        <section className="mx-auto mt-5 grid w-full max-w-7xl gap-5 xl:grid-cols-3">
+          <Panel title="Fluxo de criação" href="/criar-conteudo" action="Abrir">
             <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
               {v1Workflows.map((workflow, index) => (
                 <div key={workflow} className="flex items-center gap-4 py-3.5">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-200 text-xs font-bold text-amber-900">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-200 text-xs font-bold text-amber-900 dark:bg-amber-900/40 dark:text-amber-300">
                     {index + 1}
                   </span>
                   <span className="text-sm text-slate-600 dark:text-stone-300">{workflow}</span>
@@ -131,14 +107,30 @@ export default async function DashboardPage() {
             </div>
           </Panel>
 
-          <Panel title="Tags operacionais" href="/perfis" action="Abrir">
-            <div className="space-y-5">
-              {tagRows.slice(0, 4).map((row) => (
+          <Panel title="Postagem manual" href="/postagem-manual" action="Ver fila">
+            <div className="grid min-h-48 place-items-center text-center">
+              <div>
+                <div className="mx-auto grid size-16 place-items-center rounded-full border-2 border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-900/70 dark:bg-blue-950/40">
+                  <FileText size={26} />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-slate-700 dark:text-stone-200">
+                  {overview.counts.manualPosts} postagem(s) na fila
+                </p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-stone-500">
+                  Clique para gerenciar a fila
+                </p>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel title="Tags de conteúdo" href="/criar-conteudo" action="Gerenciar">
+            <div className="space-y-4">
+              {tagRows.slice(0, 3).map((row) => (
                 <div key={row.group}>
-                  <p className="mb-2.5 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-stone-500">{row.group}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {row.tags.slice(0, 6).map((tag) => (
-                      <span key={tag} className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs text-slate-500 dark:border-neutral-800 dark:bg-neutral-950/70 dark:text-stone-400">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-stone-500">{row.group}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {row.tags.slice(0, 5).map((tag) => (
+                      <span key={tag} className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5 text-xs text-slate-500 dark:border-neutral-800 dark:bg-neutral-950/70 dark:text-stone-400">
                         {tag}
                       </span>
                     ))}
@@ -201,6 +193,16 @@ function Empty({ text }: { text: string }) {
 }
 
 function formatJobTitle(type: string) {
+  const translations: Record<string, string> = {
+    "image_generation": "Geração de imagem",
+    "content_generation": "Geração de conteúdo",
+    "caption_generation": "Geração de legenda",
+    "video_processing": "Processamento de vídeo",
+  };
+
+  const normalized = type.toLowerCase().replace(/[._-]/g, "_");
+  if (translations[normalized]) return translations[normalized];
+
   return type
     .split(/[._-]/)
     .filter(Boolean)
