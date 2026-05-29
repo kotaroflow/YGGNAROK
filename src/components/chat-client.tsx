@@ -21,6 +21,46 @@ const SYSTEM_MESSAGE: UiMessage = {
   content: "Voce e um assistente do YGGNAROK. Responda em PT-BR, direto e pratico.",
 };
 
+const AGENT_DEFINITIONS = {
+  "yggnarok-core": {
+    name: "YGGNAROK Core",
+    summary: "Decisoes gerais do sistema.",
+    prompt:
+      "Voce e o YGGNAROK Core. Responda como um assistente geral do sistema YGGNAROK, com decisao, prioridade e clareza. Mantenha respostas objetivas, prontas para uso e alinhadas ao contexto do projeto.",
+    tone: "bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
+  },
+  hefesto: {
+    name: "Hefesto",
+    summary: "Ensino, explicacao e aprendizado passo a passo.",
+    prompt:
+      "Voce e Hefesto, especialista em ensino, explicacao e aprendizado passo a passo. Quebre tarefas em passos claros, explique o por que de cada etapa e adapte a linguagem para facilitar o aprendizado.",
+    tone: "bg-cyan-500/15 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-200",
+  },
+  daedalus: {
+    name: "Daedalus",
+    summary: "Arquitetura, codigo e refatoracao.",
+    prompt:
+      "Voce e Daedalus, especialista em arquitetura de software, codigo e refatoracao. Foque em estrutura, qualidade, legibilidade, consistencia e melhoria incremental. Sugira solucoes tecnicas claras e seguras.",
+    tone: "bg-violet-500/15 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200",
+  },
+  yomi: {
+    name: "Yomi",
+    summary: "Conteudo, personagens, midia e uso responsavel.",
+    prompt:
+      "Voce e Yomi, orientando sobre conteudo, personagens, midia e uso responsavel. Priorize responsabilidade, clareza, respeito ao contexto e boas praticas ao criar ou avaliar conteudos e representacoes.",
+    tone: "bg-amber-500/15 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
+  },
+  hotei: {
+    name: "Hotei",
+    summary: "Audio, musica, voz e criacao sonora.",
+    prompt:
+      "Voce e Hotei, especialista em audio, musica, voz e criacao sonora. Sugira ideias sonoras, atmosferas, direcoes de voz e abordagens criativas para producao de audio e media.",
+    tone: "bg-rose-500/15 text-rose-800 dark:bg-rose-500/20 dark:text-rose-200",
+  },
+} as const;
+
+type AgentId = keyof typeof AGENT_DEFINITIONS;
+
 function loadHistory(): UiMessage[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -40,6 +80,7 @@ export function ChatClient() {
   const [input, setInput] = useState(
     "Explique como melhorar o meu fluxo de criacao de conteudo para Instagram em 3 passos."
   );
+  const [activeAgent, setActiveAgent] = useState<AgentId>("yggnarok-core");
   const [status, setStatus] = useState<"idle" | "streaming" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -50,8 +91,10 @@ export function ChatClient() {
     } catch {}
   }, [messages]);
 
+  const activeAgentDefinition = AGENT_DEFINITIONS[activeAgent];
+
   const apiMessages = useMemo(
-    () => messages.map((m) => ({ role: m.role, content: m.content })),
+    () => messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })),
     [messages]
   );
 
@@ -81,7 +124,11 @@ export function ChatClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...apiMessages, { role: "user", content }],
+          messages: [
+            { role: "system", content: activeAgentDefinition.prompt },
+            ...apiMessages,
+            { role: "user", content },
+          ],
         }),
         signal: abort.signal,
       });
@@ -139,6 +186,40 @@ export function ChatClient() {
           Consume <code className="font-mono text-xs">/api/chat</code> e
           renderiza o texto conforme chega.
         </p>
+
+        <div className="mt-5 rounded-xl border border-white/70 bg-white/60 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/50">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-stone-100">Agente ativo</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-stone-300">
+                {activeAgentDefinition.summary}
+              </p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${activeAgentDefinition.tone}`}>
+              {activeAgentDefinition.name}
+            </span>
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {(Object.entries(AGENT_DEFINITIONS) as [AgentId, (typeof AGENT_DEFINITIONS)[AgentId]][]).map(([agentId, agent]) => (
+              <button
+                key={agentId}
+                type="button"
+                onClick={() => setActiveAgent(agentId)}
+                className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                  activeAgent === agentId
+                    ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                    : "border-slate-200 bg-white/70 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-900/60 dark:text-stone-200 dark:hover:bg-neutral-800"
+                }`}
+              >
+                <span className="block font-semibold">{agent.name}</span>
+                <span className="mt-1 block text-[10px] uppercase tracking-wide text-slate-500 dark:text-stone-400">
+                  {agent.summary}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-5 space-y-4">
           {messages

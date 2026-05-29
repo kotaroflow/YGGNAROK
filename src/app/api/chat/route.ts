@@ -5,6 +5,18 @@ type ChatMessage = {
   content: string;
 };
 
+type ChatRequestBody = {
+  messages?: unknown;
+};
+
+interface OpenRouterChunk {
+  choices?: Array<{
+    delta?: {
+      content?: string;
+    };
+  }>;
+}
+
 function pickModel() {
   const configured = (process.env.AI_MODEL || "").trim();
   if (!configured) return "meta-llama/llama-3.1-8b-instruct";
@@ -34,14 +46,16 @@ export async function POST(req: Request) {
     return jsonError("Body JSON invalido.", 400);
   }
 
-  const messages = (body && typeof body === "object" && "messages" in body ? (body as any).messages : null) as unknown;
+  const requestBody = body as ChatRequestBody;
+  const messages =
+    body && typeof body === "object" && "messages" in body ? requestBody.messages : null;
   if (!Array.isArray(messages) || !messages.length) return jsonError("messages ausente.", 400);
 
   const normalized: ChatMessage[] = messages
-    .filter((msg) => msg && typeof msg === "object")
+    .filter((msg): msg is Record<string, unknown> => msg !== null && typeof msg === "object")
     .map((msg) => ({
-      role: String((msg as any).role) as ChatMessage["role"],
-      content: String((msg as any).content ?? ""),
+      role: String(msg.role ?? "") as ChatMessage["role"],
+      content: String(msg.content ?? ""),
     }))
     .filter((msg) => (msg.role === "system" || msg.role === "user" || msg.role === "assistant") && msg.content.trim().length > 0);
 
@@ -98,8 +112,8 @@ export async function POST(req: Request) {
               }
 
               try {
-                const parsed = JSON.parse(data) as any;
-                const delta = parsed?.choices?.[0]?.delta?.content ?? "";
+                const parsed = JSON.parse(data) as OpenRouterChunk;
+                const delta = parsed.choices?.[0]?.delta?.content ?? "";
                 if (typeof delta === "string" && delta.length) {
                   controller.enqueue(encoder.encode(delta));
                 }
