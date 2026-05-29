@@ -25,7 +25,30 @@ function extractSseDataLines(chunk: string) {
 
 export async function POST(req: Request) {
   const apiKey = (process.env.OPENROUTER_API_KEY || "").trim();
-  if (!apiKey) return jsonError("OPENROUTER_API_KEY ausente.", 500);
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "development") {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const text = "Você está em um ambiente de desenvolvimento local (Mock Mode). A chave da API do OpenRouter não foi encontrada.\n\nA interface de chat e o fluxo de resposta (streaming) estão funcionando perfeitamente! Para gerar respostas reais da inteligência artificial, você precisará configurar a variável `OPENROUTER_API_KEY` posteriormente.\n\nAté lá, sinta-se livre para testar a responsividade e o design da interface.";
+          const words = text.split(" ");
+          for (const word of words) {
+            controller.enqueue(encoder.encode(word + " "));
+            await new Promise((resolve) => setTimeout(resolve, 30));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store, no-transform",
+        },
+      });
+    }
+    return jsonError("OPENROUTER_API_KEY ausente.", 500);
+  }
 
   let body: unknown;
   try {
