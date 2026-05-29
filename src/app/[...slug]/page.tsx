@@ -9,11 +9,11 @@ export default async function ModuleFallbackPage({ params }: { params: Promise<{
   return (
     <AppShell>
       <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
-        <p className="text-sm font-medium text-brand">{active?.group.title ?? "YGN V1"}</p>
+        <p className="text-sm font-medium text-brand">{active?.group.title ?? "YGGNAROK"}</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{active?.item.label ?? "Módulo"}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Este módulo está na navegação oficial da V1. Os fluxos já funcionais estão em Perfis, Criar conteúdo,
-          Biblioteca, Postagem Manual e Jobs.
+          Este módulo está na navegação oficial do YGGNAROK. Os fluxos funcionais estão em Perfis, Criar conteúdo,
+          Biblioteca, Postagem Manual e Trabalhos.
         </p>
       </main>
     </AppShell>
