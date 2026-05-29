@@ -57,3 +57,32 @@ export async function createLibraryItem(formData: FormData) {
 
   revalidatePath("/biblioteca");
 }
+
+export async function restoreLibraryItem(id: string) {
+  const { supabase } = await assertPermission("library.restore");
+  const { error } = await supabase
+    .from("library_items")
+    .update({ deleted_at: null })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error("Não foi possível restaurar o item.");
+  }
+
+  revalidatePath("/lixeira-inteligente");
+  revalidatePath("/biblioteca");
+}
+
+export async function deleteLibraryItemPermanently(id: string) {
+  const { supabase } = await assertPermission("library.delete");
+  const { error } = await supabase
+    .from("library_items")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error("Não foi possível deletar permanentemente.");
+  }
+
+  revalidatePath("/lixeira-inteligente");
+}

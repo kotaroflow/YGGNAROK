@@ -82,6 +82,18 @@ export async function getLibraryItems() {
   return data ?? [];
 }
 
+export async function getDeletedLibraryItems() {
+  const supabase = await getOptionalSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("library_items")
+    .select("id,profile_id,type,title,body,status,created_at,deleted_at")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  return data ?? [];
+}
+
 export async function getManualPostingItems() {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
