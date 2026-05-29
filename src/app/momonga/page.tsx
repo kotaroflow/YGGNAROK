@@ -96,7 +96,7 @@ export default async function MomongaPage() {
                   </div>
                   <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{decision.status} / {decision.risk}</span>
                 </div>
-                <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">{decision.summary || "Sem resumo."}</p>
+                <p className="mt-2 text-sm text-muted">{decision.summary || "Sem resumo."}</p>
                 <p className="mt-1 text-xs text-stone-500">Autoridade: {decision.authority}</p>
                 {decision.status === "pending" ? (
                   <div className="mt-3 flex gap-2">
@@ -117,7 +117,7 @@ export default async function MomongaPage() {
                   <p className="font-medium">{memory.title}</p>
                   <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{memory.status}</span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-stone-300">{memory.body}</p>
+                <p className="mt-2 line-clamp-2 text-sm text-muted">{memory.body}</p>
                 {memory.status === "pending" ? (
                   <div className="mt-3 flex gap-2">
                     <SmallAction action={approveMemory} hiddenName="id" hiddenValue={memory.id} icon={<Brain size={14} />} label="Aprovar" />
@@ -153,7 +153,7 @@ export default async function MomongaPage() {
                   <Workflow size={16} />
                   <p className="font-medium">{entry.status} - {entry.source}</p>
                 </div>
-                <p className="mt-1 text-sm text-slate-600 dark:text-stone-300">{entry.message}</p>
+                <p className="mt-1 text-sm text-muted">{entry.message}</p>
               </article>
             ))}
           </div>
@@ -245,7 +245,7 @@ function LegacyDecisionList({ jobs }: { jobs: Array<{ id: string; type: string; 
           </div>
           <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{job.status}</span>
         </div>
-        <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">
+        <p className="mt-2 text-sm text-muted">
           Autoridade: {String(orchestration.decision_authority ?? "nao registrada")}
         </p>
       </article>

@@ -11,6 +11,7 @@ import {
   Plus,
   Mic,
 } from "lucide-react";
+import { newConversationId } from "@/lib/chat-storage";
 
 const categories = [
   { label: "Escrever", icon: PenLine, href: "/criar-conteudo" },
@@ -34,7 +35,8 @@ export function HomeScreen() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!value.trim()) return;
-    const params = new URLSearchParams({ q: value.trim() });
+    const conv = newConversationId();
+    const params = new URLSearchParams({ conv, q: value.trim() });
     router.push(`/chat?${params}`);
   }
 
@@ -46,22 +48,24 @@ export function HomeScreen() {
   }
 
   return (
-    <div className="flex w-full flex-col items-center justify-center px-4 py-12 lg:py-20">
-      {/* Saudacao */}
+    <div className="flex w-full flex-col items-center justify-center px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="text-balance text-4xl font-semibold tracking-tight text-slate-900 dark:text-stone-50 md:text-5xl">
-          <span className="mr-3 inline-block text-amber-500">✦</span>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-brand">YGGNAROK</p>
+        <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+          <span className="mr-2 text-brand">✦</span>
           Como posso ajudar?
         </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+          Calma, foco e confiança — comece pelo chat ou escolha um fluxo abaixo.
+        </p>
       </div>
 
-      {/* Caixa de input */}
       <div className="w-full max-w-2xl">
         <form
           onSubmit={handleSubmit}
-          className="relative rounded-2xl border border-slate-200/80 bg-white/80 shadow-lg backdrop-blur-xl transition focus-within:border-amber-400/50 focus-within:ring-4 focus-within:ring-amber-200/20 dark:border-white/10 dark:bg-neutral-900/60 dark:focus-within:border-amber-500/50 dark:focus-within:ring-amber-900/20"
+          className="relative rounded-2xl border border-line bg-surface-strong shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15"
         >
-          <div className="flex items-start gap-3 px-4 pt-4 pb-2">
+          <div className="px-4 pt-4 pb-2">
             <textarea
               ref={textareaRef}
               value={value}
@@ -69,7 +73,7 @@ export function HomeScreen() {
               onKeyDown={handleKeyDown}
               placeholder="Como posso ajudar você hoje?"
               rows={1}
-              className="flex-1 resize-none bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none leading-relaxed dark:text-stone-100 dark:placeholder:text-stone-500"
+              className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
               aria-label="Mensagem para o assistente"
             />
           </div>
@@ -78,14 +82,14 @@ export function HomeScreen() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-stone-500 dark:hover:bg-neutral-800 dark:hover:text-stone-300"
+                className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-sidebar-hover hover:text-foreground"
                 aria-label="Anexar arquivo"
               >
                 <Plus size={17} />
               </button>
               <button
                 type="button"
-                className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-stone-500 dark:hover:bg-neutral-800 dark:hover:text-stone-300"
+                className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-sidebar-hover hover:text-foreground"
                 aria-label="Usar microfone"
               >
                 <Mic size={17} />
@@ -95,7 +99,7 @@ export function HomeScreen() {
             <button
               type="submit"
               disabled={!value.trim()}
-              className="grid size-8 place-items-center rounded-lg bg-amber-400 text-neutral-950 shadow-sm transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-amber-500 dark:hover:bg-amber-400"
+              className="grid size-9 place-items-center rounded-xl bg-brand text-neutral-950 transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-35"
               aria-label="Enviar mensagem"
             >
               <ArrowUp size={17} strokeWidth={2.5} />
@@ -103,16 +107,15 @@ export function HomeScreen() {
           </div>
         </form>
 
-        {/* Chips de categoria */}
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {categories.map(({ label, icon: Icon, href }) => (
             <button
               key={label}
               type="button"
               onClick={() => router.push(href)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/50 px-4 py-2 text-sm font-medium text-slate-500 transition hover:border-amber-300/50 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:border-white/10 dark:bg-neutral-900/40 dark:text-stone-400 dark:hover:border-amber-700/50 dark:hover:bg-neutral-900 dark:hover:text-stone-200"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition hover:border-brand/40 hover:text-foreground"
             >
-              <Icon size={14} />
+              <Icon size={14} className="text-brand" />
               {label}
             </button>
           ))}

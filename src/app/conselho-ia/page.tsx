@@ -14,7 +14,7 @@ export default async function ConselhoIaPage({ searchParams }: { searchParams: P
         <section className="rounded-lg border border-white/70 bg-white/70 p-6 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60">
           <p className="text-sm font-medium text-amber-700 dark:text-amber-300">YGGNAROK AI Council</p>
           <h1 className="mt-1 text-2xl font-semibold">Conselho de IAs</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-stone-300">
+          <p className="mt-3 text-sm leading-6 text-muted">
             Gera, debate, critica, sintetiza, classifica risco e registra aprendizado usando IAs free integradas via OpenRouter.
           </p>
 
@@ -45,7 +45,7 @@ export default async function ConselhoIaPage({ searchParams }: { searchParams: P
 
           <div className="mt-6 rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
             <p className="text-sm font-medium">Runtime free integrado</p>
-            <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-stone-300">
+            <div className="mt-3 grid gap-2 text-sm text-muted">
               <StatusLine label="OpenRouter" value={process.env.OPENROUTER_API_KEY ? "free ativo" : "sem chave"} />
               <StatusLine label="Modelo rapido" value={process.env.AI_MODEL_FAST || "openrouter:openrouter/free"} />
               <StatusLine label="Pago" value={process.env.ENABLE_OPENAI_GPT === "true" ? "habilitado" : "desligado"} />
@@ -111,7 +111,7 @@ function SelectedJob({ job }: { job: Awaited<ReturnType<typeof getFreeCouncilJob
             <h3 className="font-semibold">Aprendizado</h3>
           </div>
           {job.memory.map((memory, index) => (
-            <p key={index} className="mt-3 text-sm leading-6 text-slate-600 dark:text-stone-300">
+            <p key={index} className="mt-3 text-sm leading-6 text-muted">
               {memory.status} / {memory.risk} / {memory.confidence}: {memory.content}
             </p>
           ))}
@@ -123,7 +123,7 @@ function SelectedJob({ job }: { job: Awaited<ReturnType<typeof getFreeCouncilJob
             <h3 className="font-semibold">Audiovisual</h3>
           </div>
           {job.media ? (
-            <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600 dark:text-stone-300">
+            <div className="mt-3 space-y-2 text-sm leading-6 text-muted">
               <p>{job.media.provider} / {job.media.type} / {job.media.status}</p>
               <p>{job.media.message}</p>
               <p className="line-clamp-3">{job.media.prompt}</p>
@@ -149,7 +149,7 @@ function ResultGroup({ icon, title, rows }: { icon: React.ReactNode; title: stri
               <p className="text-sm font-medium">{row.agent}</p>
               <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{row.provider} / {row.risk}</span>
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-stone-300">{row.summary}</p>
+            <p className="mt-2 text-sm leading-6 text-muted">{row.summary}</p>
           </article>
         ))}
       </div>

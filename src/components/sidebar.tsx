@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2 } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "@/server/actions/auth";
+import { useRecentChats, type RecentChat } from "@/lib/use-recent-chats";
+import { useProjects } from "@/lib/use-projects";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
@@ -30,6 +32,7 @@ type SavedSidebarState = {
   collapsed?: boolean;
   expandedGroups?: Record<string, boolean>;
   showAll?: Record<string, boolean>;
+  width?: number;
 };
 
 function readSavedSidebarState(): SavedSidebarState {
@@ -53,16 +56,409 @@ function readSavedMobileOpen() {
   return window.sessionStorage.getItem(mobileStorageKey) === "true";
 }
 
-export function Sidebar({ user }: { user: PermissionContext | null }) {
+// ─── Recent Chat Item (Claude-style) ────────────────────────────────────────
+
+function RecentChatItem({
+  chat,
+  onDelete,
+  onRename,
+  onPin,
+  onAddToProject,
+  projects,
+}: {
+  chat: RecentChat & { active?: boolean };
+  onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
+  onPin: (id: string) => void;
+  onAddToProject: (chatId: string, projectId: string) => void;
+  projects: { id: string; name: string }[];
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(chat.title);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setShowProjectPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Focus input when renaming starts
+  useEffect(() => {
+    if (isRenaming) renameInputRef.current?.focus();
+  }, [isRenaming]);
+
+  function submitRename() {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== chat.title) onRename(chat.id, trimmed);
+    setIsRenaming(false);
+  }
+
+  return (
+    <div
+      className={`group relative mx-1 flex min-h-9 items-center rounded-lg px-3 text-[13px] transition ${
+        chat.active
+          ? "bg-sidebar-active text-sidebar-text font-medium"
+          : "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text"
+      }`}
+    >
+      {/* Circle / pin indicator */}
+      <button
+        type="button"
+        onClick={() => onPin(chat.id)}
+        title={chat.pinned ? "Desafixar" : "Fixar"}
+        className={`mr-2.5 flex size-3.5 shrink-0 items-center justify-center rounded-full border transition hover:border-brand ${
+          chat.pinned ? "border-brand bg-brand/10" : chat.active ? "border-brand" : "border-sidebar-text-muted/40"
+        }`}
+      >
+        {chat.pinned && <span className="size-1.5 rounded-full bg-brand" />}
+      </button>
+
+      {/* Title / Rename input */}
+      {isRenaming ? (
+        <input
+          ref={renameInputRef}
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onBlur={submitRename}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submitRename();
+            if (e.key === "Escape") { setRenameValue(chat.title); setIsRenaming(false); }
+          }}
+          className="flex-1 truncate bg-transparent text-[13px] text-sidebar-text focus:outline-none"
+        />
+      ) : (
+        <Link href={chat.href} className="flex-1 truncate">
+          {chat.title}
+        </Link>
+      )}
+
+      {/* ⋮ Menu */}
+      <div ref={menuRef} className="relative ml-1 shrink-0">
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); setMenuOpen((v) => !v); setShowProjectPicker(false); }}
+          className={`grid size-6 place-items-center rounded-md transition ${
+            menuOpen
+              ? "bg-sidebar-hover text-sidebar-text opacity-100"
+              : "text-muted opacity-0 group-hover:opacity-100 hover:bg-sidebar-hover hover:text-sidebar-text"
+          }`}
+          aria-label="Opções"
+        >
+          <MoreHorizontal size={13} />
+        </button>
+
+        {/* Context Menu */}
+        {menuOpen && !showProjectPicker && (
+          <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
+            <button
+              type="button"
+              onClick={() => { onPin(chat.id); setMenuOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition"
+            >
+              <Pin size={13} className="text-muted" />
+              {chat.pinned ? "Desafixar" : "Fixar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsRenaming(true); setMenuOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition"
+            >
+              <Pencil size={13} className="text-muted" /> Mudar o nome
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowProjectPicker(true)}
+              className="flex w-full items-center justify-between gap-2.5 px-3 py-2 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition"
+            >
+              <span className="flex items-center gap-2.5">
+                <FolderSymlink size={13} className="text-muted" /> Adicionar ao projeto
+              </span>
+              <ChevronRight size={11} className="text-muted" />
+            </button>
+            <div className="mx-3 my-1 h-px bg-sidebar-hover" />
+            <button
+              type="button"
+              onClick={() => { onDelete(chat.id); setMenuOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-red-400 hover:bg-sidebar-hover transition"
+            >
+              <Trash2 size={13} /> Apagar
+            </button>
+          </div>
+        )}
+
+        {/* Project Picker submenu */}
+        {menuOpen && showProjectPicker && (
+          <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
+            <button
+              type="button"
+              onClick={() => setShowProjectPicker(false)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-muted hover:bg-sidebar-hover transition"
+            >
+              <ChevronLeft size={12} /> Voltar
+            </button>
+            <div className="mx-3 mb-1 h-px bg-sidebar-hover" />
+            {projects.length === 0 ? (
+              <Link
+                href="/projetos"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-brand hover:bg-sidebar-hover transition"
+              >
+                <FolderPlus size={13} /> Criar projeto
+              </Link>
+            ) : (
+              projects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { onAddToProject(chat.id, p.id); setMenuOpen(false); }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition"
+                >
+                  <FolderOpen size={13} className="shrink-0 text-brand/70" />
+                  <span className="truncate">{p.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Recent chats list ───────────────────────────────────────────────────────
+
+function RecentsTab() {
   const pathname = usePathname();
-  const savedState = useMemo(() => readSavedSidebarState(), []);
-  const [collapsed, setCollapsed] = useState(savedState.collapsed ?? false);
-  const [mobileOpen, setMobileOpen] = useState(readSavedMobileOpen);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    ...defaultExpandedGroups,
-    ...savedState.expandedGroups,
-  });
-  const [showAll, setShowAll] = useState<Record<string, boolean>>(savedState.showAll ?? {});
+  const searchParams = useSearchParams();
+  const activeConv = searchParams.get("conv");
+  const { chats, mounted, pin, rename, remove } = useRecentChats();
+  const { projects, addConversation } = useProjects();
+
+  function handleAddToProject(chatId: string, projectId: string) {
+    const chat = chats.find((c) => c.id === chatId);
+    if (!chat) return;
+    addConversation(projectId, chat.title);
+  }
+
+  if (!mounted) {
+    return <p className="px-3 py-2 text-[12px] text-stone-500">Carregando…</p>;
+  }
+
+  if (!chats.length) {
+    return <p className="px-3 py-2 text-[12px] text-stone-500">Nenhum chat recente.</p>;
+  }
+
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
+
+  return (
+    <>
+      {chats.map((chat) => (
+        <RecentChatItem
+          key={chat.id}
+          chat={{
+            ...chat,
+            active:
+              pathname === "/chat" &&
+              (activeConv ? activeConv === chat.id : chats[0]?.id === chat.id),
+          }}
+          onDelete={remove}
+          onRename={rename}
+          onPin={pin}
+          onAddToProject={handleAddToProject}
+          projects={projectOptions}
+        />
+      ))}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProjectsSection({ collapsed }: { collapsed: boolean }) {
+  const { projects, mounted } = useProjects();
+  const [expanded, setExpanded] = useState(true);
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+  function toggleProject(id: string) {
+    setExpandedProjects((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  if (!mounted || collapsed) {
+    return (
+      <Link
+        href="/projetos"
+        className="flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition"
+        title="Projetos"
+      >
+        <FolderOpen size={16} className="text-muted" />
+        {!collapsed && "Projetos"}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="mx-1">
+      {/* Section header */}
+      <div className="flex h-9 items-center justify-between rounded-lg px-3 hover:bg-sidebar-hover group transition">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex flex-1 items-center gap-2.5 text-[13px] font-medium text-sidebar-text-muted hover:text-sidebar-text"
+        >
+          <FolderOpen size={16} className="text-muted" />
+          Projetos
+        </button>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+          <Link
+            href="/projetos"
+            className="grid size-5 place-items-center rounded text-muted hover:text-sidebar-text transition"
+            title="Ver todos os projetos"
+          >
+            <FolderPlus size={13} />
+          </Link>
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="grid size-5 place-items-center rounded text-muted hover:text-sidebar-text transition"
+          >
+            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Projects list */}
+      {expanded && (
+        <div className="mt-0.5 space-y-0.5">
+          {projects.length === 0 ? (
+            <Link
+              href="/projetos"
+              className="flex h-8 items-center gap-2 rounded-lg px-3 ml-2 text-[12px] text-muted hover:text-sidebar-text transition"
+            >
+              <span className="text-muted">Nenhum projeto —</span>
+              <span className="text-brand">criar</span>
+            </Link>
+          ) : (
+            projects.map((project) => (
+              <div key={project.id}>
+                <button
+                  onClick={() => toggleProject(project.id)}
+                  className="flex w-full h-8 items-center gap-2 rounded-lg px-3 ml-2 text-[12px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition"
+                >
+                  {expandedProjects[project.id] ? (
+                    <ChevronDown size={11} className="shrink-0 text-muted" />
+                  ) : (
+                    <ChevronRight size={11} className="shrink-0 text-muted" />
+                  )}
+                  <FolderOpen size={13} className="shrink-0 text-brand/70" />
+                  <span className="truncate flex-1 text-left">{project.name}</span>
+                </button>
+
+                {expandedProjects[project.id] && (
+                  <div className="ml-6 mt-0.5 space-y-0.5">
+                    {project.conversations.length === 0 ? (
+                      <Link
+                        href={`/chat?project=${project.id}`}
+                        className="flex h-7 items-center gap-2 rounded-lg px-3 text-[11px] text-muted hover:text-sidebar-text transition"
+                      >
+                        Nenhum chat
+                      </Link>
+                    ) : (
+                      project.conversations.slice(0, 5).map((conv) => (
+                        <Link
+                          key={conv.id}
+                          href={`/chat?project=${project.id}&conv=${conv.id}`}
+                          className="flex h-7 items-center gap-2 rounded-lg px-3 text-[12px] text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition"
+                        >
+                          <MessageSquare size={11} className="shrink-0 text-muted" />
+                          <span className="truncate">{conv.title}</span>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Sidebar({ 
+  user,
+  defaultCollapsed = false,
+  defaultWidth = 288
+}: { 
+  user: PermissionContext | null;
+  defaultCollapsed?: boolean;
+  defaultWidth?: number;
+}) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(defaultExpandedGroups);
+  const [showAll, setShowAll] = useState<Record<string, boolean>>({});
+  const [sidebarWidth, setSidebarWidth] = useState(defaultWidth);
+  const [isMounted, setIsMounted] = useState(false);
+  const [transitionsEnabled, setTransitionsEnabled] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+    const savedState = readSavedSidebarState();
+    if (savedState.collapsed !== undefined) {
+      setCollapsed(savedState.collapsed);
+    }
+    if (savedState.width !== undefined) {
+      setSidebarWidth(savedState.width);
+    }
+    if (savedState.expandedGroups !== undefined) {
+      setExpandedGroups(prev => ({ ...prev, ...savedState.expandedGroups }));
+    }
+    if (savedState.showAll !== undefined) {
+      setShowAll(savedState.showAll);
+    }
+    setMobileOpen(readSavedMobileOpen());
+
+    // Enable transitions after a tiny delay to avoid the hydration/mount visual flash
+    const timer = setTimeout(() => {
+      setTransitionsEnabled(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = Math.max(220, Math.min(e.clientX, 500));
+      setSidebarWidth(newWidth);
+    };
+    const handleMouseUp = () => setIsResizing(false);
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    } else {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   const visibleGroups = useMemo(
     () =>
@@ -76,27 +472,35 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
   );
 
   useEffect(() => {
+    if (!isMounted) return;
     if (typeof window === "undefined") {
       return;
     }
 
+    // Save to localStorage as backup
     window.localStorage.setItem(
       storageKey,
       JSON.stringify({
         collapsed,
         expandedGroups,
         showAll,
+        width: sidebarWidth,
       }),
     );
-  }, [collapsed, expandedGroups, showAll]);
+
+    // Save to cookies to prevent SSR/hydration visual flash (F5 bug)
+    document.cookie = `ygn_sidebar_collapsed=${collapsed}; path=/; max-age=31536000; SameSite=Lax`;
+    document.cookie = `ygn_sidebar_width=${sidebarWidth}; path=/; max-age=31536000; SameSite=Lax`;
+  }, [collapsed, expandedGroups, showAll, sidebarWidth, isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
     if (typeof window === "undefined") {
       return;
     }
 
     window.sessionStorage.setItem(mobileStorageKey, String(mobileOpen));
-  }, [mobileOpen]);
+  }, [mobileOpen, isMounted]);
 
   function toggleGroup(id: string) {
     setExpandedGroups((current) => ({ ...current, [id]: !current[id] }));
@@ -112,141 +516,177 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
+  const [activeTab, setActiveTab] = useState<"chat" | "criacao" | "mercado">("chat");
+
   const sidebar = (
     <aside
-      className={[
-        "flex h-full flex-col border-r border-black/5 bg-sidebar shadow-sm backdrop-blur-xl transition-[width] duration-200 dark:border-white/10",
-        collapsed ? "w-20" : "w-[19rem]",
-      ].join(" ")}
+      ref={sidebarRef}
+      style={{ 
+        width: collapsed ? "4.5rem" : `${sidebarWidth}px`, 
+        transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s" 
+      }}
+      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted shrink-0 rounded-xl"
     >
-      <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
-        <div className="grid size-10 place-items-center rounded-md bg-slate-950 text-sm font-bold text-amber-300 shadow-sm dark:bg-amber-300 dark:text-neutral-950">
-          YG
-        </div>
+      {/* Resizer Handle */}
+      {!collapsed && (
+        <div
+          onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
+          className="absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize hover:bg-brand/50 z-50"
+        />
+      )}
+      {/* Top Header (Brand & Collapse Button) */}
+      <div className="flex h-14 shrink-0 items-center justify-between px-4">
         {!collapsed ? (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-slate-950 dark:text-stone-50">YGGNAROK</p>
-            <p className="truncate text-xs text-slate-500 dark:text-stone-400">Painel de operacao</p>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          className="ml-auto hidden size-9 place-items-center rounded-md border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-900/60 dark:text-stone-300 dark:hover:bg-neutral-900 lg:grid"
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-        <button
-          type="button"
-          className="ml-auto grid size-9 place-items-center rounded-md border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-900/60 dark:text-stone-300 dark:hover:bg-neutral-900 lg:hidden"
-          onClick={closeMobile}
-          aria-label="Fechar navegacao"
-        >
-          <X size={18} />
-        </button>
+          <>
+            <div className="text-[12px] font-semibold text-brand tracking-wide">YGGNAROK</div>
+            <button
+              onClick={() => setCollapsed(true)}
+              className="grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
+              title="Recolher Sidebar"
+            >
+              <Menu size={16} />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="mx-auto grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
+            title="Expandir Sidebar"
+          >
+            <Menu size={16} />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3 overscroll-contain">
-        {visibleGroups.map((group) => {
-          const expanded = expandedGroups[group.id];
-          const collapsedItemLimit = visibleItemLimits[group.id] ?? 5;
-          const limit = showAll[group.id] ? group.items.length : collapsedItemLimit;
-          const items = group.items.slice(0, limit);
-          const hiddenCount = group.items.length - items.length;
-
-          return (
-            <section key={group.id} className="mb-2">
+      {!collapsed && (
+        <>
+          {/* Tabs */}
+          <div className="px-3 pb-2">
+            <div className="flex h-9 rounded-lg bg-black/20 p-1">
               <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-semibold uppercase text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-400"
-                onClick={() => toggleGroup(group.id)}
-                title={group.title}
+                onClick={() => setActiveTab("chat")}
+                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${activeTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
-                <ChevronDown className={expanded ? "shrink-0" : "shrink-0 -rotate-90"} size={16} />
-                {!collapsed ? (
-                  <>
-                    <span className="min-w-0 flex-1 truncate">{group.title}</span>
-                    <span className="rounded-md bg-slate-950/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-white/[0.08] dark:text-stone-400">
-                      {group.items.length}
-                    </span>
-                  </>
-                ) : (
-                  <span>{group.subtitle.slice(0, 2)}</span>
-                )}
+                <MessageSquare size={14} />
+                Chat
               </button>
+              <button
+                onClick={() => setActiveTab("criacao")}
+                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${activeTab === "criacao" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
+              >
+                <Bot size={14} />
+                Criação
+              </button>
+              <button
+                onClick={() => setActiveTab("mercado")}
+                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${activeTab === "mercado" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
+              >
+                <Briefcase size={14} />
+                Mercado
+              </button>
+            </div>
+          </div>
 
-              {expanded ? (
-                <div className="mt-1 space-y-1">
-                  {items.map((item) => {
-                    const active = pathname === item.href;
-                    const Icon = item.icon;
+          {/* Main Links */}
+          <div className="px-2 py-2 space-y-0.5">
+            <Link href="/chat" className="flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
+              <Plus size={16} className="text-muted" />
+              Novo chat
+            </Link>
+            <ProjectsSection collapsed={collapsed} />
+          </div>
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={[
-                          "group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-                          active
-                            ? "bg-sidebar-active text-sidebar-text shadow-sm"
-                            : "text-slate-600 hover:bg-sidebar-hover dark:text-stone-300",
-                        ].join(" ")}
-                        title={`${item.label} - ${item.description}`}
-                      >
-                        <Icon size={18} className="shrink-0" />
-                        {!collapsed ? (
-                          <span className="min-w-0">
-                            <span className="block truncate font-semibold">{item.label}</span>
-                            <span
-                              className={[
-                                "block truncate text-xs",
-                                active
-                                  ? "text-slate-700/70 dark:text-neutral-950/65"
-                                  : "text-slate-500 group-hover:text-slate-600 dark:text-stone-500 dark:group-hover:text-stone-300",
-                              ].join(" ")}
-                            >
-                              {item.description}
-                            </span>
-                          </span>
-                        ) : null}
-                      </Link>
-                    );
-                  })}
-
-                  {!collapsed && group.items.length > collapsedItemLimit ? (
-                    <button
-                      type="button"
-                      className="ml-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-300"
-                      onClick={() => toggleShowAll(group.id)}
-                    >
-                      <Menu size={16} />
-                      <span className="min-w-0 flex-1 text-left">{showAll[group.id] ? "Mostrar menos" : "Mostrar mais"}</span>
-                      {!showAll[group.id] && hiddenCount > 0 ? <span className="text-xs">+{hiddenCount}</span> : null}
-                    </button>
-                  ) : null}
-                </div>
+          {/* Recents / Dynamic List */}
+          <div className="mt-4 flex-1 overflow-y-auto px-2">
+            <p className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.06em] font-medium text-muted">
+              {activeTab === "chat" ? "Recentes" : activeTab === "criacao" ? "Criação & IA" : "Comercial"}
+            </p>
+            <div className="space-y-0.5">
+              {activeTab === "chat" ? (
+              <Suspense fallback={<p className="px-3 py-2 text-[12px] text-stone-500">Carregando…</p>}>
+                <RecentsTab />
+              </Suspense>
+              ) : activeTab === "criacao" ? (
+                visibleGroups.filter(g => g.id === "sosaku-kobo").flatMap(g => g.items).map(item => (
+                  <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
+                    <item.icon size={14} className="shrink-0 text-muted" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                ))
+              ) : activeTab === "mercado" ? (
+                visibleGroups.filter(g => g.id === "ura-ichiba").flatMap(g => g.items).map(item => (
+                  <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
+                    <item.icon size={14} className="shrink-0 text-muted" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                ))
               ) : null}
-            </section>
-          );
-        })}
-      </nav>
+            </div>
+          </div>
+        </>
+      )}
 
-      <div className="border-t border-black/5 p-3 dark:border-white/10 space-y-1">
-        <ThemeToggle compact={collapsed} />
-        <form action={signOut}>
-          <button
-            type="submit"
-            className={[
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-400",
-              collapsed ? "justify-center" : "",
-            ].join(" ")}
-            title="Sair do sistema"
-          >
-            <LogOut size={18} className="shrink-0" />
-            {!collapsed ? <span className="font-medium">Sair</span> : null}
-          </button>
-        </form>
+      {/* Bottom Area */}
+      <div className="mt-auto p-3">
+        <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
+          {!collapsed ? (
+            <div className="flex items-center gap-2">
+              <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-foreground">
+                K
+              </div>
+              <span className="text-[13px] font-medium text-sidebar-text">
+                kotaro <span className="text-sidebar-text-muted opacity-80">· Free</span>
+              </span>
+            </div>
+          ) : (
+             <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-foreground">
+                K
+              </div>
+          )}
+          
+          {/* Profile Menu Popover - opens to the RIGHT to avoid sidebar clipping */}
+          <div className="absolute bottom-0 left-full ml-2 z-50 w-64 origin-bottom-left rounded-xl border border-sidebar-hover bg-sidebar p-1.5 opacity-0 invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible shadow-none">
+            <div className="px-2 py-1.5 text-[12px] text-sidebar-text-muted">
+              naoteemteresa@gmail.com
+            </div>
+            <div className="space-y-0.5">
+              <Link href="/configuracoes" className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <div className="flex items-center gap-2"><Settings size={14} className="text-muted" /> Configurações</div>
+                <span className="text-[10px] text-muted">Ctrl,</span>
+              </Link>
+              <button className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <div className="flex items-center gap-2"><Globe size={14} className="text-muted" /> Idioma</div>
+                <ChevronRight size={14} className="text-muted" />
+              </button>
+              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <HelpCircle size={14} className="text-muted" /> Receber ajuda
+              </button>
+            </div>
+            
+            <div className="my-1 border-t border-sidebar-hover"></div>
+            
+            <div className="space-y-0.5">
+              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <ArrowUpCircle size={14} className="text-muted" /> Fazer upgrade do plano
+              </button>
+              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <Download size={14} className="text-muted" /> Obter apps e extensões
+              </button>
+              <button className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <div className="flex items-center gap-2"><Info size={14} className="text-muted" /> Saiba mais</div>
+                <ChevronRight size={14} className="text-muted" />
+              </button>
+            </div>
+
+            <div className="my-1 border-t border-sidebar-hover"></div>
+            
+            <form action={signOut}>
+              <button type="submit" className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
+                <div className="flex items-center gap-2"><LogOut size={14} className="text-muted" /> Sair</div>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </aside>
   );

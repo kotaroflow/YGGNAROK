@@ -9,9 +9,9 @@ export default async function ModuleFallbackPage({ params }: { params: Promise<{
   return (
     <AppShell>
       <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
-        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">{active?.group.title ?? "YGN V1"}</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{active?.item.label ?? "Módulo"}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-stone-300">
+        <p className="text-sm font-medium text-brand">{active?.group.title ?? "YGN V1"}</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{active?.item.label ?? "Módulo"}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
           Este módulo está na navegação oficial da V1. Os fluxos já funcionais estão em Perfis, Criar conteúdo,
           Biblioteca, Postagem Manual e Jobs.
         </p>

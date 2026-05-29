@@ -56,7 +56,7 @@ export default async function PostagemManualPage() {
                   <div>
                     <h3 className="font-medium">{item.platform}</h3>
                     <p className="text-sm text-slate-400 dark:text-stone-500">{item.status} · {item.planned_date || "sem data"}</p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">{item.caption_to_copy || "Sem legenda."}</p>
+                    <p className="mt-2 text-sm text-muted">{item.caption_to_copy || "Sem legenda."}</p>
                     {item.hashtags_to_copy?.length ? <p className="mt-1 text-xs text-stone-500">{item.hashtags_to_copy.join(" ")}</p> : null}
                   </div>
                   {item.status !== "posted" ? (

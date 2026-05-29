@@ -82,7 +82,7 @@ export default async function CriarConteudoPage() {
                   <div>
                     <h3 className="font-medium">{item.title}</h3>
                     <p className="text-sm text-slate-400 dark:text-stone-500">{item.content_type} - {item.platform || "sem plataforma"}</p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">{item.idea || "Sem ideia registrada."}</p>
+                    <p className="mt-2 text-sm text-muted">{item.idea || "Sem ideia registrada."}</p>
                     <form action={createGuidedAiJob} className="mt-3">
                       <input type="hidden" name="profileId" value={item.profile_id} />
                       <input type="hidden" name="contentId" value={item.id} />

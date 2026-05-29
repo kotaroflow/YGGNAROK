@@ -28,7 +28,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-[#f7f4ee] text-stone-950 dark:bg-[#0e0d10] dark:text-stone-100">
+      <body className="min-h-full bg-background text-foreground antialiased">
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem("ygn-theme");document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t==="dark"?"dark":"light"}catch(e){document.documentElement.classList.remove("dark");document.documentElement.dataset.theme="light"}`,

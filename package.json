@@ -11,7 +11,10 @@
     "lint": "eslint",
     "worker:dev": "tsx worker/src/index.ts",
     "worker:once": "tsx worker/src/index.ts --once",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync:clone": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-yggnarok-clone.ps1",
+    "sync:clone:from-ag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-yggnarok-clone.ps1 -From antigravity",
+    "sync:clone:from-cursor": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-yggnarok-clone.ps1 -From cursor"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1051.0",

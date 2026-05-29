@@ -16,7 +16,7 @@ export default async function WorkersPage() {
       </div>
       <div className="mt-6 rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
         <h2 className="font-medium">Último health log</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-stone-300">{latest?.message ?? "Sem logs visíveis."}</p>
+        <p className="mt-1 text-sm text-muted">{latest?.message ?? "Sem logs visíveis."}</p>
       </div>
     </AdminListPage>
   );

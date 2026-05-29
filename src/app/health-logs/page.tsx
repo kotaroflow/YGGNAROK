@@ -23,7 +23,7 @@ export default async function HealthLogsPage({ searchParams }: { searchParams: P
               <h2 className="font-medium">{log.source}</h2>
               <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{log.status}</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600 dark:text-stone-300">{log.message}</p>
+            <p className="mt-1 text-sm text-muted">{log.message}</p>
             <p className="mt-1 text-xs text-stone-500">{new Date(log.created_at).toLocaleString("pt-BR")}</p>
             <JsonPreview value={log.metadata} />
           </article>

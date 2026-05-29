@@ -68,8 +68,8 @@ export function AuthFrame({
               YGGNAROK / YGN V1
             </div>
 
-            <h1 className="text-4xl font-semibold tracking-tight text-slate-950 dark:text-stone-50">{title}</h1>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-500 dark:text-stone-300">{description}</p>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">{title}</h1>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-muted">{description}</p>
 
             {error ? <p className="mt-5 rounded-2xl bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
             {status ? <p className="mt-5 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">{status}</p> : null}

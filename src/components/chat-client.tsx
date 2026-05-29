@@ -1,63 +1,83 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Field, buttonClass, textareaClass } from "@/components/field";
-
-const STORAGE_KEY = "yggnarok.chat.history.v1";
-
-type UiMessage = {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+import { useSearchParams, useRouter } from "next/navigation";
+import { ArrowUp, StopCircle, Trash2, Bot, User } from "lucide-react";
+import { ModelSwitcher } from "@/components/model-switcher";
+import { loadSelectedModel, saveSelectedModel } from "@/lib/models";
+import { useRecentChats } from "@/lib/use-recent-chats";
+import {
+  CHAT_SYSTEM_MESSAGE,
+  clearConversation,
+  loadConversation,
+  newConversationId,
+  saveConversation,
+  type ChatMessage,
+} from "@/lib/chat-storage";
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-const SYSTEM_MESSAGE: UiMessage = {
-  id: "system-default",
-  role: "system",
-  content: "Voce e um assistente do YGGNAROK. Responda em PT-BR, direto e pratico.",
-};
-
-function loadHistory(): UiMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [SYSTEM_MESSAGE];
-    const parsed = JSON.parse(raw) as UiMessage[];
-    if (parsed.length === 0 || parsed[0].role !== "system") {
-      return [SYSTEM_MESSAGE, ...parsed];
-    }
-    return parsed;
-  } catch {
-    return [SYSTEM_MESSAGE];
-  }
-}
-
 export function ChatClient() {
-  const [messages, setMessages] = useState<UiMessage[]>(() => loadHistory());
-  const [input, setInput] = useState(
-    "Explique como melhorar o meu fluxo de criacao de conteudo para Instagram em 3 passos."
-  );
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const convId = searchParams.get("conv") ?? "";
+  const initialQuery = searchParams.get("q");
+  const { addChat } = useRecentChats();
+
+  const [messages, setMessages] = useState<ChatMessage[]>([CHAT_SYSTEM_MESSAGE]);
+  const [input, setInput] = useState("");
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const fromUrl = searchParams.get("model");
+    return fromUrl || loadSelectedModel();
+  });
   const [status, setStatus] = useState<"idle" | "streaming" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const initialQuerySentRef = useRef(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {}
-  }, [messages]);
+    if (convId) {
+      setMessages(loadConversation(convId));
+      setHydrated(true);
+      return;
+    }
+
+    const id = newConversationId();
+    const q = searchParams.get("q");
+    const query = q ? `&q=${encodeURIComponent(q)}` : "";
+    router.replace(`/chat?conv=${id}${query}`);
+  }, [convId, router, searchParams]);
+
+  useEffect(() => {
+    if (!hydrated || !convId) return;
+    saveConversation(convId, messages);
+  }, [messages, convId, hydrated]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [input]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, status]);
 
   const apiMessages = useMemo(
     () => messages.map((m) => ({ role: m.role, content: m.content })),
-    [messages]
+    [messages],
   );
 
-  async function send() {
-    const content = input.trim();
-    if (!content) return;
+  async function send(contentOverride?: string) {
+    const content = (contentOverride ?? input).trim();
+    if (!content || !convId) return;
 
     abortRef.current?.abort();
     const abort = new AbortController();
@@ -66,7 +86,7 @@ export function ChatClient() {
     setError(null);
     setStatus("streaming");
 
-    const userMessage: UiMessage = { id: uid(), role: "user", content };
+    const userMessage: ChatMessage = { id: uid(), role: "user", content };
     const assistantId = uid();
 
     setMessages((current) => [
@@ -76,12 +96,20 @@ export function ChatClient() {
     ]);
     setInput("");
 
+    const title = content.length > 52 ? `${content.slice(0, 52)}…` : content;
+    addChat({
+      id: convId,
+      title,
+      href: `/chat?conv=${convId}`,
+    });
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...apiMessages, { role: "user", content }],
+          model: selectedModel,
         }),
         signal: abort.signal,
       });
@@ -102,8 +130,8 @@ export function ChatClient() {
         if (!chunk) continue;
         setMessages((current) =>
           current.map((m) =>
-            m.id === assistantId ? { ...m, content: m.content + chunk } : m
-          )
+            m.id === assistantId ? { ...m, content: m.content + chunk } : m,
+          ),
         );
       }
 
@@ -112,6 +140,34 @@ export function ChatClient() {
       if (abort.signal.aborted) return;
       setStatus("error");
       setError(err instanceof Error ? err.message : "Falha desconhecida.");
+    }
+  }
+
+  useEffect(() => {
+    if (
+      !initialQuery ||
+      !hydrated ||
+      !convId ||
+      initialQuerySentRef.current ||
+      status !== "idle"
+    ) {
+      return;
+    }
+
+    const loaded = loadConversation(convId);
+    const hasUserMessages = loaded.some((m) => m.role === "user");
+    if (hasUserMessages) return;
+
+    initialQuerySentRef.current = true;
+    send(initialQuery);
+    router.replace(`/chat?conv=${convId}`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery, hydrated, convId]);
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
     }
   }
 
@@ -125,98 +181,140 @@ export function ChatClient() {
     setStatus("idle");
     setError(null);
     setInput("");
-    setMessages([SYSTEM_MESSAGE]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    clearConversation(convId);
+    const id = newConversationId();
+    setMessages([CHAT_SYSTEM_MESSAGE]);
+    router.replace(`/chat?conv=${id}`);
+  }
+
+  const visibleMessages = messages.filter((m) => m.role !== "system");
+
+  if (!convId || !hydrated) {
+    return (
+      <div className="grid flex-1 place-items-center text-sm text-muted">
+        Carregando conversa…
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="rounded-lg border border-white/70 bg-white/70 p-6 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60">
-        <h1 className="text-2xl font-semibold">Chat (streaming)</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">
-          Consume <code className="font-mono text-xs">/api/chat</code> e
-          renderiza o texto conforme chega.
-        </p>
-
-        <div className="mt-5 space-y-4">
-          {messages
-            .filter((m) => m.role !== "system")
-            .map((m) => (
-              <article
-                key={m.id}
-                className={[
-                  "rounded-lg border p-4 shadow-sm",
-                  m.role === "user"
-                    ? "border-amber-200/70 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20"
-                    : "border-white/70 bg-white/45 dark:border-white/10 dark:bg-neutral-950/35",
-                ].join(" ")}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  {m.role}
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-800 dark:text-stone-200">
-                  {m.content}
-                </p>
-              </article>
-            ))}
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+        <div>
+          <h1 className="text-base font-semibold text-foreground">Conselho IA</h1>
+          <p className="text-xs text-muted">Void &amp; Amber · YGGNAROK</p>
         </div>
-
-        {error ? (
-          <p className="mt-5 rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200">
-            {error}
-          </p>
-        ) : null}
-      </section>
-
-      <aside className="rounded-lg border border-white/70 bg-white/70 p-5 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60">
-        <Field label="Mensagem">
-          <textarea
-            className={textareaClass}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Digite e envie..."
-          />
-        </Field>
-
-        <div className="mt-4 grid gap-3">
+        {visibleMessages.length > 0 && (
           <button
             type="button"
-            className={buttonClass}
-            onClick={send}
-            disabled={status === "streaming"}
-          >
-            {status === "streaming" ? "Gerando..." : "Enviar"}
-          </button>
-
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-neutral-900 dark:text-stone-200 dark:hover:bg-neutral-800"
-            onClick={stop}
-            disabled={status !== "streaming"}
-          >
-            Parar
-          </button>
-
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center rounded-md border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-60 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 dark:hover:bg-red-950/40"
             onClick={clearChat}
-            disabled={status === "streaming"}
+            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-surface hover:text-red-600 dark:hover:text-red-400"
+            title="Nova conversa"
           >
-            Limpar chat
+            <Trash2 size={16} />
+            <span className="hidden sm:inline">Nova conversa</span>
           </button>
-        </div>
+        )}
+      </div>
 
-        <div className="mt-5 rounded-lg border border-white/70 bg-white/45 p-4 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35 dark:text-stone-300">
-          <p className="font-semibold">Env vars</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li><code className="font-mono text-xs">OPENROUTER_API_KEY</code> (obrigatoria)</li>
-            <li><code className="font-mono text-xs">AI_MODEL</code> (ex: meta-llama/llama-3.1-8b-instruct)</li>
-          </ul>
+      <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+          {visibleMessages.length === 0 ? (
+            <div className="mt-16 text-center">
+              <div className="mx-auto mb-4 grid size-16 place-items-center rounded-2xl bg-sidebar-active text-brand">
+                <Bot size={32} />
+              </div>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                Como posso ajudar hoje?
+              </h2>
+              <p className="mt-2 text-sm text-muted">
+                Operações, conteúdo, vendas e jobs — respostas em português.
+              </p>
+            </div>
+          ) : (
+            visibleMessages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`grid size-8 shrink-0 place-items-center rounded-xl ${
+                    m.role === "user"
+                      ? "bg-surface-strong text-muted ring-1 ring-line"
+                      : "bg-brand text-neutral-950"
+                  }`}
+                >
+                  {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
+                </div>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "bg-surface-strong text-foreground ring-1 ring-line"
+                      : "text-foreground"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                </div>
+              </div>
+            ))
+          )}
+
+          {error && (
+            <div className="rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+              {error}
+            </div>
+          )}
+          <div ref={messagesEndRef} className="h-2" />
         </div>
-      </aside>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background to-transparent px-4 pb-5 pt-8">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="relative flex items-end gap-2 rounded-2xl border border-line bg-surface-strong shadow-sm transition focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-brand/15">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Envie uma mensagem…"
+              rows={1}
+              className="max-h-[200px] min-h-[56px] w-full resize-none bg-transparent py-4 pl-4 pr-28 text-sm text-foreground placeholder:text-muted focus:outline-none"
+            />
+            <div className="absolute bottom-2 right-2 flex items-center gap-1">
+              <ModelSwitcher
+                compact
+                onModelChange={(id) => {
+                  setSelectedModel(id);
+                  saveSelectedModel(id);
+                }}
+              />
+              {status === "streaming" ? (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className="grid size-9 place-items-center rounded-xl bg-foreground text-background transition hover:opacity-90"
+                  title="Parar geração"
+                >
+                  <StopCircle size={16} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => send()}
+                  disabled={!input.trim()}
+                  className="grid size-9 place-items-center rounded-xl bg-brand text-neutral-950 transition hover:bg-brand-strong disabled:opacity-40"
+                  title="Enviar"
+                >
+                  <ArrowUp size={16} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="mt-2 text-center text-[11px] text-muted">
+            O Conselho IA pode cometer erros. Verifique informações críticas.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

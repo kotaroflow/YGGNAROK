@@ -41,7 +41,7 @@ export default async function JobsPage() {
                     <Link className="font-medium hover:text-amber-700 dark:hover:text-amber-300" href={`/jobs/${job.id}`}>{job.type}</Link>
                     <p className="text-sm text-slate-400 dark:text-stone-500">{job.id}</p>
                     {job.error_message ? <p className="mt-2 text-sm text-red-700 dark:text-red-300">{job.error_message}</p> : null}
-                    {job.result ? <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">Resultado pronto para abrir.</p> : null}
+                    {job.result ? <p className="mt-2 text-sm text-muted">Resultado pronto para abrir.</p> : null}
                   </div>
                   <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">
                     {job.status} · {job.attempts}/{job.max_attempts}

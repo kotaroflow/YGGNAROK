@@ -43,3 +43,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# local scratch / tooling output
+/temp_design/
+eslint-output.txt

@@ -5,7 +5,8 @@ type ChatMessage = {
   content: string;
 };
 
-function pickModel() {
+function pickModel(clientModel?: string) {
+  if (clientModel && clientModel.trim()) return clientModel.trim();
   const configured = (process.env.AI_MODEL || "").trim();
   if (!configured) return "meta-llama/llama-3.1-8b-instruct";
   return configured;
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
   }
 
   const messages = (body && typeof body === "object" && "messages" in body ? (body as any).messages : null) as unknown;
+  const clientModel = (body && typeof body === "object" && "model" in body ? (body as any).model : "") as string;
   if (!Array.isArray(messages) || !messages.length) return jsonError("messages ausente.", 400);
 
   const normalized: ChatMessage[] = messages
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
       "X-Title": process.env.OPENROUTER_APP_NAME || "YGGNAROK",
     },
     body: JSON.stringify({
-      model: pickModel(),
+      model: pickModel(clientModel),
       messages: normalized,
       stream: true,
     }),

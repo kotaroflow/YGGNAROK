@@ -13,7 +13,7 @@ export default async function AuditLogsPage() {
               <h2 className="font-medium">{log.action}</h2>
               <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{log.resource_type || "recurso"}</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600 dark:text-stone-300">{log.reason || "Sem motivo informado."}</p>
+            <p className="mt-1 text-sm text-muted">{log.reason || "Sem motivo informado."}</p>
             <p className="mt-1 text-xs text-stone-500">{new Date(String(log.created_at)).toLocaleString("pt-BR")}</p>
           </article>
         ))}

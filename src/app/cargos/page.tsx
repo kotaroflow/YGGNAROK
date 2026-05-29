@@ -11,7 +11,7 @@ export default async function CargosPage() {
           <article key={role.id} className="rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
             <h2 className="font-medium">{role.name}</h2>
             <p className="mt-1 text-sm text-stone-500">{role.key}</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-stone-300">{role.description}</p>
+            <p className="mt-2 text-sm text-muted">{role.description}</p>
           </article>
         ))}
       </div>
