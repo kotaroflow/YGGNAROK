@@ -9,7 +9,7 @@ export default async function HomePage() {
 
   const quickStats = [
     { label: "Perfis", value: overview.counts.profiles, href: "/perfis", icon: Users },
-    { label: "Jobs", value: overview.counts.pendingJobs, href: "/jobs-em-andamento", icon: BriefcaseBusiness },
+    { label: "Trabalhos", value: overview.counts.pendingJobs, href: "/jobs-em-andamento", icon: BriefcaseBusiness },
     { label: "Postagens", value: overview.counts.manualPosts, href: "/postagem-manual", icon: FileText },
   ];
 
