@@ -5,6 +5,14 @@ type ChatMessage = {
   content: string;
 };
 
+type OpenRouterResponse = {
+  choices?: Array<{
+    delta?: {
+      content?: unknown;
+    };
+  }>;
+};
+
 function pickModel(clientModel?: string) {
   if (clientModel && clientModel.trim()) return clientModel.trim();
   const configured = (process.env.AI_MODEL || "").trim();
@@ -22,6 +30,19 @@ function extractSseDataLines(chunk: string) {
     .map((line) => line.trimEnd())
     .filter((line) => line.startsWith("data:"))
     .map((line) => line.slice("data:".length).trimStart());
+}
+
+function normalizeMessage(msg: unknown): ChatMessage | null {
+  if (!msg || typeof msg !== "object") return null;
+  const message = msg as Record<string, unknown>;
+  const role = String(message.role) as ChatMessage["role"];
+  const content = String(message.content ?? "").trim();
+
+  if ((role === "system" || role === "user" || role === "assistant") && content.length > 0) {
+    return { role, content };
+  }
+
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -58,17 +79,14 @@ export async function POST(req: Request) {
     return jsonError("Body JSON invalido.", 400);
   }
 
-  const messages = (body && typeof body === "object" && "messages" in body ? (body as any).messages : null) as unknown;
-  const clientModel = (body && typeof body === "object" && "model" in body ? (body as any).model : "") as string;
+  const bodyObject = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const messages = bodyObject.messages as unknown;
+  const clientModel = (typeof bodyObject.model === "string" ? bodyObject.model : "") as string;
   if (!Array.isArray(messages) || !messages.length) return jsonError("messages ausente.", 400);
 
   const normalized: ChatMessage[] = messages
-    .filter((msg) => msg && typeof msg === "object")
-    .map((msg) => ({
-      role: String((msg as any).role) as ChatMessage["role"],
-      content: String((msg as any).content ?? ""),
-    }))
-    .filter((msg) => (msg.role === "system" || msg.role === "user" || msg.role === "assistant") && msg.content.trim().length > 0);
+    .map(normalizeMessage)
+    .filter((msg): msg is ChatMessage => msg !== null);
 
   if (!normalized.length) return jsonError("messages vazio apos normalizacao.", 400);
 
@@ -123,8 +141,8 @@ export async function POST(req: Request) {
               }
 
               try {
-                const parsed = JSON.parse(data) as any;
-                const delta = parsed?.choices?.[0]?.delta?.content ?? "";
+                const parsed = JSON.parse(data) as OpenRouterResponse;
+                const delta = parsed?.choices?.[0]?.delta?.content;
                 if (typeof delta === "string" && delta.length) {
                   controller.enqueue(encoder.encode(delta));
                 }

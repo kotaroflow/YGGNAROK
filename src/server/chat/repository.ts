@@ -20,24 +20,26 @@ export type ChatConversationRow = {
   updated_at: string;
 };
 
-type LooseClient = {
-  from: (table: string) => {
-    select: (columns: string) => LooseQuery;
-    insert: (values: object | object[]) => { select: (columns: string) => { single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }> } };
-    update: (values: object) => LooseQuery;
-    delete: () => LooseQuery;
-    upsert: (values: object | object[], options?: { onConflict?: string }) => Promise<{ error: { message: string } | null }>;
-  };
-};
+type LooseResult = { data: Record<string, unknown> | null; error: { message: string } | null };
+type LooseListResult = { data: Array<Record<string, unknown>> | null; error: { message: string } | null };
 
 type LooseQuery = {
   eq: (column: string, value: string | boolean) => LooseQuery;
   order: (column: string, options?: { ascending?: boolean }) => LooseQuery;
   limit: (count: number) => LooseQuery;
-  single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
-  then: <T>(
-    onfulfilled?: (value: { data: Array<Record<string, unknown>> | null; error: { message: string } | null }) => T,
-  ) => Promise<T>;
+  select: (columns: string) => LooseQuery;
+  single: () => Promise<LooseResult>;
+  then: <T>(onfulfilled?: (value: LooseListResult) => T) => Promise<T>;
+};
+
+type LooseClient = {
+  from: (table: string) => {
+    select: (columns: string) => LooseQuery;
+    insert: (values: object | object[]) => LooseQuery & Promise<{ error: { message: string } | null }>;
+    update: (values: object) => LooseQuery;
+    delete: () => LooseQuery;
+    upsert: (values: object | object[], options?: { onConflict?: string }) => Promise<{ error: { message: string } | null }>;
+  };
 };
 
 async function client() {
