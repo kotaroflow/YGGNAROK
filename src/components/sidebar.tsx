@@ -1,49 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, LogOut, Plus, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "@/server/actions/auth";
 
-const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
-
-const visibleItemLimits: Record<string, number> = {
-  iriguchi: 4,
-  "ura-ichiba": 3,
-  "sosaku-kobo": 6,
-  "sakusen-honbu": 4,
-};
-
-const defaultExpandedGroups: Record<string, boolean> = {
-  iriguchi: true,
-  "ura-ichiba": true,
-  "sosaku-kobo": true,
-  "sakusen-honbu": false,
-};
-
-type SavedSidebarState = {
-  collapsed?: boolean;
-  expandedGroups?: Record<string, boolean>;
-  showAll?: Record<string, boolean>;
-};
-
-function readSavedSidebarState(): SavedSidebarState {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const saved = window.localStorage.getItem(storageKey);
-    return saved ? (JSON.parse(saved) as SavedSidebarState) : {};
-  } catch {
-    return {};
-  }
-}
 
 function readSavedMobileOpen() {
   if (typeof window === "undefined") {
@@ -55,40 +21,15 @@ function readSavedMobileOpen() {
 
 export function Sidebar({ user }: { user: PermissionContext | null }) {
   const pathname = usePathname();
-  const savedState = useMemo(() => readSavedSidebarState(), []);
-  const [collapsed, setCollapsed] = useState(savedState.collapsed ?? false);
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(readSavedMobileOpen);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    ...defaultExpandedGroups,
-    ...savedState.expandedGroups,
-  });
-  const [showAll, setShowAll] = useState<Record<string, boolean>>(savedState.showAll ?? {});
 
-  const visibleGroups = useMemo(
-    () =>
-      sidebarGroups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => !item.permission || hasPermission(user, item.permission)),
-        }))
-        .filter((group) => group.items.length > 0),
-    [user],
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        collapsed,
-        expandedGroups,
-        showAll,
-      }),
-    );
-  }, [collapsed, expandedGroups, showAll]);
+  const visibleGroups = sidebarGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.permission || hasPermission(user, item.permission)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -98,48 +39,24 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
     window.sessionStorage.setItem(mobileStorageKey, String(mobileOpen));
   }, [mobileOpen]);
 
-  function toggleGroup(id: string) {
-    setExpandedGroups((current) => ({ ...current, [id]: !current[id] }));
-  }
-
-  function toggleShowAll(id: string) {
-    setShowAll((current) => ({ ...current, [id]: !current[id] }));
-    setExpandedGroups((current) => ({ ...current, [id]: true }));
-  }
-
   function closeMobile() {
     setMobileOpen(false);
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
+  const handleNewChat = () => {
+    router.push("/chat");
+    closeMobile();
+  };
+
   const sidebar = (
-    <aside
-      className={[
-        "flex h-full flex-col border-r border-black/5 bg-white/90 shadow-sm backdrop-blur-xl transition-[width] duration-200 dark:border-white/10 dark:bg-neutral-950/88",
-        collapsed ? "w-20" : "w-[19rem]",
-      ].join(" ")}
-    >
-      <div className="flex h-16 items-center gap-3 border-b border-black/5 px-4 dark:border-white/10">
-        <div className="grid size-10 place-items-center rounded-md bg-slate-950 text-sm font-bold text-amber-300 shadow-sm dark:bg-amber-300 dark:text-neutral-950">
-          YG
-        </div>
-        {!collapsed ? (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-slate-950 dark:text-stone-50">YGGNAROK</p>
-            <p className="truncate text-xs text-slate-500 dark:text-stone-400">Painel de operacao</p>
-          </div>
-        ) : null}
+    <aside className="flex h-full flex-col border-r border-white/10 bg-neutral-950">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/10 p-4">
+        <div className="text-lg font-semibold text-white">YGGNAROK</div>
         <button
           type="button"
-          className="ml-auto hidden size-9 place-items-center rounded-md border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-900/60 dark:text-stone-300 dark:hover:bg-neutral-900 lg:grid"
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-        <button
-          type="button"
-          className="ml-auto grid size-9 place-items-center rounded-md border border-slate-200/80 bg-white/70 text-slate-500 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-900/60 dark:text-stone-300 dark:hover:bg-neutral-900 lg:hidden"
+          className="grid size-8 place-items-center rounded-md text-gray-400 transition hover:bg-white/10 hover:text-white lg:hidden"
           onClick={closeMobile}
           aria-label="Fechar navegacao"
         >
@@ -147,104 +64,86 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3 overscroll-contain">
-        {visibleGroups.map((group) => {
-          const expanded = expandedGroups[group.id];
-          const collapsedItemLimit = visibleItemLimits[group.id] ?? 5;
-          const limit = showAll[group.id] ? group.items.length : collapsedItemLimit;
-          const items = group.items.slice(0, limit);
-          const hiddenCount = group.items.length - items.length;
+      {/* New Chat Button */}
+      <div className="p-4 pb-3">
+        <button
+          onClick={handleNewChat}
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+        >
+          <Plus size={18} />
+          Nova Conversa
+        </button>
+      </div>
 
-          return (
-            <section key={group.id} className="mb-2">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-semibold uppercase text-slate-500 transition hover:bg-slate-950/[0.04] dark:text-stone-400 dark:hover:bg-white/[0.05]"
-                onClick={() => toggleGroup(group.id)}
-                title={group.title}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
+        {/* Main Menu */}
+        <div className="mb-6 space-y-2">
+          {visibleGroups[0]?.items.slice(0, 5).map((item) => {
+            const active = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMobile}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+                  active
+                    ? "bg-white/15 text-white"
+                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                }`}
               >
-                <ChevronDown className={expanded ? "shrink-0" : "shrink-0 -rotate-90"} size={16} />
-                {!collapsed ? (
-                  <>
-                    <span className="min-w-0 flex-1 truncate">{group.title}</span>
-                    <span className="rounded-md bg-slate-950/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-white/[0.08] dark:text-stone-400">
-                      {group.items.length}
-                    </span>
-                  </>
-                ) : (
-                  <span>{group.subtitle.slice(0, 2)}</span>
-                )}
-              </button>
+                <Icon size={18} className="shrink-0" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
 
-              {expanded ? (
-                <div className="mt-1 space-y-1">
-                  {items.map((item) => {
-                    const active = pathname === item.href;
-                    const Icon = item.icon;
-
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={[
-                          "group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm transition",
-                          active
-                            ? "bg-amber-200/85 text-slate-950 shadow-sm ring-1 ring-amber-300/60 dark:bg-amber-300 dark:text-neutral-950 dark:ring-amber-200/20"
-                            : "text-slate-600 hover:bg-slate-950/[0.05] dark:text-stone-300 dark:hover:bg-white/[0.06]",
-                        ].join(" ")}
-                        title={`${item.label} - ${item.description}`}
-                      >
-                        <Icon size={18} className="shrink-0" />
-                        {!collapsed ? (
-                          <span className="min-w-0">
-                            <span className="block truncate font-semibold">{item.label}</span>
-                            <span
-                              className={[
-                                "block truncate text-xs",
-                                active
-                                  ? "text-slate-700/70 dark:text-neutral-950/65"
-                                  : "text-slate-500 group-hover:text-slate-600 dark:text-stone-500 dark:group-hover:text-stone-300",
-                              ].join(" ")}
-                            >
-                              {item.description}
-                            </span>
-                          </span>
-                        ) : null}
-                      </Link>
-                    );
-                  })}
-
-                  {!collapsed && group.items.length > collapsedItemLimit ? (
-                    <button
-                      type="button"
-                      className="ml-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-950/[0.05] dark:text-stone-300 dark:hover:bg-white/[0.06]"
-                      onClick={() => toggleShowAll(group.id)}
+        {/* History/Other Groups */}
+        {visibleGroups.map((group, idx) => {
+          if (idx === 0) return null;
+          return (
+            <div key={group.id} className="mb-6">
+              <div className="mb-2 px-3 text-xs font-semibold uppercase text-gray-500">
+                {group.title}
+              </div>
+              <div className="space-y-1">
+                {group.items.slice(0, 4).map((item) => {
+                  const active = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMobile}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+                        active
+                          ? "bg-white/15 text-white"
+                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                      }`}
                     >
-                      <Menu size={16} />
-                      <span className="min-w-0 flex-1 text-left">{showAll[group.id] ? "Mostrar menos" : "Mostrar mais"}</span>
-                      {!showAll[group.id] && hiddenCount > 0 ? <span className="text-xs">+{hiddenCount}</span> : null}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </section>
+                      <Icon size={16} className="shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
 
-      <div className="border-t border-black/5 p-3 dark:border-white/10 space-y-1">
-        <ThemeToggle compact={collapsed} />
+      {/* Footer */}
+      <div className="border-t border-white/10 p-3 space-y-2">
+        <ThemeToggle compact={false} />
         <form action={signOut}>
           <button
             type="submit"
-            className={[
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-950/[0.05] dark:text-stone-400 dark:hover:bg-white/[0.06]",
-              collapsed ? "justify-center" : "",
-            ].join(" ")}
-            title="Sair do sistema"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-400 transition hover:bg-white/5 hover:text-white"
           >
-            <LogOut size={18} className="shrink-0" />
-            {!collapsed ? <span className="font-medium">Sair</span> : null}
+            <LogOut size={18} />
+            <span>Sair</span>
           </button>
         </form>
       </div>
@@ -255,7 +154,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
     <>
       <button
         type="button"
-        className="fixed left-3 top-3 z-40 grid size-10 place-items-center rounded-full border border-slate-200/80 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/85 lg:hidden"
+        className="fixed left-4 top-4 z-40 grid size-10 place-items-center rounded-lg bg-white/10 text-white transition hover:bg-white/20 lg:hidden"
         onClick={() => setMobileOpen(true)}
         aria-label="Abrir navegacao"
       >
@@ -266,11 +165,11 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/45"
+            className="absolute inset-0 bg-black/50"
             aria-label="Fechar navegacao"
             onClick={closeMobile}
           />
-          <div className="relative h-full">{sidebar}</div>
+          <div className="relative h-full w-64">{sidebar}</div>
         </div>
       ) : null}
     </>
