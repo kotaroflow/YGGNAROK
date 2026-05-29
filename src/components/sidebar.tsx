@@ -2,40 +2,51 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, Plus, MessageSquare } from "lucide-react";
+import { Menu, X, LogOut, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "@/server/actions/auth";
 
+const storageKey = "ygn-sidebar-collapsed";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
 
-function readSavedMobileOpen() {
-  if (typeof window === "undefined") {
-    return false;
-  }
+function readCollapsed(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(storageKey) === "true";
+}
 
+function readSavedMobileOpen(): boolean {
+  if (typeof window === "undefined") return false;
   return window.sessionStorage.getItem(mobileStorageKey) === "true";
 }
+
+// Ordem desejada: Entrada, Criacao, Mercado, Operacao
+const GROUP_ORDER = ["iriguchi", "sosaku-kobo", "ura-ichiba", "sakusen-honbu"];
 
 export function Sidebar({ user }: { user: PermissionContext | null }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(readCollapsed);
   const [mobileOpen, setMobileOpen] = useState(readSavedMobileOpen);
 
-  const visibleGroups = sidebarGroups
+  const visibleGroups = GROUP_ORDER
+    .map((id) => sidebarGroups.find((g) => g.id === id))
+    .filter(Boolean)
     .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => !item.permission || hasPermission(user, item.permission)),
+      ...group!,
+      items: group!.items.filter((item) => !item.permission || hasPermission(user, item.permission)),
     }))
     .filter((group) => group.items.length > 0);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, String(collapsed));
+  }, [collapsed]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     window.sessionStorage.setItem(mobileStorageKey, String(mobileOpen));
   }, [mobileOpen]);
 
@@ -50,66 +61,68 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
   };
 
   const sidebar = (
-    <aside className="flex h-full flex-col border-r border-white/10 bg-neutral-950">
+    <aside
+      className={[
+        "relative flex h-full flex-col border-r border-white/10 bg-neutral-950 transition-[width] duration-200",
+        collapsed ? "w-[60px]" : "w-[200px]",
+      ].join(" ")}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 p-4">
-        <div className="text-lg font-semibold text-white">YGGNAROK</div>
+      <div className="flex h-14 items-center justify-between border-b border-white/10 px-3">
+        {!collapsed && (
+          <span className="text-sm font-semibold tracking-wide text-white">YGGNAROK</span>
+        )}
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          className={[
+            "grid size-8 shrink-0 place-items-center rounded-md text-gray-400 transition hover:bg-white/10 hover:text-white",
+            collapsed ? "mx-auto" : "ml-auto",
+          ].join(" ")}
+          aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
+        >
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
         <button
           type="button"
           className="grid size-8 place-items-center rounded-md text-gray-400 transition hover:bg-white/10 hover:text-white lg:hidden"
           onClick={closeMobile}
           aria-label="Fechar navegacao"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
 
       {/* New Chat Button */}
-      <div className="p-4 pb-3">
+      <div className={["py-3", collapsed ? "px-2" : "px-3"].join(" ")}>
         <button
           onClick={handleNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+          title="Nova Conversa"
+          className={[
+            "flex w-full items-center gap-2 rounded-md border border-white/20 bg-white/5 py-2 text-sm font-medium text-white transition hover:bg-white/10",
+            collapsed ? "justify-center px-2" : "px-3",
+          ].join(" ")}
         >
-          <Plus size={18} />
-          Nova Conversa
+          <Plus size={16} className="shrink-0" />
+          {!collapsed && <span>Nova Conversa</span>}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2">
-        {/* Main Menu */}
-        <div className="mb-6 space-y-2">
-          {visibleGroups[0]?.items.slice(0, 5).map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeMobile}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
-                  active
-                    ? "bg-white/15 text-white"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <Icon size={18} className="shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* History/Other Groups */}
+      <nav className="flex-1 overflow-y-auto py-1">
         {visibleGroups.map((group, idx) => {
-          if (idx === 0) return null;
+          // Grupo "Entrada" (iriguchi) sem label de secao
+          const showLabel = group.id !== "iriguchi";
+
           return (
-            <div key={group.id} className="mb-6">
-              <div className="mb-2 px-3 text-xs font-semibold uppercase text-gray-500">
-                {group.title}
-              </div>
-              <div className="space-y-1">
-                {group.items.slice(0, 4).map((item) => {
+            <div key={group.id} className={idx > 0 ? "mt-4" : ""}>
+              {showLabel && !collapsed && (
+                <div className="mb-1 px-4 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                  {group.title}
+                </div>
+              )}
+              <div className="space-y-0.5 px-2">
+                {group.items.map((item) => {
                   const active = pathname === item.href;
                   const Icon = item.icon;
                   return (
@@ -117,14 +130,17 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
                       key={item.href}
                       href={item.href}
                       onClick={closeMobile}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+                      title={collapsed ? item.label : undefined}
+                      className={[
+                        "flex items-center gap-3 rounded-md px-2 py-1.5 text-sm transition",
+                        collapsed ? "justify-center" : "",
                         active
                           ? "bg-white/15 text-white"
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
-                      }`}
+                          : "text-gray-400 hover:bg-white/8 hover:text-white",
+                      ].join(" ")}
                     >
                       <Icon size={16} className="shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      {!collapsed && <span className="truncate">{item.label}</span>}
                     </Link>
                   );
                 })}
@@ -135,15 +151,19 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 p-3 space-y-2">
-        <ThemeToggle compact={false} />
+      <div className="border-t border-white/10 px-2 py-2 space-y-1">
+        <ThemeToggle compact={collapsed} />
         <form action={signOut}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-400 transition hover:bg-white/5 hover:text-white"
+            title={collapsed ? "Sair" : undefined}
+            className={[
+              "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-gray-400 transition hover:bg-white/5 hover:text-white",
+              collapsed ? "justify-center" : "",
+            ].join(" ")}
           >
-            <LogOut size={18} />
-            <span>Sair</span>
+            <LogOut size={16} />
+            {!collapsed && <span>Sair</span>}
           </button>
         </form>
       </div>
@@ -169,7 +189,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
             aria-label="Fechar navegacao"
             onClick={closeMobile}
           />
-          <div className="relative h-full w-64">{sidebar}</div>
+          <div className="relative h-full">{sidebar}</div>
         </div>
       ) : null}
     </>
