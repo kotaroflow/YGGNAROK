@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   PenLine,
@@ -8,10 +8,10 @@ import {
   Code2,
   Sparkles,
   ArrowUp,
-  Plus,
   Mic,
+  Paperclip,
 } from "lucide-react";
-import { newConversationId } from "@/lib/chat-storage";
+import { useChatWorkspace } from "@/components/chat-workspace-provider";
 
 const categories = [
   { label: "Escrever", icon: PenLine, href: "/criar-conteudo" },
@@ -22,8 +22,12 @@ const categories = [
 
 export function HomeScreen() {
   const router = useRouter();
+  const { createConversation } = useChatWorkspace();
   const [value, setValue] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -32,12 +36,16 @@ export function HomeScreen() {
     }
   }, [value]);
 
+  async function goToChat(text: string) {
+    const conv = await createConversation({ title: text.slice(0, 52) });
+    const params = new URLSearchParams({ conv, q: text.trim() });
+    router.push(`/chat?${params}`);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!value.trim()) return;
-    const conv = newConversationId();
-    const params = new URLSearchParams({ conv, q: value.trim() });
-    router.push(`/chat?${params}`);
+    void goToChat(value);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -45,6 +53,63 @@ export function HomeScreen() {
       e.preventDefault();
       handleSubmit(e as unknown as React.FormEvent);
     }
+  }
+
+  function handleAttachClick() {
+    fileRef.current?.click();
+  }
+
+  function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const names = Array.from(files)
+      .slice(0, 3)
+      .map((f) => f.name)
+      .join(", ");
+    setHint(`Anexo registrado (${names}). Envie a mensagem para abrir o chat — upload completo em breve.`);
+  }
+
+  function handleMic() {
+    const SpeechRecognitionCtor =
+      typeof window !== "undefined"
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : undefined;
+
+    if (!SpeechRecognitionCtor) {
+      setHint("Seu navegador não suporta ditado por voz. Digite a mensagem normalmente.");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setValue((prev) => (prev ? `${prev} ${transcript}` : transcript).trim());
+    };
+
+    recognition.onerror = () => {
+      setHint("Não foi possível captar o áudio. Tente de novo ou digite.");
+      recognitionRef.current = null;
+    };
+
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setHint("Ditado finalizado. Revise o texto e envie.");
+    };
+
+    recognition.start();
+    setHint("Ouvindo… fale agora (clique no microfone para parar).");
   }
 
   return (
@@ -65,6 +130,15 @@ export function HomeScreen() {
           onSubmit={handleSubmit}
           className="relative rounded-2xl border border-line bg-surface-strong shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15"
         >
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            multiple
+            accept="image/*,.pdf,.txt,.md,.json"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+
           <div className="px-4 pt-4 pb-2">
             <textarea
               ref={textareaRef}
@@ -82,15 +156,19 @@ export function HomeScreen() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
+                onClick={handleAttachClick}
                 className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-sidebar-hover hover:text-foreground"
                 aria-label="Anexar arquivo"
+                title="Anexar arquivo"
               >
-                <Plus size={17} />
+                <Paperclip size={17} />
               </button>
               <button
                 type="button"
+                onClick={handleMic}
                 className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-sidebar-hover hover:text-foreground"
-                aria-label="Usar microfone"
+                aria-label="Ditado por voz"
+                title="Ditado por voz"
               >
                 <Mic size={17} />
               </button>
@@ -106,6 +184,12 @@ export function HomeScreen() {
             </button>
           </div>
         </form>
+
+        {hint ? (
+          <p className="mt-3 rounded-lg border border-line bg-surface px-3 py-2 text-center text-xs text-muted">
+            {hint}
+          </p>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {categories.map(({ label, icon: Icon, href }) => (

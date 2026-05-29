@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowUp, StopCircle, Trash2, Bot, User } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
 import { loadSelectedModel, saveSelectedModel } from "@/lib/models";
-import { useRecentChats } from "@/lib/use-recent-chats";
+import { useChatWorkspace } from "@/components/chat-workspace-provider";
 import {
   CHAT_SYSTEM_MESSAGE,
   clearConversation,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/chat-storage";
 
 function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return newConversationId();
 }
 
 export function ChatClient() {
@@ -24,7 +24,7 @@ export function ChatClient() {
   const searchParams = useSearchParams();
   const convId = searchParams.get("conv") ?? "";
   const initialQuery = searchParams.get("q");
-  const { addChat } = useRecentChats();
+  const { addChat, createConversation, mode } = useChatWorkspace();
 
   const [messages, setMessages] = useState<ChatMessage[]>([CHAT_SYSTEM_MESSAGE]);
   const [input, setInput] = useState("");
@@ -40,23 +40,50 @@ export function ChatClient() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialQuerySentRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (convId) {
-      setMessages(loadConversation(convId));
-      setHydrated(true);
-      return;
-    }
+    if (convId) return;
+    void createConversation({ title: "Nova conversa" }).then((id) => {
+      const q = searchParams.get("q");
+      const query = q ? `&q=${encodeURIComponent(q)}` : "";
+      router.replace(`/chat?conv=${id}${query}`);
+    });
+  }, [convId, router, searchParams, createConversation]);
 
-    const id = newConversationId();
-    const q = searchParams.get("q");
-    const query = q ? `&q=${encodeURIComponent(q)}` : "";
-    router.replace(`/chat?conv=${id}${query}`);
-  }, [convId, router, searchParams]);
+  useEffect(() => {
+    if (!convId || mode !== "remote") return;
+    void fetch("/api/chat/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: convId, title: "Nova conversa" }),
+    });
+  }, [convId, mode]);
+
+  useEffect(() => {
+    if (!convId) return;
+    let cancelled = false;
+    setHydrated(false);
+    void loadConversation(convId).then((loaded) => {
+      if (!cancelled) {
+        setMessages(loaded);
+        setHydrated(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [convId]);
 
   useEffect(() => {
     if (!hydrated || !convId) return;
-    saveConversation(convId, messages);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      void saveConversation(convId, messages);
+    }, 400);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [messages, convId, hydrated]);
 
   useEffect(() => {
@@ -144,22 +171,14 @@ export function ChatClient() {
   }
 
   useEffect(() => {
-    if (
-      !initialQuery ||
-      !hydrated ||
-      !convId ||
-      initialQuerySentRef.current ||
-      status !== "idle"
-    ) {
+    if (!initialQuery || !hydrated || !convId || initialQuerySentRef.current || status !== "idle") {
       return;
     }
-
-    const loaded = loadConversation(convId);
-    const hasUserMessages = loaded.some((m) => m.role === "user");
-    if (hasUserMessages) return;
+    const hasUser = messages.some((m) => m.role === "user");
+    if (hasUser) return;
 
     initialQuerySentRef.current = true;
-    send(initialQuery);
+    void send(initialQuery);
     router.replace(`/chat?conv=${convId}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery, hydrated, convId]);
@@ -167,7 +186,7 @@ export function ChatClient() {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      send();
+      void send();
     }
   }
 
@@ -176,13 +195,13 @@ export function ChatClient() {
     setStatus("idle");
   }
 
-  function clearChat() {
+  async function clearChat() {
     abortRef.current?.abort();
     setStatus("idle");
     setError(null);
     setInput("");
     clearConversation(convId);
-    const id = newConversationId();
+    const id = await createConversation({ title: "Nova conversa" });
     setMessages([CHAT_SYSTEM_MESSAGE]);
     router.replace(`/chat?conv=${id}`);
   }
@@ -207,7 +226,7 @@ export function ChatClient() {
         {visibleMessages.length > 0 && (
           <button
             type="button"
-            onClick={clearChat}
+            onClick={() => void clearChat()}
             className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-surface hover:text-red-600 dark:hover:text-red-400"
             title="Nova conversa"
           >
@@ -300,7 +319,7 @@ export function ChatClient() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => send()}
+                  onClick={() => void send()}
                   disabled={!input.trim()}
                   className="grid size-9 place-items-center rounded-xl bg-brand text-neutral-950 transition hover:bg-brand-strong disabled:opacity-40"
                   title="Enviar"

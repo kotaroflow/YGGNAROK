@@ -8,8 +8,8 @@ import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "@/server/actions/auth";
-import { useRecentChats, type RecentChat } from "@/lib/use-recent-chats";
-import { useProjects } from "@/lib/use-projects";
+import { useChatWorkspace } from "@/components/chat-workspace-provider";
+import type { RecentChat } from "@/lib/use-recent-chats";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
@@ -241,13 +241,13 @@ function RecentsTab() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeConv = searchParams.get("conv");
-  const { chats, mounted, pin, rename, remove } = useRecentChats();
-  const { projects, addConversation } = useProjects();
+  const { recents: chats, mounted, pinChat: pin, renameChat: rename, removeChat: remove, projects, addConversationToProject } =
+    useChatWorkspace();
 
   function handleAddToProject(chatId: string, projectId: string) {
     const chat = chats.find((c) => c.id === chatId);
     if (!chat) return;
-    addConversation(projectId, chat.title);
+    addConversationToProject(projectId, chatId, chat.title);
   }
 
   if (!mounted) {
@@ -285,7 +285,7 @@ function RecentsTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ProjectsSection({ collapsed }: { collapsed: boolean }) {
-  const { projects, mounted } = useProjects();
+  const { projects, mounted } = useChatWorkspace();
   const [expanded, setExpanded] = useState(true);
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
 

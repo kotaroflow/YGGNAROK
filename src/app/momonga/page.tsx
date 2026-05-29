@@ -43,13 +43,13 @@ export default async function MomongaPage() {
         <Panel title="Agentes do conselho">
           <div className="grid gap-2 sm:grid-cols-2">
             {overview.agents.length ? overview.agents.map((agent) => (
-              <div key={agent.key} className="rounded-lg border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
+              <div key={agent.key} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">{agent.name}</p>
-                    <p className="mt-1 text-xs text-stone-500">{agent.role} / {agent.risk_level}</p>
+                    <p className="mt-1 text-xs text-muted">{agent.role} / {agent.risk_level}</p>
                   </div>
-                  <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{agent.status}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{agent.status}</span>
                 </div>
                 <div className="mt-3 flex gap-2">
                   <SmallAction action={pauseAgent} hiddenName="key" hiddenValue={agent.key} icon={<CirclePause size={14} />} label="Pausar" />
@@ -63,17 +63,17 @@ export default async function MomongaPage() {
         <Panel title="Provedores e modelos">
           <div className="space-y-3">
             {overview.providerStatus.length ? overview.providerStatus.map((provider) => (
-              <div key={provider.provider} className="rounded-lg border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
+              <div key={provider.provider} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium">{provider.provider}</span>
-                  <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{provider.status}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{provider.status}</span>
                 </div>
-                <p className="mt-1 text-xs text-stone-500">
+                <p className="mt-1 text-xs text-muted">
                   {provider.latency_ms ? `${provider.latency_ms}ms` : "latencia nao medida"}
                   {provider.error_message ? ` / ${provider.error_message}` : ""}
                 </p>
               </div>
-            )) : <p className="text-sm text-stone-500">Status sera preenchido pelo worker.</p>}
+            )) : <p className="text-sm text-muted">Status sera preenchido pelo worker.</p>}
             <JsonPreview value={{
               ai_provider: process.env.AI_PROVIDER ?? "hybrid",
               max_models: process.env.MAX_MODELS_PER_TASK ?? "5",
@@ -94,10 +94,10 @@ export default async function MomongaPage() {
                     <p className="font-medium">{decision.decision_type}</p>
                     {decision.job_id ? <Link className="mt-1 block text-xs text-amber-700 dark:text-amber-300" href={`/jobs/${decision.job_id}`}>Abrir job</Link> : null}
                   </div>
-                  <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{decision.status} / {decision.risk}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{decision.status} / {decision.risk}</span>
                 </div>
                 <p className="mt-2 text-sm text-muted">{decision.summary || "Sem resumo."}</p>
-                <p className="mt-1 text-xs text-stone-500">Autoridade: {decision.authority}</p>
+                <p className="mt-1 text-xs text-muted">Autoridade: {decision.authority}</p>
                 {decision.status === "pending" ? (
                   <div className="mt-3 flex gap-2">
                     <SmallAction action={approveDecision} hiddenName="id" hiddenValue={decision.id} icon={<ShieldCheck size={14} />} label="Aprovar" />
@@ -115,7 +115,7 @@ export default async function MomongaPage() {
               <article key={memory.id} className="py-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-medium">{memory.title}</p>
-                  <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{memory.status}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{memory.status}</span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm text-muted">{memory.body}</p>
                 {memory.status === "pending" ? (
@@ -125,7 +125,7 @@ export default async function MomongaPage() {
                   </div>
                 ) : null}
               </article>
-            )) : <p className="text-sm text-stone-500">Nenhuma memoria de IA registrada.</p>}
+            )) : <p className="text-sm text-muted">Nenhuma memoria de IA registrada.</p>}
           </div>
         </Panel>
       </section>
@@ -137,11 +137,11 @@ export default async function MomongaPage() {
               <article key={cost.id} className="flex items-center justify-between gap-3 py-3">
                 <div>
                   <p className="font-medium">{cost.provider}</p>
-                  <p className="text-xs text-stone-500">{cost.model}</p>
+                  <p className="text-xs text-muted">{cost.model}</p>
                 </div>
-                <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{cost.currency} {cost.estimated_cost}</span>
+                <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{cost.currency} {cost.estimated_cost}</span>
               </article>
-            )) : <p className="text-sm text-stone-500">Ledger sera preenchido apos jobs do Council.</p>}
+            )) : <p className="text-sm text-muted">Ledger sera preenchido apos jobs do Council.</p>}
           </div>
         </Panel>
 
@@ -165,8 +165,8 @@ export default async function MomongaPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
-      <p className="text-sm text-stone-500">{label}</p>
+    <div className="rounded-lg border border-line bg-surface-strong p-4 shadow-sm backdrop-blur ">
+      <p className="text-sm text-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );
@@ -174,7 +174,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
+    <div className="rounded-lg border border-line bg-surface-strong p-4 shadow-sm backdrop-blur ">
       <h2 className="text-base font-semibold">{title}</h2>
       <div className="mt-4">{children}</div>
     </div>
@@ -205,7 +205,7 @@ function SmallAction({
   return (
     <form action={action}>
       <input type="hidden" name={hiddenName} value={hiddenValue} />
-      <button className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/55 px-3 py-1 text-xs text-slate-600 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-950/50 dark:text-stone-300 dark:hover:bg-neutral-900" type="submit">
+      <button className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/55 px-3 py-1 text-xs text-muted shadow-sm transition hover:bg-white  dark:text-stone-300 dark:hover:bg-neutral-900" type="submit">
         {icon}
         {label}
       </button>
@@ -216,7 +216,7 @@ function SmallAction({
 function buttonClass(danger: boolean) {
   const color = danger
     ? "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
-    : "border-white/80 bg-white/55 text-slate-600 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-950/50 dark:text-stone-300 dark:hover:bg-neutral-900";
+    : "border-white/80 bg-white/55 text-muted shadow-sm transition hover:bg-white  dark:text-stone-300 dark:hover:bg-neutral-900";
   return `inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${color}`;
 }
 
@@ -224,9 +224,9 @@ function FallbackAgents() {
   return (
     <>
       {["Creator", "Critic", "Strategy", "Consistency", "Safety/Governance", "Memory", "Supervisor", "Momonga"].map((agent) => (
-        <div key={agent} className="rounded-lg border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
+        <div key={agent} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
           <p className="text-sm font-medium">{agent}</p>
-          <p className="mt-1 text-xs text-stone-500">aguardando migracao</p>
+          <p className="mt-1 text-xs text-muted">aguardando migracao</p>
         </div>
       ))}
     </>
@@ -241,9 +241,9 @@ function LegacyDecisionList({ jobs }: { jobs: Array<{ id: string; type: string; 
         <div className="flex items-start justify-between gap-3">
           <div>
             <Link className="font-medium hover:text-amber-700 dark:hover:text-amber-300" href={`/jobs/${job.id}`}>{job.type}</Link>
-            <p className="mt-1 text-xs text-stone-500">{String(orchestration.mode ?? "auto")} / {String(orchestration.domain ?? "geral")}</p>
+            <p className="mt-1 text-xs text-muted">{String(orchestration.mode ?? "auto")} / {String(orchestration.domain ?? "geral")}</p>
           </div>
-          <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{job.status}</span>
+          <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{job.status}</span>
         </div>
         <p className="mt-2 text-sm text-muted">
           Autoridade: {String(orchestration.decision_authority ?? "nao registrada")}

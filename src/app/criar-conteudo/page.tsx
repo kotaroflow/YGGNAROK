@@ -10,15 +10,15 @@ export default async function CriarConteudoPage() {
   return (
     <AppShell>
       <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[420px_1fr] lg:px-8">
-        <section className="rounded-lg border border-white/70 bg-white/70 p-6 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60">
-          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Sosaku Kobo</p>
-          <h1 className="mt-1 text-2xl font-semibold">Criar conteudo</h1>
+        <section className="rounded-xl border border-line bg-surface p-6 shadow-sm backdrop-blur">
+          <p className="text-sm font-medium text-brand">創作工房 · Sosaku Kobo</p>
+          <h1 className="mt-1 text-2xl font-semibold text-foreground">Criar conteúdo</h1>
 
-          <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+          <div className="mt-5 rounded-lg border border-brand/25 bg-sidebar-active p-4">
             <h2 className="text-sm font-semibold">Fluxo guiado</h2>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
               {["Ideia", "Roteiro", "Legenda", "Hashtags", "Revisao", "Postagem Manual"].map((step, index) => (
-                <span key={step} className="rounded-lg border border-amber-200/70 bg-white/60 px-3 py-2 shadow-sm dark:border-amber-900/60 dark:bg-neutral-950/40">{index + 1}. {step}</span>
+                <span key={step} className="rounded-lg border border-line bg-surface-strong px-3 py-2 text-xs text-muted">{index + 1}. {step}</span>
               ))}
             </div>
           </div>
@@ -37,7 +37,7 @@ export default async function CriarConteudoPage() {
             <button className={buttonClass}>Salvar conteudo</button>
           </form>
 
-          <form action={createGuidedAiJob} className="mt-4 space-y-3 rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
+          <form action={createGuidedAiJob} className="mt-4 space-y-3 rounded-lg border border-line bg-surface-strong p-4">
             <input type="hidden" name="type" value="content.prepare" />
             <input type="hidden" name="source" value="content_page" />
             <Field label="Perfil para IA">
@@ -73,9 +73,9 @@ export default async function CriarConteudoPage() {
           </form>
         </section>
 
-        <section className="rounded-lg border border-white/70 bg-white/70 p-6 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60">
-          <h2 className="text-lg font-semibold">Conteudos</h2>
-          <div className="mt-4 divide-y divide-slate-200/70 dark:divide-neutral-800">
+        <section className="rounded-xl border border-line bg-surface p-6 shadow-sm backdrop-blur">
+          <h2 className="text-lg font-semibold text-foreground">Conteúdos</h2>
+          <div className="mt-4 divide-y divide-line">
             {contents.length ? contents.map((item) => (
               <article key={item.id} className="py-4">
                 <div className="flex items-start justify-between gap-4">

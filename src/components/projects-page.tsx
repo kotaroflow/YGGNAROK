@@ -55,7 +55,7 @@ export function ProjectsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-[calc(100vh-1rem)] flex-1 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-line px-8 py-5">
         <div>
