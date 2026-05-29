@@ -247,7 +247,7 @@ export function ChatClient() {
                 Como posso ajudar hoje?
               </h2>
               <p className="mt-2 text-sm text-muted">
-                Operações, conteúdo, vendas e jobs — respostas em português.
+                Operações, conteúdo, vendas e trabalhos — respostas em português.
               </p>
             </div>
           ) : (

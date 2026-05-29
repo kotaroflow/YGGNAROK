@@ -41,7 +41,7 @@ export default async function PainelPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-brand">Operação</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">Painel operacional</h1>
             <p className="mt-2 text-sm text-muted">
-              Jobs, filas e fluxos do YGGNAROK V1.
+              Trabalhos, filas e fluxos do YGGNAROK.
             </p>
           </div>
           <Link

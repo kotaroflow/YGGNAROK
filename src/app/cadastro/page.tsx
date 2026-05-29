@@ -10,6 +10,7 @@ export default async function CadastroPage({ searchParams }: { searchParams: Pro
 
   return (
     <AuthFrame
+      variant="cadastro"
       title="Criar conta"
       description="Seu workspace é criado automaticamente com segurança via Supabase Auth e RLS."
       error={getCadastroError(params.error)}

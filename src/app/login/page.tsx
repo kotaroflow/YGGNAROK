@@ -14,6 +14,7 @@ export default async function LoginPage({
 
   return (
     <AuthFrame
+      variant="login"
       title="Entrar"
       description="Acesse seus perfis, trabalhos de IA, biblioteca e fila de postagem."
       error={getLoginError(params.error)}

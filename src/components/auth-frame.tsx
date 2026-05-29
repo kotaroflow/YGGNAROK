@@ -16,6 +16,7 @@ export function AuthFrame({
   footerHref,
   footerAction,
   art,
+  variant = "login",
 }: {
   title: string;
   description: string;
@@ -27,6 +28,7 @@ export function AuthFrame({
   footerHref: string;
   footerAction: string;
   art: AuthArt;
+  variant?: "login" | "cadastro";
 }) {
   const backgroundStyle = {
     "--auth-from": art.from,
@@ -46,12 +48,12 @@ export function AuthFrame({
           src={art.backgroundSrc}
           alt=""
           fill
-          unoptimized
+          priority
           sizes="100vw"
           className="scale-[1.02] object-cover opacity-[0.58] saturate-110"
           style={{ objectPosition: "var(--auth-focus)" }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,color-mix(in_srgb,var(--auth-to)_30%,transparent)_0%,transparent_32%),linear-gradient(120deg,color-mix(in_srgb,var(--auth-from)_70%,black)_0%,color-mix(in_srgb,var(--auth-mid)_42%,transparent)_48%,color-mix(in_srgb,var(--auth-to)_46%,white)_100%)] opacity-72" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,color-mix(in_srgb,var(--auth-to)_30%,transparent)_0%,transparent_32%),linear-gradient(120deg,color-mix(in_srgb,var(--auth-from)_70%,black)_0%,color-mix(in_srgb,var(--auth-mid)_42%,transparent)_48%,color-mix(in_srgb,var(--auth-to)_46%,white)_100%)] opacity-[0.72]" />
         <div className="absolute inset-0 backdrop-blur-sm" />
         <div className="absolute inset-0 bg-white/12 dark:bg-black/32" />
       </div>
@@ -60,12 +62,16 @@ export function AuthFrame({
         <ThemeToggle />
       </div>
 
-      <section className="relative z-10 grid w-full max-w-7xl overflow-hidden rounded-[30px] border border-white/80 bg-white/78 p-3 shadow-[0_32px_90px_rgba(22,16,36,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/74 lg:min-h-[560px] lg:grid-cols-[0.76fr_1.34fr]">
+      <section className="relative z-10 grid w-full max-w-7xl overflow-hidden rounded-[30px] border border-white/80 bg-white/78 p-3 shadow-[0_32px_90px_rgba(22,16,36,0.28)] backdrop-blur-md dark:border-white/10 dark:bg-neutral-950/74 lg:min-h-[560px] lg:grid-cols-[0.76fr_1.34fr]">
         <div className="flex items-center px-6 py-10 sm:px-10 lg:px-12 xl:px-14">
           <form action={action} className="w-full max-w-md">
-            <div className="mb-9 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className={`mb-9 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold shadow-sm ${
+              variant === "cadastro"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200"
+                : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200"
+            }`}>
               <ShieldCheck size={14} />
-              YGGNAROK / YGN V1
+              {variant === "cadastro" ? "YGGNAROK / Novo Acesso" : "YGGNAROK / YGN V1"}
             </div>
 
             <h1 className="text-4xl font-semibold tracking-tight text-foreground">{title}</h1>
@@ -90,7 +96,14 @@ export function AuthFrame({
               </span>
             </label>
 
-            <button type="submit" className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(100deg,#f8d40d_0%,#e2c73b_38%,#4a7be8_100%)] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-400/20 transition hover:brightness-105">
+            <button
+              type="submit"
+              className={`mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-lg transition hover:brightness-105 ${
+                variant === "cadastro"
+                  ? "bg-[linear-gradient(100deg,#0ea872_0%,#2ca86b_38%,#2c7be8_100%)] shadow-emerald-400/20"
+                  : "bg-[linear-gradient(100deg,#f8d40d_0%,#e2c73b_38%,#4a7be8_100%)] shadow-blue-400/20"
+              }`}
+            >
               {buttonLabel}
               <ArrowRight size={17} />
             </button>
@@ -109,9 +122,8 @@ export function AuthFrame({
               alt="Arte visual YGGNAROK"
               fill
               priority
-              unoptimized
               sizes="(min-width: 1024px) 50vw, 0vw"
-              className="object-cover"
+              className="object-cover object-[var(--auth-focus)]"
               style={{ objectPosition: "var(--auth-focus)" }}
             />
             <div className="pointer-events-none absolute inset-0 rounded-[24px] ring-1 ring-inset ring-white/20" />

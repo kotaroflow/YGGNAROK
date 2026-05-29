@@ -9,7 +9,7 @@ export function TopBar() {
         <input
           name="q"
           className="h-10 w-full rounded-full border border-line bg-surface-strong pl-10 pr-4 text-sm text-foreground outline-none placeholder:text-muted transition focus:border-brand/50 focus:ring-2 focus:ring-brand/15"
-          placeholder="Buscar perfis, conteúdo, jobs e mídia"
+          placeholder="Buscar perfis, conteúdo, trabalhos e mídia"
           type="search"
         />
       </form>

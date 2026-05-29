@@ -597,7 +597,7 @@ export function Sidebar({
           </div>
 
           {/* Recents / Dynamic List */}
-          <div className="mt-4 flex-1 overflow-y-auto px-2">
+          <div className="mt-4 flex-1 overflow-y-auto px-2 overscroll-contain">
             <p className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.06em] font-medium text-muted">
               {activeTab === "chat" ? "Recentes" : activeTab === "criacao" ? "Criação & IA" : "Comercial"}
             </p>
