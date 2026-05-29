@@ -5,6 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { tagRows, v1Workflows } from "@/features/dashboard/v1-data";
 import { getDashboardOverview } from "@/server/data/dashboard";
 
+import { HomeScreen } from "@/components/home-screen";
+
 export default async function DashboardPage() {
   const overview = await getDashboardOverview();
   const visibleJobs = overview.jobs.slice(0, 3);
@@ -36,27 +38,7 @@ export default async function DashboardPage() {
   return (
     <AppShell hideTopBar>
       <main className="min-h-screen px-4 py-6 pl-16 text-slate-700 lg:px-8">
-        <section className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 pb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-stone-50">
-              <span className="text-amber-500">YGGNAROK</span>
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-stone-400">
-              Acompanhe o essencial e entre rápido nos fluxos principais.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <ActionButton href="/criar-conteudo" className="bg-amber-300 text-slate-950 hover:bg-amber-200">
-              <Zap size={16} />
-              Criar conteúdo
-            </ActionButton>
-            <ActionButton href="/postagem-manual" className="border border-blue-200 bg-blue-100 text-blue-950 hover:bg-blue-200 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-200">
-              <FileText size={16} />
-              Postagem manual
-            </ActionButton>
-          </div>
-        </section>
+        <HomeScreen />
 
         <section className="mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (

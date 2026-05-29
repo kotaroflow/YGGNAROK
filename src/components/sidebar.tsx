@@ -115,7 +115,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
   const sidebar = (
     <aside
       className={[
-        "flex h-full flex-col border-r border-black/5 bg-white/90 shadow-sm backdrop-blur-xl transition-[width] duration-200 dark:border-white/10 dark:bg-neutral-950/88",
+        "flex h-full flex-col border-r border-black/5 bg-sidebar shadow-sm backdrop-blur-xl transition-[width] duration-200 dark:border-white/10",
         collapsed ? "w-20" : "w-[19rem]",
       ].join(" ")}
     >
@@ -159,7 +159,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
             <section key={group.id} className="mb-2">
               <button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-semibold uppercase text-slate-500 transition hover:bg-slate-950/[0.04] dark:text-stone-400 dark:hover:bg-white/[0.05]"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-semibold uppercase text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-400"
                 onClick={() => toggleGroup(group.id)}
                 title={group.title}
               >
@@ -189,8 +189,8 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
                         className={[
                           "group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm transition",
                           active
-                            ? "bg-amber-200/85 text-slate-950 shadow-sm ring-1 ring-amber-300/60 dark:bg-amber-300 dark:text-neutral-950 dark:ring-amber-200/20"
-                            : "text-slate-600 hover:bg-slate-950/[0.05] dark:text-stone-300 dark:hover:bg-white/[0.06]",
+                            ? "bg-sidebar-active text-sidebar-text shadow-sm"
+                            : "text-slate-600 hover:bg-sidebar-hover dark:text-stone-300",
                         ].join(" ")}
                         title={`${item.label} - ${item.description}`}
                       >
@@ -217,7 +217,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
                   {!collapsed && group.items.length > collapsedItemLimit ? (
                     <button
                       type="button"
-                      className="ml-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-950/[0.05] dark:text-stone-300 dark:hover:bg-white/[0.06]"
+                      className="ml-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-300"
                       onClick={() => toggleShowAll(group.id)}
                     >
                       <Menu size={16} />
@@ -238,7 +238,7 @@ export function Sidebar({ user }: { user: PermissionContext | null }) {
           <button
             type="submit"
             className={[
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-950/[0.05] dark:text-stone-400 dark:hover:bg-white/[0.06]",
+              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500 transition hover:bg-sidebar-hover dark:text-stone-400",
               collapsed ? "justify-center" : "",
             ].join(" ")}
             title="Sair do sistema"
