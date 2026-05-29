@@ -63,7 +63,7 @@ export async function getContentItems() {
   if (!supabase) return [];
   const { data } = await supabase
     .from("content_items")
-    .select("id,profile_id,title,content_type,status,platform,idea,caption,hashtags,created_at")
+    .select("id,profile_id,title,content_type,status,platform,idea,caption,hashtags,scheduled_for,created_at")
     .order("created_at", { ascending: false })
     .limit(LIST_LIMIT);
 
