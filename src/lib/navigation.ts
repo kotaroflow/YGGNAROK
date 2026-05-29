@@ -28,6 +28,7 @@ import {
   UserRoundCog,
   Users,
   Workflow,
+  MessageSquare,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -55,6 +56,7 @@ export const sidebarGroups: SidebarGroup[] = [
     purpose: "Entrada do sistema e visao geral.",
     items: [
       { label: "Dashboard", description: "Visao geral", href: "/", icon: Home },
+      { label: "Chat IA", description: "Assistente", href: "/chat", permission: "ai_jobs.view_own", icon: MessageSquare },
       { label: "Perfis", description: "Perfis permitidos", href: "/perfis", permission: "profiles.view", icon: Users },
       { label: "Atalhos recentes", description: "Acessos rapidos", href: "/atalhos-recentes", permission: "profiles.view", icon: ListChecks },
       { label: "Jobs em andamento", description: "Status assincrono", href: "/jobs-em-andamento", permission: "ai_jobs.view_own", icon: Workflow },
