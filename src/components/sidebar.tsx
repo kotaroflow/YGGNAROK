@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
@@ -393,6 +393,41 @@ function ProjectsSection({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+// ─── Theme Toggle (inline for sidebar popover) ──────────────────────────────
+
+function ThemeToggleInline() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  function toggle() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    document.documentElement.dataset.theme = next ? "dark" : "light";
+    window.localStorage.setItem("ygn-theme", next ? "dark" : "light");
+    window.dispatchEvent(new Event("ygn-theme-change"));
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover"
+    >
+      <div className="flex items-center gap-2">
+        {dark ? <Moon size={14} className="text-muted" /> : <Sun size={14} className="text-muted" />}
+        {dark ? "Modo escuro" : "Modo claro"}
+      </div>
+      <div className="flex h-5 w-9 items-center rounded-full bg-sidebar-hover p-0.5 transition">
+        <div className={`size-4 rounded-full bg-brand shadow-sm transition-transform ${dark ? "translate-x-4" : "translate-x-0"}`} />
+      </div>
+    </button>
+  );
+}
+
 export function Sidebar({ 
   user,
   defaultCollapsed = false,
@@ -516,7 +551,33 @@ export function Sidebar({
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
-  const [activeTab, setActiveTab] = useState<"chat" | "criacao" | "mercado">("chat");
+  // Derive active tab from pathname OR saved preference
+  const pathname = usePathname();
+  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem("ygn-sidebar-tab");
+      if (saved === "chat" || saved === "criacao" || saved === "mercado") return saved;
+    }
+    return "chat";
+  });
+
+  // Persist active tab
+  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
+    setActiveTabRaw(tab);
+    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
+  }, []);
+
+  // Auto-switch tab based on current pathname
+  useEffect(() => {
+    if (!isMounted) return;
+    const criacaoHrefs = ["/criar-conteudo", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
+    const mercadoHrefs = ["/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
+    if (criacaoHrefs.some(h => pathname.startsWith(h))) {
+      setActiveTabRaw("criacao");
+    } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
+      setActiveTabRaw("mercado");
+    }
+  }, [pathname, isMounted]);
 
   const sidebar = (
     <aside
@@ -654,6 +715,7 @@ export function Sidebar({
                 <div className="flex items-center gap-2"><Settings size={14} className="text-muted" /> Configurações</div>
                 <span className="text-[10px] text-muted">Ctrl,</span>
               </Link>
+              <ThemeToggleInline />
               <button className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
                 <div className="flex items-center gap-2"><Globe size={14} className="text-muted" /> Idioma</div>
                 <ChevronRight size={14} className="text-muted" />

@@ -90,7 +90,7 @@ const initialEdges: AgentEdge[] = [
 
 export function AgentNodeStudio() {
   const [nodes, setNodes] = useState(initialNodes);
-  const [edges] = useState(initialEdges);
+  const [edges, setEdges] = useState(initialEdges);
   const [selectedId, setSelectedId] = useState("creator");
   const selected = nodes.find((node) => node.id === selectedId) ?? nodes[0];
   const nodeMap = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
@@ -119,6 +119,7 @@ export function AgentNodeStudio() {
   function removeSelected() {
     if (["brief", "supervisor"].includes(selected.id)) return;
     setNodes((current) => current.filter((node) => node.id !== selected.id));
+    setEdges((current) => current.filter((edge) => edge.from !== selected.id && edge.to !== selected.id));
     setSelectedId("creator");
   }
 
