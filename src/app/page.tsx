@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Bell, BriefcaseBusiness, FileText, Radio, Sparkles, Users, Zap } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { tagRows, v1Workflows } from "@/features/dashboard/v1-data";
 import { getDashboardOverview } from "@/server/data/dashboard";
@@ -10,83 +9,9 @@ export default async function DashboardPage() {
   const hasHealthAlerts = overview.counts.alerts > 0;
   const visibleJobs = overview.jobs.slice(0, 3);
 
-  const stats = [
-    {
-      label: "Perfis ativos",
-      value: overview.counts.profiles,
-      href: "/perfis",
-      icon: Users,
-      tone: "amber",
-    },
-    {
-      label: "Jobs em andamento",
-      value: overview.counts.pendingJobs,
-      href: "/jobs-em-andamento",
-      icon: BriefcaseBusiness,
-      tone: "violet",
-    },
-    {
-      label: "Postagens manuais",
-      value: overview.counts.manualPosts,
-      href: "/postagem-manual",
-      icon: FileText,
-      tone: "blue",
-    },
-    {
-      label: "Avisos simples",
-      value: overview.counts.alerts,
-      href: "/alertas",
-      icon: Bell,
-      tone: "sky",
-    },
-  ] as const;
-
   return (
     <AppShell hideTopBar>
       <main className="min-h-screen px-4 py-6 pl-16 text-slate-700 lg:px-8">
-        <section className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 pb-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Visao operacional da V1</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-stone-50">
-              Dashboard <span className="text-amber-500">YGGNAROK</span> / YGN V1
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-stone-400">Acompanhe o essencial e entre rapido nos fluxos principais.</p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <ActionButton href="/criar-conteudo" className="bg-amber-300 text-slate-950 hover:bg-amber-200">
-              <Zap size={16} />
-              Criar conteudo
-            </ActionButton>
-            <ActionButton href="/conselho-ia" className="border border-violet-200 bg-violet-100 text-violet-950 hover:bg-violet-200 dark:border-violet-900/50 dark:bg-violet-950/60 dark:text-violet-200">
-              <Radio size={16} />
-              Conectar IA
-            </ActionButton>
-            <ActionButton href="/jobs" className="border border-blue-200 bg-blue-100 text-blue-950 hover:bg-blue-200 dark:border-blue-900/50 dark:bg-blue-950/60 dark:text-blue-200">
-              <Sparkles size={16} />
-              Gerar com IA
-            </ActionButton>
-          </div>
-        </section>
-
-        <section className="mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="group flex min-h-28 items-center gap-5 rounded-lg border border-black/5 bg-white/78 p-6 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-neutral-950/70 dark:hover:bg-neutral-900"
-            >
-              <span className={`grid size-14 place-items-center rounded-lg border ${toneClasses[stat.tone]}`}>
-                <stat.icon size={23} />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-3xl font-bold leading-none text-slate-900 dark:text-stone-50">{stat.value}</span>
-                <span className="mt-3 block truncate text-sm text-slate-400 dark:text-stone-500">{stat.label}</span>
-              </span>
-            </Link>
-          ))}
-        </section>
-
         <section className="mx-auto mt-7 grid w-full max-w-7xl gap-5 xl:grid-cols-[1.9fr_.95fr]">
           <Panel title="Ultimos Jobs" href="/jobs" action="Ver todos">
             <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
@@ -153,20 +78,6 @@ export default async function DashboardPage() {
   );
 }
 
-const toneClasses = {
-  amber: "border-amber-200 bg-amber-100 text-amber-600 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300",
-  violet: "border-violet-200 bg-violet-100 text-violet-500 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300",
-  blue: "border-blue-200 bg-blue-100 text-blue-500 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300",
-  sky: "border-sky-200 bg-sky-100 text-sky-600 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300",
-};
-
-function ActionButton({ href, className, children }: { href: string; className: string; children: ReactNode }) {
-  return (
-    <Link className={`inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-bold shadow-sm transition ${className}`} href={href}>
-      {children}
-    </Link>
-  );
-}
 
 function Panel({ title, href, action, children }: { title: string; href: string; action: string; children: ReactNode }) {
   return (
