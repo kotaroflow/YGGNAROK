@@ -220,8 +220,8 @@ export function ChatClient() {
     <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
         <div>
-          <h1 className="text-base font-semibold text-foreground">Conselho IA</h1>
-          <p className="text-xs text-muted">Void &amp; Amber · YGGNAROK</p>
+          <h1 className="text-base font-semibold text-foreground">YGGNAROK Assistente</h1>
+          <p className="text-xs text-muted">Void &amp; Amber · Modelo Base</p>
         </div>
         {visibleMessages.length > 0 && (
           <button
@@ -330,7 +330,7 @@ export function ChatClient() {
             </div>
           </div>
           <p className="mt-2 text-center text-[11px] text-muted">
-            O Conselho IA pode cometer erros. Verifique informações críticas.
+            O YGGNAROK IA pode cometer erros. Verifique informações críticas.
           </p>
         </div>
       </div>
