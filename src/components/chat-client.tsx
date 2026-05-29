@@ -207,6 +207,7 @@ export function ChatClient() {
   }
 
   const visibleMessages = messages.filter((m) => m.role !== "system");
+  const isEmpty = visibleMessages.length === 0;
 
   if (!convId || !hydrated) {
     return (
@@ -216,67 +217,122 @@ export function ChatClient() {
     );
   }
 
+  const renderInputBox = (centered: boolean) => (
+    <div className={`mx-auto w-full ${centered ? "max-w-2xl" : "max-w-3xl"}`}>
+      <div className={`relative flex flex-col overflow-hidden rounded-2xl border border-line shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15 ${centered ? "bg-surface-strong/50 backdrop-blur-md" : "bg-surface-strong"}`}>
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={centered ? "Como o YGGNAROK pode ajudar?" : "Envie uma mensagem..."}
+          rows={1}
+          className={`w-full resize-none bg-transparent px-4 py-4 text-sm text-foreground placeholder:text-muted focus:outline-none ${centered ? "min-h-[120px]" : "max-h-[250px] min-h-[60px]"}`}
+        />
+        <div className="flex items-center justify-between p-2 pt-0">
+          <div className="flex items-center gap-1">
+            <ModelSwitcher
+              compact
+              onModelChange={(id) => {
+                setSelectedModel(id);
+                saveSelectedModel(id);
+              }}
+            />
+          </div>
+          {status === "streaming" ? (
+            <button
+              type="button"
+              onClick={stop}
+              className="grid size-8 place-items-center rounded-lg bg-foreground text-background transition hover:opacity-90"
+              title="Parar geração"
+            >
+              <StopCircle size={15} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={!input.trim()}
+              className="grid size-8 place-items-center rounded-lg bg-brand text-neutral-950 transition hover:bg-brand-strong disabled:opacity-40"
+              title="Enviar"
+            >
+              <ArrowUp size={15} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[11px] text-muted">
+        O YGGNAROK IA pode cometer erros. Verifique informações críticas.
+      </p>
+    </div>
+  );
+
+  if (isEmpty) {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+
+    return (
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+        <div className="w-full max-w-2xl text-center">
+          <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
+            {greeting}. Como posso ajudar?
+          </h2>
+          {renderInputBox(true)}
+          
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
+             <button onClick={() => setInput("Me ajude a planejar uma campanha comercial estratégica.")} className="rounded-full border border-line bg-surface px-4 py-2 text-xs text-muted transition hover:border-brand/30 hover:text-foreground">Planejar campanha</button>
+             <button onClick={() => setInput("Escreva um roteiro curto para um vídeo no Instagram sobre...")} className="rounded-full border border-line bg-surface px-4 py-2 text-xs text-muted transition hover:border-brand/30 hover:text-foreground">Escrever roteiro</button>
+             <button onClick={() => setInput("Quais são os passos para otimizar conversão de vendas?")} className="rounded-full border border-line bg-surface px-4 py-2 text-xs text-muted transition hover:border-brand/30 hover:text-foreground">Otimizar vendas</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between px-4 py-3">
         <div>
-          <h1 className="text-base font-semibold text-foreground">YGGNAROK Assistente</h1>
-          <p className="text-xs text-muted">Void &amp; Amber · Modelo Base</p>
+          <h1 className="text-sm font-semibold text-foreground">YGGNAROK Assistente</h1>
         </div>
-        {visibleMessages.length > 0 && (
-          <button
-            type="button"
-            onClick={() => void clearChat()}
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-surface hover:text-red-600 dark:hover:text-red-400"
-            title="Nova conversa"
-          >
-            <Trash2 size={16} />
-            <span className="hidden sm:inline">Nova conversa</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => void clearChat()}
+          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-surface hover:text-red-600 dark:hover:text-red-400"
+          title="Nova conversa"
+        >
+          <Trash2 size={15} />
+          <span className="hidden sm:inline">Limpar chat</span>
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-40 pt-2">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          {visibleMessages.length === 0 ? (
-            <div className="mt-16 text-center">
-              <div className="mx-auto mb-4 grid size-16 place-items-center rounded-2xl bg-sidebar-active text-brand">
-                <Bot size={32} />
-              </div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                Como posso ajudar hoje?
-              </h2>
-              <p className="mt-2 text-sm text-muted">
-                Operações, conteúdo, vendas e trabalhos — respostas em português.
-              </p>
-            </div>
-          ) : (
-            visibleMessages.map((m) => (
+          {visibleMessages.map((m) => (
+            <div
+              key={m.id}
+              className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+            >
               <div
-                key={m.id}
-                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+                className={`mt-1 grid size-7 shrink-0 place-items-center rounded-lg ${
+                  m.role === "user"
+                    ? "bg-surface-strong text-muted ring-1 ring-line"
+                    : "bg-brand text-neutral-950"
+                }`}
               >
-                <div
-                  className={`grid size-8 shrink-0 place-items-center rounded-xl ${
-                    m.role === "user"
-                      ? "bg-surface-strong text-muted ring-1 ring-line"
-                      : "bg-brand text-neutral-950"
-                  }`}
-                >
-                  {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
-                </div>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-surface-strong text-foreground ring-1 ring-line"
-                      : "text-foreground"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{m.content}</p>
-                </div>
+                {m.role === "user" ? <User size={14} /> : <Bot size={14} />}
               </div>
-            ))
-          )}
+              <div
+                className={`max-w-[85%] text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-surface-strong text-foreground ring-1 ring-line rounded-2xl px-4 py-3"
+                    : "text-foreground pt-1.5"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              </div>
+            </div>
+          ))}
 
           {error && (
             <div className="rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
@@ -287,51 +343,9 @@ export function ChatClient() {
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background to-transparent px-4 pb-5 pt-8">
-        <div className="mx-auto w-full max-w-3xl">
-          <div className="relative flex items-end gap-2 rounded-2xl border border-line bg-surface-strong shadow-sm transition focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-brand/15">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Envie uma mensagem…"
-              rows={1}
-              className="max-h-[200px] min-h-[56px] w-full resize-none bg-transparent py-4 pl-4 pr-28 text-sm text-foreground placeholder:text-muted focus:outline-none"
-            />
-            <div className="absolute bottom-2 right-2 flex items-center gap-1">
-              <ModelSwitcher
-                compact
-                onModelChange={(id) => {
-                  setSelectedModel(id);
-                  saveSelectedModel(id);
-                }}
-              />
-              {status === "streaming" ? (
-                <button
-                  type="button"
-                  onClick={stop}
-                  className="grid size-9 place-items-center rounded-xl bg-foreground text-background transition hover:opacity-90"
-                  title="Parar geração"
-                >
-                  <StopCircle size={16} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void send()}
-                  disabled={!input.trim()}
-                  className="grid size-9 place-items-center rounded-xl bg-brand text-neutral-950 transition hover:bg-brand-strong disabled:opacity-40"
-                  title="Enviar"
-                >
-                  <ArrowUp size={16} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-center text-[11px] text-muted">
-            O YGGNAROK IA pode cometer erros. Verifique informações críticas.
-          </p>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background to-transparent px-4 pb-5 pt-12 pointer-events-none">
+        <div className="pointer-events-auto">
+          {renderInputBox(false)}
         </div>
       </div>
     </div>
