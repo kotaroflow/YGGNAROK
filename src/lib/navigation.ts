@@ -70,6 +70,7 @@ export const sidebarGroups: SidebarGroup[] = [
       { label: "Prompts", description: "Comandos uteis", href: "/prompts", permission: "library.view", icon: Terminal },
       { label: "Legendas", description: "Copy pronta", href: "/criar-conteudo?aba=legendas", permission: "content.view", icon: Subtitles },
       { label: "Hashtags", description: "Organizacao", href: "/criar-conteudo?aba=hashtags", permission: "content.view", icon: Hash },
+      { label: "Análise de Site", description: "Auditoria e SEO", href: "/analise-site", permission: "content.view", icon: BarChart3 },
       { label: "Lixeira Inteligente", description: "Restaurar itens", href: "/lixeira-inteligente", permission: "library.restore", icon: Trash2 },
     ],
   },
