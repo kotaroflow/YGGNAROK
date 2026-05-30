@@ -219,7 +219,7 @@ export function ChatClient() {
 
   const renderInputBox = (centered: boolean) => (
     <div className={`mx-auto w-full ${centered ? "max-w-2xl" : "max-w-3xl"}`}>
-      <div className={`relative flex flex-col overflow-hidden rounded-2xl border border-line shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15 ${centered ? "bg-surface-strong/50 backdrop-blur-md" : "bg-surface-strong"}`}>
+      <div className={`relative flex flex-col rounded-2xl border border-line shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15 ${centered ? "bg-surface-strong/50 backdrop-blur-md" : "bg-surface-strong"}`}>
         <textarea
           ref={textareaRef}
           value={input}

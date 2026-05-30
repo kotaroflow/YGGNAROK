@@ -101,7 +101,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 z-50 w-[340px] rounded-xl border border-line bg-surface shadow-lg overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2 z-50 w-[340px] rounded-xl border border-line bg-surface/95 backdrop-blur-md shadow-lg overflow-hidden">
           {/* Header */}
           <div className="border-b border-line px-4 py-3">
             <p className="text-[12px] font-semibold text-foreground">Selecionar modelo</p>
