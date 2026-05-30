@@ -101,7 +101,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 z-50 w-[340px] rounded-xl border border-line bg-surface/95 backdrop-blur-md shadow-lg overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2 z-50 w-[340px] rounded-xl border border-line bg-white/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-lg overflow-hidden">
           {/* Header */}
           <div className="border-b border-line px-4 py-3">
             <p className="text-[12px] font-semibold text-foreground">Selecionar modelo</p>
@@ -141,9 +141,13 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
                               {TIER_ICON[m.tier]}
                               {TIER_LABELS[m.tier]}
                             </span>
-                            {m.free && (
-                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                            {m.free ? (
+                              <span className="rounded-full border border-emerald-200/60 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
                                 Grátis
+                              </span>
+                            ) : (
+                              <span className="rounded-full border border-amber-200/60 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400 font-semibold shadow-sm">
+                                Pago
                               </span>
                             )}
                           </div>
