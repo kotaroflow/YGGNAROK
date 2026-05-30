@@ -175,6 +175,74 @@ export const AI_MODELS: AIModel[] = [
     contextK: 64,
     free: true,
   },
+
+  // — xAI —
+  {
+    id: "x-ai/grok-2",
+    name: "Grok 2",
+    provider: "xAI (Grok)",
+    description: "Modelo oficial da xAI (Grok). Inteligente e atualizado em tempo real.",
+    tier: "balanced",
+    contextK: 128,
+  },
+
+  // — Qwen —
+  {
+    id: "qwen/qwen-2.5-coder-32b-instruct",
+    name: "Qwen 2.5 Coder 32B",
+    provider: "Qwen",
+    description: "Um dos melhores modelos do mundo especializados em programação e código.",
+    tier: "balanced",
+    contextK: 32,
+    free: true,
+  },
+  {
+    id: "qwen/qwen-2.5-72b-instruct",
+    name: "Qwen 2.5 72B",
+    provider: "Qwen",
+    description: "Excelente modelo de propósito geral desenvolvido pela Alibaba Cloud.",
+    tier: "balanced",
+    contextK: 64,
+  },
+
+  // — Perplexity —
+  {
+    id: "perplexity/sonar",
+    name: "Perplexity Sonar",
+    provider: "Perplexity",
+    description: "Modelo otimizado para respostas rápidas com pesquisa na web em tempo real.",
+    tier: "fast",
+    contextK: 32,
+  },
+  {
+    id: "perplexity/sonar-reasoning",
+    name: "Perplexity Sonar Reasoning",
+    provider: "Perplexity",
+    description: "Pesquisa avançada na internet com raciocínio lógico em cadeia integrado.",
+    tier: "powerful",
+    contextK: 128,
+  },
+
+  // — Cohere —
+  {
+    id: "cohere/command-r-plus",
+    name: "Command R+",
+    provider: "Cohere",
+    description: "Líder em RAG, processamento de múltiplos documentos e execução de ferramentas.",
+    tier: "balanced",
+    contextK: 128,
+  },
+
+  // — Nous Research —
+  {
+    id: "nousresearch/hermes-3-llama-3-8b",
+    name: "Hermes 3 8B",
+    provider: "Nous Research",
+    description: "Modelo altamente customizado, sem censura e excelente para agentes e diálogos livres.",
+    tier: "fast",
+    contextK: 32,
+    free: true,
+  },
 ];
 
 export const DEFAULT_MODEL_ID = "meta-llama/llama-3.1-8b-instruct";

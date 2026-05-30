@@ -25,7 +25,7 @@ const TIER_CLASS: Record<ModelTier, string> = {
 };
 
 // Group models by provider
-const PROVIDER_ORDER = ["OpenAI", "Anthropic", "Google", "Meta", "Mistral", "DeepSeek"];
+const PROVIDER_ORDER = ["OpenAI", "Anthropic", "Google", "Meta", "DeepSeek", "Mistral", "xAI (Grok)", "Qwen", "Perplexity", "Cohere", "Nous Research"];
 function groupByProvider(models: AIModel[]) {
   const groups: Record<string, AIModel[]> = {};
   for (const model of models) {
