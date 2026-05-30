@@ -97,14 +97,61 @@ export function ChatClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, status]);
 
-  const apiMessages = useMemo(
-    () => messages.map((m) => ({ role: m.role, content: m.content })),
-    [messages],
-  );
+  // Sliding Window Memory: limit sent history to the last 20 messages to protect API costs
+  const apiMessages = useMemo(() => {
+    const raw = messages.map((m) => ({ role: m.role, content: m.content }));
+    if (raw.length <= 20) return raw;
+
+    // Always keep system prompt (index 0) and append only the last 19 messages
+    const systemMsg = raw.find((m) => m.role === "system") || raw[0];
+    const rest = raw.filter((m) => m.role !== "system").slice(-19);
+    return [systemMsg, ...rest];
+  }, [messages]);
 
   async function send(contentOverride?: string) {
     const content = (contentOverride ?? input).trim();
     if (!content || !convId) return;
+
+    // --- SMART COST & QUALITY ROUTER (Front-end Firewall) ---
+    const textForRouting = content.toLowerCase();
+    
+    // Rule 1: Image Request Interception
+    const isImageRequest = /\b(gerar imagem|crie uma imagem|criar imagem|desenhe|gerar foto|criar foto|generate image|create image)\b/.test(textForRouting);
+    
+    // Rule 2: Code detection
+    const isCodeRequest = 
+      textForRouting.includes("```") || 
+      /\b(function|const|let|import|javascript|typescript|python|html|css|sql|api|nextjs|react|código|programar|programação|bug|erro|compilar)\b/.test(textForRouting);
+      
+    // Rule 3: Greetings & basic greetings (Cost Protection)
+    const isSimpleGreeting = 
+      content.length < 15 || 
+      /\b(oi|olá|ola|bom dia|boa tarde|boa noite|opa|valeu|obrigado|obrigada|hey|hello|hi|tudo bem|tudo bom)\b/.test(textForRouting);
+
+    const premiumModels = [
+      "openai/gpt-4o",
+      "openai/o1",
+      "openai/o3-mini",
+      "anthropic/claude-3-5-sonnet",
+      "anthropic/claude-3-opus",
+      "google/gemini-2.0-pro-exp-05-26"
+    ];
+
+    let modelToUse = selectedModel;
+    if (isImageRequest) {
+      modelToUse = "google/gemini-2.0-flash-001";
+    } else if (isCodeRequest && selectedModel !== "qwen/qwen-2.5-coder-32b-instruct" && selectedModel !== "openai/o1" && selectedModel !== "openai/o3-mini" && selectedModel !== "deepseek/deepseek-r1") {
+      modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
+    } else if (isSimpleGreeting && premiumModels.includes(selectedModel)) {
+      modelToUse = "meta-llama/llama-3.1-8b-instruct";
+    }
+
+    // Auto-update model UI dropdown on selection change
+    if (modelToUse !== selectedModel) {
+      setSelectedModel(modelToUse);
+      saveSelectedModel(modelToUse);
+    }
+    // ---------------------------------------------------------
 
     abortRef.current?.abort();
     const abort = new AbortController();
@@ -136,7 +183,7 @@ export function ChatClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...apiMessages, { role: "user", content }],
-          model: selectedModel,
+          model: modelToUse,
         }),
         signal: abort.signal,
       });
