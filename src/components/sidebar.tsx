@@ -446,6 +446,62 @@ export function Sidebar({
   const [transitionsEnabled, setTransitionsEnabled] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
+  
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    // Triple click detector: opens/expands the sidebar
+    clickCountRef.current += 1;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    
+    if (clickCountRef.current === 3) {
+      clickCountRef.current = 0;
+      if (collapsed) {
+        setCollapsed(false);
+        if (typeof window !== "undefined") {
+          const current = readSavedSidebarState();
+          localStorage.setItem(storageKey, JSON.stringify({ ...current, collapsed: false }));
+        }
+      }
+      return;
+    }
+
+    clickTimerRef.current = setTimeout(() => {
+      clickCountRef.current = 0;
+    }, 400);
+
+    // Empty space click detector: closes/collapses the sidebar
+    if (!collapsed) {
+      let target = e.target as HTMLElement | null;
+      let isInteractive = false;
+      while (target && target !== sidebarRef.current) {
+        const tagName = target.tagName.toUpperCase();
+        if (
+          tagName === "A" || 
+          tagName === "BUTTON" || 
+          tagName === "INPUT" || 
+          tagName === "TEXTAREA" ||
+          tagName === "FORM" ||
+          target.getAttribute("role") === "button" ||
+          target.classList.contains("cursor-pointer") ||
+          target.classList.contains("cursor-col-resize")
+        ) {
+          isInteractive = true;
+          break;
+        }
+        target = target.parentElement;
+      }
+
+      if (!isInteractive) {
+        setCollapsed(true);
+        if (typeof window !== "undefined") {
+          const current = readSavedSidebarState();
+          localStorage.setItem(storageKey, JSON.stringify({ ...current, collapsed: true }));
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -582,6 +638,7 @@ export function Sidebar({
   const sidebar = (
     <aside
       ref={sidebarRef}
+      onClick={handleSidebarClick}
       style={{ 
         width: collapsed ? "4.5rem" : `${sidebarWidth}px`, 
         transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s" 
@@ -707,44 +764,54 @@ export function Sidebar({
           
           {/* Profile Menu Popover - opens to the RIGHT to avoid sidebar clipping */}
           <div className="absolute bottom-0 left-full ml-2 z-50 w-64 origin-bottom-left rounded-xl border border-sidebar-hover bg-sidebar p-1.5 opacity-0 invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible shadow-none">
-            <div className="px-2 py-1.5 text-[12px] text-sidebar-text-muted">
+            <div className="px-2 py-1.5 text-[12px] text-sidebar-text-muted select-none border-b border-sidebar-hover mb-1.5">
               naoteemteresa@gmail.com
             </div>
+            
             <div className="space-y-0.5">
-              <Link href="/configuracoes" className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <div className="flex items-center gap-2"><Settings size={14} className="text-muted" /> Configurações</div>
-                <span className="text-[10px] text-muted">Ctrl,</span>
+              <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                <Globe size={14} className="text-muted" />
+                <span>Meu Perfil</span>
               </Link>
+              
+              <Link href="/sistema" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                <Settings size={14} className="text-muted" />
+                <span>Configurações do OS</span>
+              </Link>
+              
+              <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                <Library size={14} className="text-muted" />
+                <span>Biblioteca de Prompts</span>
+              </Link>
+
               <ThemeToggleInline />
-              <button className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <div className="flex items-center gap-2"><Globe size={14} className="text-muted" /> Idioma</div>
-                <ChevronRight size={14} className="text-muted" />
-              </button>
-              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <HelpCircle size={14} className="text-muted" /> Receber ajuda
-              </button>
             </div>
             
             <div className="my-1 border-t border-sidebar-hover"></div>
             
             <div className="space-y-0.5">
-              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <ArrowUpCircle size={14} className="text-muted" /> Fazer upgrade do plano
-              </button>
-              <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <Download size={14} className="text-muted" /> Obter apps e extensões
-              </button>
-              <button className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <div className="flex items-center gap-2"><Info size={14} className="text-muted" /> Saiba mais</div>
-                <ChevronRight size={14} className="text-muted" />
+              <button 
+                type="button"
+                onClick={() => {
+                  if (confirm("Deseja mesmo limpar todo o cache e histórico local do sistema?")) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-red-600 dark:text-red-400 hover:bg-sidebar-hover transition-colors"
+              >
+                <RefreshCw size={14} />
+                <span>Limpar Cache do OS</span>
               </button>
             </div>
 
             <div className="my-1 border-t border-sidebar-hover"></div>
             
             <form action={signOut}>
-              <button type="submit" className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover">
-                <div className="flex items-center gap-2"><LogOut size={14} className="text-muted" /> Sair</div>
+              <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                <LogOut size={14} className="text-muted" />
+                <span>Sair</span>
               </button>
             </form>
           </div>
