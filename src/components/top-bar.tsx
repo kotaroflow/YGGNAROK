@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, PenLine, Search } from "lucide-react";
+import { PenLine, Search, Settings } from "lucide-react";
 
 export function TopBar() {
   return (
@@ -28,7 +28,7 @@ export function TopBar() {
         aria-label="Sistema"
         title="Sistema"
       >
-        <Bell size={18} />
+        <Settings size={18} />
       </Link>
     </header>
   );

@@ -692,7 +692,7 @@ export function Sidebar({
         <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-foreground">
+              <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
                 K
               </div>
               <span className="text-[13px] font-medium text-sidebar-text">
@@ -700,7 +700,7 @@ export function Sidebar({
               </span>
             </div>
           ) : (
-             <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-foreground">
+             <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
                 K
               </div>
           )}
