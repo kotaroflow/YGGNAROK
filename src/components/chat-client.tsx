@@ -35,6 +35,10 @@ export function ChatClient() {
   const [status, setStatus] = useState<"idle" | "streaming" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [spentCost, setSpentCost] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    return Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
+  });
 
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -209,22 +213,34 @@ export function ChatClient() {
     }
     // ---------------------------------------------------------
 
-    // --- NEW USER PREMIUM PAID MODEL QUOTA CONTROL (Firewall) ---
+    // --- USER PREMIUM PAID MODEL QUOTA CONTROL & ADMIN BYPASS ---
     const modelObj = getModel(modelToUse);
     if (!modelObj.free) {
-      const QUOTA_KEY = "yggnarok.user.paid-quota.v1";
-      const rawQuota = localStorage.getItem(QUOTA_KEY);
-      const currentQuota = rawQuota !== null ? Number(rawQuota) : 10; // New users get 10 free premium requests
+      const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
+      const isKotaro = username === "kotaro";
 
-      if (currentQuota <= 0) {
-        setError("Sua cota gratuita de testes para modelos pagos foi atingida. Continue usando nossos excelentes modelos Open-Source gratuitos ou adquira o plano Pro para créditos premium ilimitados!");
-        setStatus("error");
-
-        setSelectedModel(DEFAULT_MODEL_ID);
-        saveSelectedModel(DEFAULT_MODEL_ID);
-        return; // Block prompt execution
+      if (isKotaro) {
+        // Kotaro gets unlimited usage! But we track their total spent cost in USD
+        const currentCost = Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
+        const nextCost = currentCost + 0.015; // Estimate average cost of $0.015 USD per prompt
+        localStorage.setItem("yggnarok.kotaro.spent-cost", String(nextCost));
+        setSpentCost(nextCost);
       } else {
-        localStorage.setItem(QUOTA_KEY, String(currentQuota - 1));
+        // Regular user quota validation
+        const QUOTA_KEY = "yggnarok.user.paid-quota.v1";
+        const rawQuota = localStorage.getItem(QUOTA_KEY);
+        const currentQuota = rawQuota !== null ? Number(rawQuota) : 10;
+
+        if (currentQuota <= 0) {
+          setError("Sua cota gratuita de testes para modelos pagos foi atingida. Continue usando nossos excelentes modelos Open-Source gratuitos ou adquira o plano Pro para créditos premium ilimitados!");
+          setStatus("error");
+
+          setSelectedModel(DEFAULT_MODEL_ID);
+          saveSelectedModel(DEFAULT_MODEL_ID);
+          return; // Block execution
+        } else {
+          localStorage.setItem(QUOTA_KEY, String(currentQuota - 1));
+        }
       }
     }
     // ------------------------------------------------------------
@@ -361,6 +377,43 @@ export function ChatClient() {
                 saveSelectedModel(id);
               }}
             />
+            {spentCost > 0 && (
+              <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg border border-line bg-surface/50 text-[11px] font-medium select-none shadow-sm transition-all duration-300">
+                {spentCost < 2.00 ? (
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    Consumo: ${spentCost.toFixed(2)}
+                  </span>
+                ) : spentCost < 5.00 ? (
+                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                    </span>
+                    Consumo Médio: ${spentCost.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold animate-pulse">
+                    <span>🚨</span> Consumo Alto: ${spentCost.toFixed(2)}
+                  </span>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem("yggnarok.kotaro.spent-cost", "0");
+                    setSpentCost(0);
+                  }}
+                  className="ml-1 text-[9px] hover:text-foreground text-muted underline cursor-pointer"
+                  title="Zerar rastreador de gastos"
+                >
+                  Zerar
+                </button>
+              </div>
+            )}
           </div>
           {status === "streaming" ? (
             <button
