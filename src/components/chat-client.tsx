@@ -118,12 +118,18 @@ export function ChatClient() {
     // Rule 1: Image Request Interception
     const isImageRequest = /\b(gerar imagem|crie uma imagem|criar imagem|desenhe|gerar foto|criar foto|generate image|create image)\b/.test(textForRouting);
     
-    // Rule 2: Code detection
+    // Rule 2: Code detection (Qwen 2.5 Coder 32B - Free)
     const isCodeRequest = 
       textForRouting.includes("```") || 
       /\b(function|const|let|import|javascript|typescript|python|html|css|sql|api|nextjs|react|código|programar|programação|bug|erro|compilar)\b/.test(textForRouting);
       
-    // Rule 3: Greetings & basic greetings (Cost Protection)
+    // Rule 3: Business, Marketing & Strategic reasoning (Llama 3.3 70B - Free)
+    const isBusinessRequest = /\b(campanha|estratégia|marketing|copywriting|vendas|negócio|copy|redigir|vender|análise de mercado|plano de negócios|estratégico|lançamento|conversão)\b/.test(textForRouting);
+
+    // Rule 4: Deep Logic, Mathematics & Science (DeepSeek R1 - Free Reasoning)
+    const isLogicRequest = /\b(calcule|equação|lógica|matemática|raciocínio|científico|algoritmo|fórmula|física|química|resolver problema)\b/.test(textForRouting);
+
+    // Rule 5: Greetings & basic messages (Llama 3.1 8B - Fast & Free)
     const isSimpleGreeting = 
       content.length < 15 || 
       /\b(oi|olá|ola|bom dia|boa tarde|boa noite|opa|valeu|obrigado|obrigada|hey|hello|hi|tudo bem|tudo bom)\b/.test(textForRouting);
@@ -142,6 +148,10 @@ export function ChatClient() {
       modelToUse = "google/gemini-2.0-flash-001";
     } else if (isCodeRequest && selectedModel !== "qwen/qwen-2.5-coder-32b-instruct" && selectedModel !== "openai/o1" && selectedModel !== "openai/o3-mini" && selectedModel !== "deepseek/deepseek-r1") {
       modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
+    } else if (isBusinessRequest && selectedModel !== "meta-llama/llama-3.3-70b-instruct" && !premiumModels.includes(selectedModel) && selectedModel !== "deepseek/deepseek-r1") {
+      modelToUse = "meta-llama/llama-3.3-70b-instruct";
+    } else if (isLogicRequest && selectedModel !== "deepseek/deepseek-r1" && selectedModel !== "openai/o1" && selectedModel !== "openai/o3-mini") {
+      modelToUse = "deepseek/deepseek-r1";
     } else if (isSimpleGreeting && premiumModels.includes(selectedModel)) {
       modelToUse = "meta-llama/llama-3.1-8b-instruct";
     }

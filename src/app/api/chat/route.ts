@@ -90,6 +90,62 @@ export async function POST(req: Request) {
 
   if (!normalized.length) return jsonError("messages vazio apos normalizacao.", 400);
 
+  let finalMessages = normalized;
+
+  // Compress older messages if history is long (> 12 messages) to protect API costs and model focus
+  if (normalized.length > 12) {
+    try {
+      const systemMsg = normalized.find((m) => m.role === "system");
+      const userAndAssistantMsgs = normalized.filter((m) => m.role !== "system");
+
+      if (userAndAssistantMsgs.length > 8) {
+        // Keep the last 6 messages completely intact for conversational flow
+        const messagesToCompress = userAndAssistantMsgs.slice(0, -6);
+        const messagesToKeep = userAndAssistantMsgs.slice(-6);
+
+        // Compress utilizing Llama 3.1 8B (100% FREE on OpenRouter)
+        const summaryResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.OPENROUTER_APP_URL || "http://localhost:3000",
+            "X-Title": "YGGNAROK Context Condenser",
+          },
+          body: JSON.stringify({
+            model: "meta-llama/llama-3.1-8b-instruct",
+            messages: [
+              {
+                role: "system",
+                content: "Você é o sistema de compressão de memória do YGGNAROK. Resuma em português do Brasil os principais pontos, preferências do usuário, fatos e tópicos cruciais discutidos no histórico a seguir em um resumo de no máximo 3 linhas. Seja extremamente conciso. Responda APENAS com o resumo direto, sem saudações ou explicações.",
+              },
+              ...messagesToCompress,
+            ],
+            temperature: 0.3,
+            max_tokens: 150,
+          }),
+        });
+
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          const summaryText = summaryData?.choices?.[0]?.message?.content?.trim();
+
+          if (summaryText) {
+            finalMessages = [];
+            if (systemMsg) finalMessages.push(systemMsg);
+            finalMessages.push({
+              role: "system",
+              content: `[MEMÓRIA DO CONTEXTO ANTERIOR COMPACTADA: ${summaryText}]`
+            });
+            finalMessages.push(...messagesToKeep);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro na compressão automática de histórico:", e);
+    }
+  }
+
   const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -101,7 +157,7 @@ export async function POST(req: Request) {
     },
     body: JSON.stringify({
       model: pickModel(clientModel),
-      messages: normalized,
+      messages: finalMessages,
       stream: true,
     }),
   });
