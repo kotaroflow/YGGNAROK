@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowUp, StopCircle, Trash2, Bot, User } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
-import { loadSelectedModel, saveSelectedModel } from "@/lib/models";
+import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
 import {
   CHAT_SYSTEM_MESSAGE,
@@ -86,6 +86,52 @@ export function ChatClient() {
     };
   }, [messages, convId, hydrated]);
 
+  // AUTO-RESET RULE: Reset selected model back to default free model when active conversation context changes
+  useEffect(() => {
+    if (!convId) return;
+    setSelectedModel(DEFAULT_MODEL_ID);
+    saveSelectedModel(DEFAULT_MODEL_ID);
+  }, [convId]);
+
+  // IDLE WATCHDOG: Reset selected model back to default free model on 15 minutes of user inactivity/idle
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+    const lastActiveKey = "yggnarok.chat.last-active";
+
+    const updateActivity = () => {
+      localStorage.setItem(lastActiveKey, String(Date.now()));
+    };
+
+    updateActivity();
+    window.addEventListener("mousemove", updateActivity);
+    window.addEventListener("keydown", updateActivity);
+    window.addEventListener("click", updateActivity);
+
+    const interval = setInterval(() => {
+      const lastActive = Number(localStorage.getItem(lastActiveKey) || Date.now());
+      const elapsed = Date.now() - lastActive;
+
+      if (elapsed > IDLE_TIMEOUT_MS) {
+        setSelectedModel((current) => {
+          if (current !== DEFAULT_MODEL_ID) {
+            saveSelectedModel(DEFAULT_MODEL_ID);
+            return DEFAULT_MODEL_ID;
+          }
+          return current;
+        });
+      }
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("mousemove", updateActivity);
+      window.removeEventListener("keydown", updateActivity);
+      window.removeEventListener("click", updateActivity);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -162,6 +208,26 @@ export function ChatClient() {
       saveSelectedModel(modelToUse);
     }
     // ---------------------------------------------------------
+
+    // --- NEW USER PREMIUM PAID MODEL QUOTA CONTROL (Firewall) ---
+    const modelObj = getModel(modelToUse);
+    if (!modelObj.free) {
+      const QUOTA_KEY = "yggnarok.user.paid-quota.v1";
+      const rawQuota = localStorage.getItem(QUOTA_KEY);
+      const currentQuota = rawQuota !== null ? Number(rawQuota) : 10; // New users get 10 free premium requests
+
+      if (currentQuota <= 0) {
+        setError("Sua cota gratuita de testes para modelos pagos foi atingida. Continue usando nossos excelentes modelos Open-Source gratuitos ou adquira o plano Pro para créditos premium ilimitados!");
+        setStatus("error");
+
+        setSelectedModel(DEFAULT_MODEL_ID);
+        saveSelectedModel(DEFAULT_MODEL_ID);
+        return; // Block prompt execution
+      } else {
+        localStorage.setItem(QUOTA_KEY, String(currentQuota - 1));
+      }
+    }
+    // ------------------------------------------------------------
 
     abortRef.current?.abort();
     const abort = new AbortController();
