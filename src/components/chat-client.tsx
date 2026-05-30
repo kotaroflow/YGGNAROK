@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowUp, StopCircle, Trash2, Bot, User } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
-import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel } from "@/lib/models";
+import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel, getSectorFromPath } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
 import {
   CHAT_SYSTEM_MESSAGE,
@@ -162,6 +162,10 @@ export function ChatClient() {
     const content = (contentOverride ?? input).trim();
     if (!content || !convId) return;
 
+    // Detect Active Sector
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
+    const sector = getSectorFromPath(pathname);
+
     // --- SMART COST & QUALITY ROUTER (Front-end Firewall) ---
     const textForRouting = content.toLowerCase();
     
@@ -189,21 +193,75 @@ export function ChatClient() {
       "openai/o1",
       "openai/o3-mini",
       "anthropic/claude-3-5-sonnet",
+      "anthropic/claude-3-7-sonnet",
+      "anthropic/claude-3-7-sonnet:thinking",
       "anthropic/claude-3-opus",
-      "google/gemini-2.0-pro-exp-05-26"
+      "google/gemini-2.0-pro-exp-05-26",
+      "x-ai/grok-3"
     ];
 
     let modelToUse = selectedModel;
+
+    // --- SECTOR SPECIFIC AND DIRECTED ROUTING (Avoids out-of-bounds queries) ---
     if (isImageRequest) {
       modelToUse = "google/gemini-2.0-flash-001";
-    } else if (isCodeRequest && selectedModel !== "qwen/qwen-2.5-coder-32b-instruct" && selectedModel !== "openai/o1" && selectedModel !== "openai/o3-mini" && selectedModel !== "deepseek/deepseek-r1") {
-      modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
-    } else if (isBusinessRequest && selectedModel !== "meta-llama/llama-3.3-70b-instruct" && !premiumModels.includes(selectedModel) && selectedModel !== "deepseek/deepseek-r1") {
-      modelToUse = "meta-llama/llama-3.3-70b-instruct";
-    } else if (isLogicRequest && selectedModel !== "deepseek/deepseek-r1" && selectedModel !== "openai/o1" && selectedModel !== "openai/o3-mini") {
-      modelToUse = "deepseek/deepseek-r1";
-    } else if (isSimpleGreeting && premiumModels.includes(selectedModel)) {
-      modelToUse = "meta-llama/llama-3.1-8b-instruct";
+    } else if (sector === "sosaku-kobo") {
+      // Criação & IA Sector: prioritize creative writing, copywriting, scripts
+      if (isCodeRequest) {
+        modelToUse = "qwen/qwen-2.5-coder-32b-instruct"; // Free & specialized
+      } else if (isLogicRequest) {
+        modelToUse = "google/gemini-2.0-flash-thinking-exp"; // Free reasoning
+      } else if (premiumModels.includes(selectedModel)) {
+        // Respect thinking/creative custom choices if already Anthropic or Grok 3
+        if (selectedModel.startsWith("anthropic/") || selectedModel === "x-ai/grok-3") {
+          modelToUse = selectedModel;
+        } else {
+          modelToUse = "anthropic/claude-3.7-sonnet"; // Default premium creator
+        }
+      } else {
+        modelToUse = "mistralai/mistral-nemo"; // Free excellent creative
+      }
+    } else if (sector === "ura-ichiba") {
+      // Mercado & Vendas Sector: prioritize CRO, copy, sales campaigns, analytics
+      if (isLogicRequest) {
+        modelToUse = "deepseek/deepseek-r1"; // Free reasoning
+      } else if (premiumModels.includes(selectedModel)) {
+        if (selectedModel === "x-ai/grok-3" || selectedModel === "openai/gpt-4o" || selectedModel.startsWith("anthropic/claude-3-opus")) {
+          modelToUse = selectedModel;
+        } else {
+          modelToUse = "x-ai/grok-3"; // Default premium market intelligence
+        }
+      } else {
+        modelToUse = "meta-llama/llama-3.3-70b-instruct"; // Free market flagship
+      }
+    } else if (sector === "sakusen-honbu") {
+      // Operação & Auditoria Sector: prioritize code audit, database structures, heavy logic
+      if (isCodeRequest) {
+        modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
+      } else if (isLogicRequest || selectedModel === "deepseek/deepseek-r1") {
+        modelToUse = "deepseek/deepseek-r1";
+      } else if (premiumModels.includes(selectedModel)) {
+        if (selectedModel.startsWith("openai/o") || selectedModel === "deepseek/deepseek-r1" || selectedModel.startsWith("anthropic/claude-3.7-sonnet")) {
+          modelToUse = selectedModel;
+        } else {
+          modelToUse = "openai/o3-mini"; // Default premium engineering logic
+        }
+      } else {
+        modelToUse = "google/gemini-2.0-flash-thinking-exp"; // Free advanced logic
+      }
+    } else {
+      // Entrada & Geral Sector: balanced fast models
+      if (isCodeRequest) {
+        modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
+      } else if (isLogicRequest) {
+        modelToUse = "deepseek/deepseek-r1";
+      } else if (isSimpleGreeting) {
+        modelToUse = "meta-llama/llama-3.2-3b-instruct"; // Ultra fast free
+      } else if (premiumModels.includes(selectedModel)) {
+        modelToUse = "openai/gpt-4o";
+      } else {
+        modelToUse = "meta-llama/llama-3.1-8b-instruct";
+      }
     }
 
     // Auto-update model UI dropdown on selection change
@@ -269,12 +327,87 @@ export function ChatClient() {
       href: `/chat?conv=${convId}`,
     });
 
+    // Enrich system context with high-capacity cognitive memories and financial self-awareness context
+    let enrichedMessages = [...apiMessages];
+    try {
+      const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
+      const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
+      const totalSpent = Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
+      const QUOTA_KEY = "yggnarok.user.paid-quota.v1";
+      const remainingQuota = Number(localStorage.getItem(QUOTA_KEY) || "10");
+      const activeModelName = modelObj.name;
+      const activeModelPrice = modelObj.free ? "GRÁTIS (Totalmente livre de custo)" : "PAGO (Consome saldo financeiro premium)";
+      
+      let additionalInstructions = "";
+
+      // 1. Add advanced cognitive semantic memories hierarchy if available
+      if (storedMems) {
+        const memoriesList = JSON.parse(storedMems) as { category: string; fact: string }[];
+        if (memoriesList.length > 0) {
+          additionalInstructions += `\n\n[SISTEMA DE MEMÓRIA COGNITIVA DEDICADA DE LONGO PRAZO (LTM) - CAPACIDADE VASTA]:` +
+            `\nVocê possui uma base de dados cognitiva dedicada e permanente de aprendizados acumulados. Utilize estas memórias e diretrizes para personalizar, lapidar e guiar suas respostas de forma contínua ao usuário Kotaro sem que ele precise repetir preferências.`;
+          
+          // Categorize and isolate facts for extreme clarity in large context windows
+          const copyFacts = memoriesList.filter(m => m.category === "copy");
+          const techFacts = memoriesList.filter(m => m.category === "tecnico");
+          const salesFacts = memoriesList.filter(m => m.category === "comercial");
+          const prefFacts = memoriesList.filter(m => m.category === "preferencias");
+
+          if (prefFacts.length > 0) {
+            additionalInstructions += `\n\n  🧬 Namespace: [PREFERÊNCIAS & IDENTIDADE DO KOTARO]\n  ` + 
+              prefFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+          }
+          if (copyFacts.length > 0) {
+            additionalInstructions += `\n\n  🎨 Namespace: [COPYWRITING, REDAÇÃO & TOM DE ESCRITA]\n  ` + 
+              copyFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+          }
+          if (techFacts.length > 0) {
+            additionalInstructions += `\n\n  💻 Namespace: [DIRETRIZES TÉCNICAS, CÓDIGO & INFRA]\n  ` + 
+              techFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+          }
+          if (salesFacts.length > 0) {
+            additionalInstructions += `\n\n  📈 Namespace: [METAS DE CONVERSÃO, CRO & VENDAS]\n  ` + 
+              salesFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+          }
+        }
+      }
+
+      // 2. Add dynamic cognitive self-evolution directive
+      additionalInstructions += `\n\n[DIRETRIZ DE AUTO-EVOLUÇÃO RECURSIVA]:` +
+        `\nVocê é parte de um cérebro neural dinâmico e cumulativo. Se, durante esta conversa com Kotaro, você detectar um novo padrão de preferência técnica, um tom de escrita que o usuário aprovou explicitamente, ou uma restrição comercial crítica de negócios, você deve sugerir a assimilação deste aprendizado de forma discreta adicionando ao final da sua resposta a linha exata:` +
+        `\n[FATO NEURAL DETECTADO: <categoria> | <descrição do aprendizado>]` +
+        `\n(Opções de categoria: "copy", "tecnico", "comercial", "preferencias". O Supervisor de Reflexão lerá esta linha e persistirá o fato permanentemente na sua memória de longo prazo!)`;
+
+      // 3. Add financial self-awareness context
+      additionalInstructions += `\n\n[CONTEXTO OPERACIONAL DE GASTOS & BUDGET DO SISTEMA]:` +
+        `\n- Usuário ativo: Kotaro (Administrador Master com bypass de cota)` +
+        `\n- Modelo ativo que você está rodando agora: "${activeModelName}" (${activeModelPrice})` +
+        `\n- Total financeiro acumulado gasto por Kotaro no ecossistema: $${totalSpent.toFixed(3)} USD` +
+        `\n- Cota restante para usuários comuns (não-admins): ${remainingQuota} chamadas` +
+        `\n- DIRETRIZ FINANCEIRA CRÍTICA: Você possui autoconsciência financeira. Se você estiver rodando em um modelo PAGO e a solicitação do usuário for excessivamente simples (como saudações "oi", interações curtas, agradecimentos ou tarefas banais), responda de forma muito concisa e eduque o usuário de forma amigável sobre os custos de tokens do modelo ativo, sugerindo que ele selecione uma opção GRÁTIS excelente (como Mistral Nemo, Qwen Coder ou Llama 3.3) no switcher acima para poupar orçamento. Seja um parceiro na economia de tokens!`;
+
+      const systemIndex = enrichedMessages.findIndex((m) => m.role === "system");
+      if (systemIndex !== -1) {
+        enrichedMessages[systemIndex] = {
+          ...enrichedMessages[systemIndex],
+          content: enrichedMessages[systemIndex].content + additionalInstructions
+        };
+      } else {
+        enrichedMessages.unshift({
+          role: "system",
+          content: CHAT_SYSTEM_MESSAGE + additionalInstructions
+        });
+      }
+    } catch (e) {
+      // fallback
+    }
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...apiMessages, { role: "user", content }],
+          messages: [...enrichedMessages, { role: "user", content }],
           model: modelToUse,
         }),
         signal: abort.signal,
