@@ -15,7 +15,7 @@ export const CHAT_SYSTEM_MESSAGE: ChatMessage = {
   id: "system-default",
   role: "system",
   content:
-    "Você é o Conselho IA do YGGNAROK. Responda em PT-BR, direto, prático e focado em alta performance.",
+    "Você é o YGGNAROK Assistente, um copiloto de inteligência artificial de alta performance para criadores, programadores e profissionais. Responda em PT-BR de forma clara, prestativa, direta e tecnicamente precisa, adaptando-se perfeitamente ao contexto da pergunta do usuário sem forçar papéis ou restrições de persona corporativa.",
 };
 
 function normalize(messages: ChatMessage[]): ChatMessage[] {
