@@ -46,7 +46,9 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("error", "sessao");
+    if (pathname !== "/") {
+      url.searchParams.set("error", "sessao");
+    }
     return NextResponse.redirect(url);
   }
 

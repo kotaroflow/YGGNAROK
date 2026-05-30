@@ -49,7 +49,8 @@ export function AuthFrame({
           alt=""
           fill
           priority
-          sizes="100vw"
+          quality={60}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
           className="scale-[1.02] object-cover opacity-[0.58] saturate-110"
           style={{ objectPosition: "var(--auth-focus)" }}
         />
