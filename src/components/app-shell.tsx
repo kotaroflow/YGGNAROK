@@ -5,7 +5,7 @@ import { getCurrentPermissionContext } from "@/server/permissions/context";
 
 export async function AppShell({
   children,
-  hideTopBar = false,
+  hideTopBar = true,
 }: {
   children: React.ReactNode;
   hideTopBar?: boolean;

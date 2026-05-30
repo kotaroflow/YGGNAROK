@@ -1,17 +1,11 @@
 import { AppShell } from "@/components/app-shell";
+import { PromptsClient } from "@/components/prompts-client";
 
 export default function PromptsPage() {
   return (
     <AppShell>
-      <main className="min-h-screen px-4 py-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Prompts
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Esta seção está em construção.
-          </p>
-        </div>
+      <main className="min-h-screen bg-neutral-950 text-foreground px-4 py-8 lg:px-8">
+        <PromptsClient />
       </main>
     </AppShell>
   );

@@ -1,17 +1,11 @@
 import { AppShell } from "@/components/app-shell";
-import { PageFrame, PagePanel } from "@/components/page-frame";
+import { BuscaClient } from "@/components/busca-client";
 
 export default function BuscaPage() {
   return (
     <AppShell>
-      <main className="min-h-screen">
-        <PageFrame title="Busca" description="Esta seção está em construção.">
-          <PagePanel>
-            <p className="text-sm text-muted">
-              Em breve: busca unificada em perfis, conteúdo, jobs e mídia.
-            </p>
-          </PagePanel>
-        </PageFrame>
+      <main className="min-h-screen bg-neutral-950 text-foreground px-4 py-8 lg:px-8">
+        <BuscaClient />
       </main>
     </AppShell>
   );
