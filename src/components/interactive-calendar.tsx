@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Calendar, ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react";
 
 interface ContentItem {
@@ -24,8 +25,8 @@ const monthNames = [
 ];
 
 export function InteractiveCalendar({ initialContents }: { initialContents: ContentItem[] }) {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [, setSelectedDay] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
 
   const year = currentDate.getFullYear();
@@ -35,12 +36,10 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
   // Navigation
   const prevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
-    setSelectedDay(null);
   };
 
   const nextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
-    setSelectedDay(null);
   };
 
   // Generate calendar grid
@@ -75,7 +74,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
         </div>
         <button
           type="button"
-          onClick={() => setSelectedDay(today.getDate())}
+          onClick={() => router.push("/criar-conteudo")}
           className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-brand-strong"
         >
           <Plus size={16} />
