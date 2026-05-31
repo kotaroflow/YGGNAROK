@@ -126,7 +126,7 @@ const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
     trendingMusic: ["'Cyber Coffee' (Chill Beats)", "'Infinite Drift' (Ambient Synth)"],
     trendingTransitions: ["Cortes Secos Estruturados", "B-Rolls de Softwares Neon", "Zoom Lento de Ponto de Ênfase"],
     mostSearched: ["Como criar agente de autoaprendizado", "Supabase vs LocalStorage no NextJS", "Estúdio de Nodes Neon"],
-    baseDirectives: "Pacing conversacional premium, transição explicativa visual a cada 10s, introdução estruturada do problema, tela limpa com cards informativos sobrepostos."
+    baseDirectives: "Pacing conversacional premium, transição explicativa visual a cada 10s, introdução estruturada do problem, tela limpa com cards informativos sobrepostos."
   },
   cinematic: {
     name: "Estilo Documentário & Mini-Histórias",
@@ -148,25 +148,20 @@ const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
 
 export function CriarConteudoClient({ profiles, initialContents, activeTab: currentTab }: CriarConteudoClientProps) {
   const [activeTab, setActiveTab] = useState(currentTab);
-  // Use demo data when DB is empty (P0: remove test data)
   const [contents, setContents] = useState<ContentItem[]>(
     initialContents.length > 0 ? initialContents : DEMO_CONTENTS
   );
   
-  // ── Creation mode: Manual vs IA Especializada (P1: clear separation) ──
   const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
   
-  // ── Form fields (P0: proper dropdowns) ──
   const [contentType, setContentType] = useState("ideia");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [refinementInstructions, setRefinementInstructions] = useState("");
   
-  // ── Acervo filters (P2: simple filters) ──
   const [acervoFilter, setAcervoFilter] = useState<string>("todos");
   const [acervoSearch, setAcervoSearch] = useState("");
   const [openCardMenu, setOpenCardMenu] = useState<string | null>(null);
   
-  // ── Toast notification (P1: feedback) ──
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
@@ -175,11 +170,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setTimeout(() => setToast(null), 3500);
   }, []);
   
-  // 🧠 1. Margem de Aprendizado & Perfeição Slider
   const [learningMargin, setLearningMargin] = useState(85);
   const [autoFreeTier, setAutoFreeTier] = useState(true);
 
-  // ⚠️ 2. Real-time content character counter & dynamic models warning
   const [manualTitle, setManualTitle] = useState("");
   const [manualIdea, setManualIdea] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("hefesto");
@@ -188,36 +181,30 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const estimatedCharacters = manualTitle.length + manualIdea.length + aiInstructions.length;
   const isApproachingLimit = estimatedCharacters > 500;
 
-  // 📹 3. Dynamic Styles presets and Custom registration Form
   const [videoStyle, setVideoStyle] = useState<string>("tiktok");
   const [allPresets, setAllPresets] = useState<Record<string, VideoStylePreset>>(DEFAULT_PRESETS);
   const [showStyleCreator, setShowStyleCreator] = useState(false);
   
-  // Custom Style Form inputs
   const [customStyleName, setCustomStyleName] = useState("");
   const [customStyleDuration, setCustomStyleDuration] = useState("");
   const [customStyleMusic, setCustomStyleMusic] = useState("");
   const [customStyleTransitions, setCustomStyleTransitions] = useState("");
   const [customStyleDirectives, setCustomStyleDirectives] = useState("");
 
-  // 📥 4. Ingestão de Referências Multi-formato (imagens, vídeos, áudios, docs)
   const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
   const [referenceLink, setReferenceLink] = useState("");
   const [editingInstructions, setEditingInstructions] = useState("");
 
-  // 🚀 5. High-resolution Ultra-HD Export & Publication Hub states
   const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
   const [progressVal, setProgressVal] = useState(0);
   const [exportPlatform, setExportPlatform] = useState<"4k" | "tiktok" | "reels" | "shorts" | null>(null);
   const [exportLogs, setExportLogs] = useState<string[]>([]);
   const [exportStep, setExportStep] = useState(0);
   
-  // Collaborative Consensus Council
   const [rejectionError, setRejectionError] = useState("");
   const [absorbedFeedback, setAbsorbedFeedback] = useState<string[]>([]);
   const [councilMessages, setCouncilMessages] = useState<{agent: string, avatar: string, message: string, status: "thinking" | "approved"}[]>([]);
 
-  // Video timeline cuts blueprint
   const [videoScriptTitle, setVideoScriptTitle] = useState("Como Economizar 100% de APIs com YGGNAROK");
   const [videoAspect, setVideoAspect] = useState<"916" | "169">("916");
   const [videoTimeline, setVideoTimeline] = useState([
@@ -227,14 +214,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     { id: "clip_4", title: "CTA Final (10s)", dur: "10s", script: "Pare de ter surpresas na fatura de IA. Clique no link abaixo e inicie sua orquestra gratuita agora mesmo!", type: "CTA" },
   ]);
 
-  // Simulated raw files upload
   const [rawFiles, setRawFiles] = useState<string[]>([
     "arquivo_bruto_intro_kotaro.mp4",
     "b-roll_canvas_nodes.mov"
   ]);
   const [newFileName, setNewFileName] = useState("");
 
-  // ⚡ 6. Consciência Ativa de Trends e Gêneros
   const [videoGenre, setVideoGenre] = useState<"viral" | "educational" | "comedy" | "documentary" | "serious" | "sales">("viral");
   const [adaptationMode, setAdaptationMode] = useState<"liquid" | "fixed">("liquid");
   const [isScanningTrends, setIsScanningTrends] = useState(false);
@@ -270,30 +255,23 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const activeTabObj = tabs.find(t => t.id === activeTab) || tabs[0];
   const activePreset = allPresets[videoStyle] || DEFAULT_PRESETS["tiktok"];
 
-  // ── Filtered Acervo (P2: filters) ──
   const filteredContents = contents.filter(c => {
-    // Tab filter
     if (activeTab !== "ideias" && !c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))) return false;
-    // Status filter
     if (acervoFilter !== "todos") {
       const normalized = (c.status || "rascunho").toLowerCase().replace(/\s/g, "_");
       if (normalized !== acervoFilter && c.etapa_fluxo !== acervoFilter) return false;
     }
-    // Search filter
     if (acervoSearch && !c.title.toLowerCase().includes(acervoSearch.toLowerCase())) return false;
     return true;
   });
 
-  // ── Channel toggle helper ──
   const toggleChannel = (ch: string) => {
     setSelectedChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
   };
 
-  // ── P1: Action handlers (save draft, review IA, generate full) ──
   const handleSaveDraft = async () => {
     if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
     setActionLoading("draft");
-    // Simulate save — in production: Supabase insert
     await new Promise(r => setTimeout(r, 800));
     const newItem: ContentItem = {
       id: `local-${Date.now()}`,
@@ -359,7 +337,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     showToast("Pipeline de geração acionado! Acompanhe no Acervo.");
   };
 
-  // ── Next action helper for Acervo cards ──
   const getNextAction = (item: ContentItem) => {
     const etapa = item.etapa_fluxo || "ideia";
     const status = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
@@ -387,7 +364,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setRawFiles(rawFiles.filter((_, i) => i !== index));
   };
 
-  // Register a new Custom Style preset
   const handleCreateCustomStyle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customStyleName.trim() || !customStyleDirectives.trim()) return;
@@ -410,7 +386,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setVideoStyle(styleKey);
     setShowStyleCreator(false);
     
-    // Clear fields
     setCustomStyleName("");
     setCustomStyleDuration("");
     setCustomStyleMusic("");
@@ -418,7 +393,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setCustomStyleDirectives("");
   };
 
-  // Simulate Smart Chunk Uploading of Reference Files (Images, Videos, Audios, Docs)
   const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
     const fileNamesMap = {
       image: "referencia_estilo_moodboard.png",
@@ -438,7 +412,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
     setReferenceAssets(prev => [...prev, nextAsset]);
 
-    // Simulate chunk stream processing
     let prog = 0;
     const interval = setInterval(() => {
       prog += 25;
@@ -455,29 +428,24 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setReferenceAssets(referenceAssets.filter(a => a.id !== id));
   };
 
-  // Autonomous Collaborative Multi-Agent video editing pipeline
   const runVideoEditingPipeline = () => {
     if (videoStatus !== "idle" && videoStatus !== "rejected") return;
 
     setProgressVal(10);
     setVideoStatus("analyzing");
 
-    // 1. Analysis Phase (2 seconds)
     setTimeout(() => {
       setProgressVal(35);
       setVideoStatus("projecting");
       
-      // 2. Projecting blueprint phase (2.5 seconds)
       setTimeout(() => {
         setProgressVal(60);
         setVideoStatus("council_review");
         
-        // Load council dynamic reasoning commentary
         setCouncilMessages([
           { agent: "Isis (Edição & Pacing)", avatar: "✨", message: "Analisando cortes brutos... Proponho zoom digital rápido a cada 1.4 segundos para manter o ritmo hipnótico e prender a atenção do Kotaro.", status: "thinking" }
         ]);
 
-        // Second comment
         setTimeout(() => {
           setCouncilMessages(prev => [
             ...prev.map(c => ({ ...c, status: "approved" as const })),
@@ -485,7 +453,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           ]);
         }, 1500);
 
-        // Third comment
         setTimeout(() => {
           setCouncilMessages(prev => [
             ...prev.map(c => c.agent.includes("Morax") ? { ...c, status: "approved" as const } : c),
@@ -493,13 +460,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           ]);
         }, 3000);
 
-        // All approved
         setTimeout(() => {
           setCouncilMessages(prev => prev.map(c => ({ ...c, status: "approved" as const })));
           setProgressVal(80);
           setVideoStatus("rendering");
 
-          // 3. Rendering / Simulation (2 seconds)
           setTimeout(() => {
             setProgressVal(100);
             setVideoStatus("completed");
@@ -512,7 +477,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     }, 2000);
   };
 
-  // Rejection with cognitive learning
   const handleRejectVideo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectionError.trim()) return;
@@ -540,7 +504,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setCouncilMessages([]);
   };
 
-  // Trigger high bitrate Ultra-HD 4K rendering & platform direct publication pipeline
   const triggerPlatformPublish = (platform: "4k" | "tiktok" | "reels" | "shorts") => {
     setExportPlatform(platform);
     setVideoStatus("exporting");
@@ -620,7 +583,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
       <div className="absolute top-0 right-1/4 size-96 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-20 left-10 size-80 rounded-full bg-orange-600/5 blur-3xl pointer-events-none" />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1536px] px-4 py-8 sm:px-6 lg:px-8">
         
         {/* ── Toast Notification (P1: feedback) ── */}
         {toast && (
@@ -635,171 +598,158 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         )}
 
         {/* ── Header with YGN Seal (P2: identity) ── */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-line pb-6">
           <div>
             <div className="flex items-center gap-2">
               <span className="h-px w-6 bg-brand" />
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">創作工房 · Kobo</p>
-              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">YGN</span>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-brand">創作工房 · KŌBŌ</p>
+              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">YGN OS</span>
             </div>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
               Estúdio de Criação &amp; Vídeos
             </h1>
-            <p className="mt-2 text-sm text-muted">
-              Engine de inteligência criativa, roteiros e linha do tempo de vídeo integrada.
+            <p className="mt-1.5 text-xs text-muted">
+              Engine de inteligência criativa, roteiros, legendas e linha do tempo de vídeo integrada.
             </p>
           </div>
           
-          {/* ── Step Navigation (kept as primary nav — P1: stepper) ── */}
-          <div className="hidden lg:flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-neutral-900">
-            {tabs.map((tab, idx) => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                  activeTab === tab.id ? "text-brand bg-brand/10" : "text-muted hover:text-foreground"
-                }`}
-              >
-                <span className="size-4 rounded bg-slate-100 dark:bg-neutral-800 grid place-items-center text-[10px]">{idx + 1}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          {/* Header Action Buttons */}
+          <div className="flex items-center flex-wrap gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-[10px] font-bold text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>YGN Online &amp; IA Ativa</span>
+            </div>
+            <button
+              onClick={() => {
+                const el = document.getElementById("title-input");
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4.5 py-2.5 text-xs font-bold transition shadow-md shadow-brand/10"
+            >
+              <Plus size={14} />
+              <span>Nova Criação</span>
+            </button>
+            <a
+              href="/biblioteca"
+              className="flex items-center gap-1.5 rounded-xl border border-line bg-surface hover:bg-surface-strong px-4.5 py-2.5 text-xs font-bold text-muted hover:text-foreground transition"
+            >
+              <span>Abrir Biblioteca</span>
+            </a>
           </div>
         </div>
 
-        {/* ── Compact Metric Counters (P1: replaces redundant large cards) ── */}
-        <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {/* ── Pipeline Cards (P1: Grid of 4 flow cards) ── */}
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {tabs.map((tab) => {
-            const count = contents.filter(c => tab.id === "ideias" ? true : tab.id === "videos" ? false : c.content_type?.toLowerCase().includes(tab.id.slice(0, -1))).length;
+            const count = contents.filter(c => 
+              tab.id === "ideias" 
+                ? true 
+                : c.content_type?.toLowerCase().includes(tab.id.slice(0, -1))
+            ).length;
+
+            const isActive = activeTab === tab.id;
+
+            // Determine status text based on count
+            let stageStatus = "Aguardando";
+            if (tab.id === "ideias") {
+              stageStatus = count > 0 ? "Em captação ativa" : "Sem novas pautas";
+            } else if (tab.id === "roteiros") {
+              stageStatus = count > 0 ? `${count} scripts prontos` : "Aguardando ideias";
+            } else if (tab.id === "legendas") {
+              stageStatus = count > 0 ? `${count} prontas para redes` : "Sem roteiros prontos";
+            } else if (tab.id === "hashtags") {
+              stageStatus = count > 0 ? "Prontas para copiar" : "Aguardando publicações";
+            }
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`group flex items-center gap-3 rounded-xl border p-3 transition duration-200 ${
-                  activeTab === tab.id
-                    ? "border-brand/40 bg-brand/5"
-                    : "border-line bg-surface/30 hover:border-brand/20"
+                className={`group text-left relative overflow-hidden rounded-2xl border p-5 transition duration-300 ${
+                  isActive
+                    ? "border-brand/40 bg-brand/5 shadow-lg shadow-brand/[0.02]"
+                    : "border-line bg-surface/30 hover:border-white/10 hover:bg-surface/50"
                 }`}
               >
-                <div className={`grid size-9 place-items-center rounded-lg transition ${
-                  activeTab === tab.id 
-                    ? "bg-brand text-neutral-950" 
-                    : "bg-surface-strong text-muted group-hover:text-foreground"
-                }`}>
-                  <tab.icon size={16} />
+                <div className="flex items-start justify-between gap-4">
+                  <div className={`grid size-10 place-items-center rounded-xl transition ${
+                    isActive 
+                      ? "bg-brand text-neutral-950" 
+                      : "bg-surface-strong text-muted group-hover:text-foreground"
+                  }`}>
+                    <tab.icon size={18} />
+                  </div>
+                  <span className="text-[10px] font-bold font-mono text-muted uppercase tracking-wider">
+                    Fase {tabs.indexOf(tab) + 1}
+                  </span>
                 </div>
-                <div className="text-left">
-                  <p className={`text-xs font-bold tracking-tight transition ${activeTab === tab.id ? "text-brand" : "text-foreground"}`}>
+
+                <div className="mt-4">
+                  <h3 className={`text-sm font-bold tracking-tight transition ${isActive ? "text-brand" : "text-foreground"}`}>
                     {tab.label}
+                  </h3>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-xl font-black font-mono tabular-nums">{count}</span>
+                    <span className="text-[10px] text-muted font-bold uppercase">{count === 1 ? "item" : "itens"}</span>
+                  </div>
+                  <p className="text-[10px] text-muted font-semibold mt-2 flex items-center gap-1.5 border-t border-line/40 pt-2">
+                    <span className={`size-1.5 rounded-full ${isActive ? "bg-brand animate-pulse" : "bg-neutral-600"}`} />
+                    {stageStatus}
                   </p>
-                  <p className="text-[10px] text-muted font-semibold tabular-nums">{count} {count === 1 ? "item" : "itens"}</p>
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* ── Mobile Tab Selector (visible only on small screens) ── */}
-        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface/40 p-1 lg:hidden">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                activeTab === tab.id ? "bg-brand text-neutral-950" : "text-muted"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* ── Stepper / Pipeline Navigation Bar ── */}
+        <div className="mb-8 flex items-center gap-1.5 rounded-xl border border-line bg-surface/40 p-1.5 overflow-x-auto scrollbar-none">
+          {tabs.map((tab, idx) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-grow flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg text-xs font-bold transition shrink-0 ${
+                  isActive 
+                    ? "text-brand bg-brand/10 border border-brand/20" 
+                    : "text-muted hover:text-foreground hover:bg-white/[0.02]"
+                }`}
+              >
+                <span className={`size-5 rounded-md grid place-items-center text-[10px] font-mono ${
+                  isActive ? "bg-brand text-neutral-950" : "bg-surface-strong text-muted"
+                }`}>
+                  {idx + 1}
+                </span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* ── Main interactive split workspace ── */}
-        <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
           
-          {/* LEFT SIDEBAR: CREATION ENGINE + NEW PERFECTION CONTROLS */}
+          {/* LEFT COLUMN: CREATION ENGINE + CONTROLS */}
           <div className="space-y-6">
             
-            {/* 🧬 CREATIVE MARGIN & AUTO-ECONOMIC SETTINGS PANEL */}
-            <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md">
-              <div className="absolute right-0 top-0 size-24 bg-brand/10 blur-2xl pointer-events-none" />
-              
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Sliders size={16} className="text-brand animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-wider uppercase text-brand">Evolução &amp; Perfeição</h2>
-                </div>
-                <div title="Ajuste a tolerância de caos ou rigidez criativa de aprendizado">
-                  <HelpCircle size={14} className="text-brand opacity-60" />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* 1. Perfection vs Caos Slider */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted font-semibold">Tolerância Criativa</span>
-                    <span className="text-brand font-bold">{learningMargin}%</span>
-                  </div>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    value={learningMargin}
-                    onChange={(e) => setLearningMargin(Number(e.target.value))}
-                    className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand"
-                  />
-                  <div className="flex justify-between text-[9px] text-muted font-mono uppercase tracking-wider">
-                    <span>Perfeição Rígida</span>
-                    <span>Modo Caos</span>
-                  </div>
-                  <p className="text-[10px] text-muted leading-relaxed mt-1">
-                    {learningMargin < 30 ? (
-                      <span className="text-amber-400 font-semibold">⚡ Perfeição Máxima: Os agentes seguirão diretrizes estritas do Kotaro sem desviar ou tentar termos novos.</span>
-                    ) : learningMargin < 75 ? (
-                      <span>⚖️ Equilibrado: Combina aprendizados históricos com pequenos ganchos experimentais controlados.</span>
-                    ) : (
-                      <span className="text-rose-400 font-semibold">🔥 Caos Criativo: Permite novos ângulos dramáticos, conceitos ousados e exploração total de palavras.</span>
-                    )}
-                  </p>
-                </div>
-
-                {/* 2. Auto-Free fallback switch */}
-                <div className="pt-2 border-t border-brand/10 flex items-center justify-between">
-                  <div className="max-w-[240px]">
-                    <span className="text-xs font-bold text-foreground block">Auto-Economia Ativa</span>
-                    <span className="text-[9px] text-muted leading-tight block mt-0.5">Sempre forçar modelos livres avançados (Llama 3.3/Nemo) para esboços e rascunhos.</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setAutoFreeTier(!autoFreeTier)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${autoFreeTier ? "bg-brand" : "bg-neutral-800"}`}
-                  >
-                    <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-neutral-950 shadow ring-0 transition duration-200 ease-in-out ${autoFreeTier ? "translate-x-4" : "translate-x-0"}`} />
-                  </button>
-                </div>
-
-                {/* ⚠️ 3. Token/Character Limit Warning Banner */}
-                {isApproachingLimit && (
-                  <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-[10px] text-amber-200 animate-alert-pop flex items-start gap-2 leading-relaxed">
-                    <AlertTriangle size={15} className="text-brand shrink-0 mt-0.5 animate-pulse" />
-                    <div>
-                      <strong>Alerta de Carga Neural:</strong> Você está prestes a gerar conteúdos demais de uma só vez ({estimatedCharacters} chrs). 
-                      <span className="block mt-1 text-[9px] text-amber-400 font-bold">✓ Modo Inteligente Ativo: Roteamento travado no modelo FREE evoluído (Llama 3.3 70B Free Tier) para evitar sustos com tokens!</span>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </section>
-
-            {/* ── P1: Creation Panel with Manual / IA Tabs ── */}
+            {/* ── 1. CONSOLE DE CRIAÇÃO (Card principal de formulário) ── */}
             {activeTab !== "videos" ? (
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md">
                 <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
                 
-                {/* ── Mode Switcher (P1: clear separation) ── */}
-                <div className="flex items-center gap-1 rounded-lg bg-surface-strong/60 border border-line p-1 mb-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Layers size={16} className="text-brand" />
+                    <h2 className="text-sm font-bold tracking-wider uppercase text-foreground">Console de Criação</h2>
+                  </div>
+                </div>
+
+                {/* ── Mode Switcher ── */}
+                <div className="flex items-center gap-1 rounded-lg bg-surface-strong/60 border border-line p-1 mb-4">
                   <button
                     type="button"
                     onClick={() => setCreationMode("manual")}
@@ -822,10 +772,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </button>
                 </div>
 
-                {/* Mode description */}
                 <p className="text-[11px] text-muted mb-4 leading-relaxed">
                   {creationMode === "manual" 
-                    ? "Estruture e salve uma ideia sem acionar geração automática." 
+                    ? "Estruture e salve uma ideia sem acionar geração automática instantânea." 
                     : "Use agentes para gerar, revisar ou expandir conteúdo com IA."}
                 </p>
 
@@ -833,6 +782,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   {/* ── Title ── */}
                   <Field label="Título Operacional">
                     <input 
+                      id="title-input"
                       className={`${inputClass} border-line bg-surface-strong focus:border-brand`} 
                       value={manualTitle}
                       onChange={(e) => setManualTitle(e.target.value)}
@@ -841,7 +791,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     />
                   </Field>
                   
-                  {/* ── Type + Channel (P0: proper dropdowns) ── */}
+                  {/* ── Type + Channel ── */}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Tipo de Conteúdo">
                       <select 
@@ -855,22 +805,25 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       </select>
                     </Field>
                     <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Canal / Rede</label>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-2">Canal / Rede</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {CHANNELS.map(ch => (
-                          <button
-                            key={ch}
-                            type="button"
-                            onClick={() => toggleChannel(ch)}
-                            className={`rounded-md px-2 py-1 text-[10px] font-bold border transition ${
-                              selectedChannels.includes(ch) 
-                                ? "border-brand/40 bg-brand/10 text-brand" 
-                                : "border-line bg-surface-strong text-muted hover:text-foreground"
-                            }`}
-                          >
-                            {ch}
-                          </button>
-                        ))}
+                        {CHANNELS.map(ch => {
+                          const isSelected = selectedChannels.includes(ch);
+                          return (
+                            <button
+                              key={ch}
+                              type="button"
+                              onClick={() => toggleChannel(ch)}
+                              className={`rounded-md px-2.5 py-1.5 text-[10px] font-bold border transition ${
+                                isSelected 
+                                  ? "border-brand/40 bg-brand/10 text-brand" 
+                                  : "border-line bg-surface-strong text-muted hover:text-foreground"
+                              }`}
+                            >
+                              {ch}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -881,12 +834,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
                       value={manualIdea}
                       onChange={(e) => setManualIdea(e.target.value)}
-                      placeholder="Explique objetivo, público, promessa central, tom desejado, referências e CTA." 
-                      rows={4} 
+                      placeholder="Explique objetivo, público, promessa central, tom desejado, referências, CTA e restrições." 
+                      rows={5} 
                     />
                   </Field>
 
-                  {/* ── IA-specific fields (only when IA mode) ── */}
+                  {/* ── IA-specific fields ── */}
                   {creationMode === "ia" && (
                     <>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -927,7 +880,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     </>
                   )}
                   
-                  {/* ── P1: Unified Action Bar ── */}
+                  {/* ── Action Buttons ── */}
                   <div className="flex flex-col gap-2 pt-2 border-t border-line/50">
                     {creationMode === "manual" ? (
                       <>
@@ -983,11 +936,27 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         </div>
                       </>
                     )}
+                    
+                    {/* Limpar campos button */}
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setManualTitle("");
+                        setManualIdea("");
+                        setRefinementInstructions("");
+                        setSelectedChannels([]);
+                        showToast("Campos do Console limpos!");
+                      }}
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2.5 text-xs font-semibold text-muted hover:text-foreground hover:border-rose-500/20 hover:bg-rose-500/5 transition"
+                    >
+                      <RotateCcw size={12} />
+                      Limpar campos
+                    </button>
                   </div>
                 </div>
               </section>
             ) : (
-              // 📹 DYNAMIC VIDEO METADATA & RAW INGESTION SIDEBAR (VOID & AMBER)
+              // 📹 INGESTÃO DE MÍDIA BRUTA (Se tab for videos)
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -995,206 +964,144 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     <h2 className="text-sm font-bold uppercase text-foreground">Ingestão de Mídia Bruta</h2>
                   </div>
                   
-                  {/* + Criar Estilo Único trigger button */}
                   <button 
                     type="button"
-                    onClick={() => setShowStyleCreator(!showStyleCreator)}
-                    className="inline-flex items-center gap-1 text-[9px] font-bold text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded hover:bg-brand/25 transition"
+                    onClick={() => setShowStyleCreator(true)}
+                    className="rounded-lg border border-brand/40 bg-surface px-2.5 py-1 text-[10px] font-bold text-brand hover:bg-brand hover:text-neutral-950 transition duration-300"
                   >
-                    <Plus size={10} /> Novo Estilo
+                    + Novo Estilo
                   </button>
                 </div>
-                
-                {/* collapsible style registration drawer form */}
-                {showStyleCreator && (
-                  <form onSubmit={handleCreateCustomStyle} className="rounded-xl border border-brand/25 bg-brand/5 p-4 space-y-3 animate-alert-pop">
-                    <div className="flex justify-between items-center border-b border-brand/10 pb-2">
-                      <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Criar Estilo Único</span>
-                      <button type="button" onClick={() => setShowStyleCreator(false)}><X size={12} className="text-muted hover:text-foreground" /></button>
-                    </div>
-                    <Field label="Nome do Estilo">
-                      <input 
-                        className={`${inputClass} border-line bg-surface-strong text-xs`}
-                        placeholder="Ex: Minimalista Dark Kotaro"
-                        value={customStyleName}
-                        onChange={(e) => setCustomStyleName(e.target.value)}
-                        required
-                      />
-                    </Field>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Field label="Duração Alvo">
-                        <input className={`${inputClass} border-line bg-surface-strong text-[11px]`} placeholder="Ex: 30s - 45s" value={customStyleDuration} onChange={(e) => setCustomStyleDuration(e.target.value)} />
-                      </Field>
-                      <Field label="Músicas (Separadas por vírgula)">
-                        <input className={`${inputClass} border-line bg-surface-strong text-[11px]`} placeholder="Synthwave, Lofi" value={customStyleMusic} onChange={(e) => setCustomStyleMusic(e.target.value)} />
-                      </Field>
-                    </div>
-                    <Field label="Transições e Efeitos">
-                      <input className={`${inputClass} border-line bg-surface-strong text-xs`} placeholder="Zoom, fade rápido..." value={customStyleTransitions} onChange={(e) => setCustomStyleTransitions(e.target.value)} />
-                    </Field>
-                    <Field label="Diretrizes Estruturais / Formatos">
-                      <textarea 
-                        className={`${textareaClass} border-line bg-surface-strong text-xs`}
-                        placeholder="Insira as regras exclusivas deste estilo (ex: cortes agressivos, sem música no hook, etc)..."
-                        rows={3}
-                        value={customStyleDirectives}
-                        onChange={(e) => setCustomStyleDirectives(e.target.value)}
-                        required
-                      />
-                    </Field>
-                    <button className="w-full py-2 bg-brand text-neutral-950 text-xs font-bold rounded-lg shadow hover:bg-brand-strong transition">
-                      Salvar Novo Estilo
-                    </button>
-                  </form>
-                )}
 
-                {/* Style Preset Selector */}
-                <div>
-                  <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Estilo e Base de Conhecimento</label>
-                  <select 
-                    className={`${inputClass} border-line bg-surface-strong text-xs font-semibold text-brand`}
-                    value={videoStyle}
-                    onChange={(e) => setVideoStyle(e.target.value)}
-                  >
-                    {Object.entries(allPresets).map(([key, preset]) => (
-                      <option key={key} value={key}>{preset.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Gerencie presets de vídeo ou envie clipes de corte rápido para análise da orquestra criativa.
+                </p>
 
-                {/* Raw Files List upload Simulation */}
-                <div>
-                  <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Arquivos Brutos Enviados</label>
-                  
-                  <form onSubmit={handleAddRawFile} className="flex gap-1.5 mb-2">
-                    <input 
-                      className={`${inputClass} border-line bg-surface-strong text-xs py-1.5`} 
-                      placeholder="Adicione clip_bruto.mp4..."
-                      value={newFileName}
-                      onChange={(e) => setNewFileName(e.target.value)}
-                    />
-                    <button className="px-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition text-xs font-bold shrink-0">
-                      Inserir
-                    </button>
-                  </form>
+                {/* Preset selectors and configuration parameters */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Preset de Estilo de Vídeo</label>
+                    <select 
+                      className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
+                      value={videoStyle}
+                      onChange={(e) => setVideoStyle(e.target.value)}
+                    >
+                      {Object.keys(allPresets).map(key => (
+                        <option key={key} value={key}>{allPresets[key].name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <div className="space-y-1.5 max-h-[110px] overflow-y-auto border border-line/40 rounded-xl bg-surface-strong/30 p-2">
-                    {rawFiles.map((file, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-[10px] bg-surface-strong/60 p-1.5 rounded border border-line/30 font-mono text-muted">
-                        <span className="truncate max-w-[170px]">{file}</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Formato / Proporção</label>
+                      <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
                         <button 
                           type="button" 
-                          onClick={() => handleRemoveRawFile(idx)}
-                          className="text-rose-400 hover:text-rose-500 px-1 font-sans font-bold"
+                          onClick={() => setVideoAspect("916")}
+                          className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "916" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
                         >
-                          ✕
+                          9:16
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => setVideoAspect("169")}
+                          className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "169" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
+                        >
+                          16:9
                         </button>
                       </div>
-                    ))}
-                    {rawFiles.length === 0 && (
-                      <span className="text-[10px] text-muted/60 text-center block py-3">Nenhum arquivo bruto adicionado.</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Editing instructions and reference examples */}
-                <div className="space-y-3">
-                  <Field label="Orientações e Exemplos de Referência">
-                    <textarea 
-                      className={`${textareaClass} border-line bg-surface-strong text-xs`}
-                      rows={3}
-                      placeholder="Adicione links de referências ou explique o tom desejado (Ex: 'Quero corte de silêncio agressivo como no canal X')..."
-                      value={editingInstructions}
-                      onChange={(e) => setEditingInstructions(e.target.value)}
-                    />
-                  </Field>
-                  
-                  <Field label="Link de Exemplo (Opcional)">
-                    <input 
-                      className={`${inputClass} border-line bg-surface-strong text-xs`}
-                      placeholder="https://tiktok.com/@exemplo/video/..."
-                      value={referenceLink}
-                      onChange={(e) => setReferenceLink(e.target.value)}
-                    />
-                  </Field>
-                </div>
-
-                {/* Aspect ratio frame selection */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Formato</label>
-                    <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
-                      <button 
-                        type="button" 
-                        onClick={() => setVideoAspect("916")}
-                        className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "916" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                      >
-                        9:16
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => setVideoAspect("169")}
-                        className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "169" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                      >
-                        16:9
-                      </button>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Duração Alvo</label>
+                      <div className="py-1.5 px-3 bg-surface-strong border border-line rounded-lg text-xs font-bold font-mono text-center">
+                        {activePreset.duration}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Duração Alvo</label>
-                    <div className="py-1.5 px-3 bg-surface-strong border border-line rounded-lg text-xs font-bold font-mono text-center">
-                      {activePreset.duration}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Free tier notification */}
-                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] text-emerald-400 flex items-center gap-1.5">
-                  <Cpu size={12} className="animate-pulse" />
-                  <span>Corte e Inteligência de tendências via <strong>Gemini 2.0 Flash (Free)</strong>.</span>
+                  <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] text-emerald-400 flex items-center gap-1.5">
+                    <Cpu size={12} className="animate-pulse" />
+                    <span>Corte e Inteligência de tendências via <strong>Gemini 2.0 Flash (Free)</strong>.</span>
+                  </div>
                 </div>
               </section>
             )}
 
-            {/* ── P1: Compact Agent Status Panel (replaces old Diretoria IA form) ── */}
-            {activeTab !== "videos" && (
-              <section className="relative overflow-hidden rounded-2xl border border-brand/25 bg-gradient-to-b from-brand/5 to-surface/20 p-5 shadow-xl backdrop-blur-md">
+            {/* ── 2. EVOLUÇÃO & PERFEIÇÃO (Comportamento de IA) ── */}
+            {activeTab !== "videos" ? (
+              <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md">
                 <div className="absolute right-0 top-0 size-24 bg-brand/10 blur-2xl pointer-events-none" />
+                
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Brain size={14} className="text-brand" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Painel do Agente</h2>
+                    <Sliders size={16} className="text-brand animate-pulse" />
+                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Evolução &amp; Perfeição</h2>
                   </div>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">Online</span>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
-                    <span className="text-muted font-medium">Agente ativo</span>
-                    <span className="font-bold text-foreground capitalize">{selectedAgent}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
-                    <span className="text-muted font-medium">Modo</span>
-                    <span className="font-bold text-foreground">{autoFreeTier ? "Rápido (Free)" : "Profundo"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
-                    <span className="text-muted font-medium">Modelo</span>
-                    <span className="font-bold text-foreground text-[10px]">{autoFreeTier ? "Llama 3.3 70B (Free)" : "Amber AI Pro"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
-                    <span className="text-muted font-medium">Fila</span>
-                    <span className="font-bold text-brand tabular-nums">{contents.filter(c => c.status === "na_fila" || c.status === "processando").length} jobs</span>
+                  <div title="Ajuste a tolerância de caos ou rigidez criativa de aprendizado">
+                    <HelpCircle size={14} className="text-brand opacity-60 animate-bounce" />
                   </div>
                 </div>
 
-                <p className="mt-3 text-[9px] text-muted leading-relaxed">
-                  <strong className="text-brand">Hefesto:</strong> estruturação criativa · <strong className="text-brand">Amber:</strong> análise profunda · <strong className="text-brand">Local:</strong> fallback gratuito
-                </p>
+                <div className="space-y-4">
+                  {/* 1. Perfection vs Caos Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted font-semibold">Tolerância Criativa</span>
+                      <span className="text-brand font-bold">{learningMargin}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={learningMargin}
+                      onChange={(e) => setLearningMargin(Number(e.target.value))}
+                      className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted font-mono uppercase tracking-wider">
+                      <span>Perfeição Rígida</span>
+                      <span>Modo Caos</span>
+                    </div>
+                    <p className="text-[10px] text-muted leading-relaxed mt-1">
+                      {learningMargin < 30 ? (
+                        <span className="text-amber-400 font-semibold">⚡ Conservador: Os agentes seguirão diretrizes estritas do Kotaro sem desviar ou tentar termos novos.</span>
+                      ) : learningMargin < 75 ? (
+                        <span>⚖️ Balanceado: Combina aprendizados históricos com pequenos ganchos experimentais controlados.</span>
+                      ) : (
+                        <span className="text-brand font-semibold">🔥 Experimental: Modo criativo alto: permite variações narrativas, metáforas e abordagens menos previsíveis.</span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* 2. Auto-Free fallback switch */}
+                  <div className="pt-2 border-t border-brand/10 flex items-center justify-between">
+                    <div className="max-w-[240px]">
+                      <span className="text-xs font-bold text-foreground block">Auto-Economia Ativa</span>
+                      <span className="text-[9px] text-muted leading-tight block mt-0.5">Prioriza modelos gratuitos/locais avançados (Llama 3.3/Nemo) para economizar recursos.</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setAutoFreeTier(!autoFreeTier)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${autoFreeTier ? "bg-brand" : "bg-neutral-800"}`}
+                    >
+                      <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-neutral-950 shadow ring-0 transition duration-200 ease-in-out ${autoFreeTier ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* ⚠️ 3. Token/Character Limit Warning Banner */}
+                  {isApproachingLimit && (
+                    <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-[10px] text-amber-200 animate-alert-pop flex items-start gap-2 leading-relaxed">
+                      <AlertTriangle size={15} className="text-brand shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <strong>Alerta de Carga Neural:</strong> Volume de texto elevado ({estimatedCharacters} chrs). 
+                        <span className="block mt-1 text-[9px] text-brand font-bold">✓ Modo Inteligente Ativo: Roteamento travado no Llama 3.3 70B Free Tier para economizar chamadas.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </section>
-            )}
-
-            {/* 📡 ACTIVE TRENDS & GENRES CONSCIOUSNESS CARD (MIMIR) */}
-            {activeTab === "videos" && (
+            ) : (
+              // 📹 RADAR DE GÊNERO & TRENDS (Se tab for videos)
               <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md space-y-4">
                 <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none" />
                 
@@ -1227,7 +1134,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </select>
                 </div>
 
-                {/* Adaptation mode toggle */}
+                {/* Pacing adaptation Mode Selection */}
                 <div>
                   <label className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1.5">Modo de Adaptação de Pacing</label>
                   <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
@@ -1243,7 +1150,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       type="button" 
                       onClick={() => setAdaptationMode("fixed")}
                       className={`py-1 text-[9px] font-bold rounded transition ${adaptationMode === "fixed" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                      title="Ignora trends voláteis e trava 100% nas diretrizes estéticas estáticas de marca"
+                      title="Estilo Fixo Rígido de Marca"
                     >
                       Estilo Fixo Rígido
                     </button>
@@ -1274,35 +1181,100 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </section>
             )}
 
-            {/* 📈 NEURAL EVOLUTION SUPERVISOR CARD (ODIN) */}
-            <section className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6 shadow-xl backdrop-blur-md">
-              <div className="absolute right-0 top-0 size-24 bg-emerald-500/10 blur-2xl pointer-events-none" />
+            {/* ── 3. PAINEL DO AGENTE ── */}
+            {activeTab !== "videos" && (
+              <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-surface/50 p-5 shadow-xl backdrop-blur-md">
+                <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
+                
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Brain size={14} className="text-brand" />
+                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Painel do Agente</h2>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
+                    <span className="text-muted font-medium">Agente ativo</span>
+                    <span className="font-bold text-foreground capitalize">{selectedAgent}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
+                    <span className="text-muted font-medium">Modo</span>
+                    <span className="font-bold text-foreground">{autoFreeTier ? "Rápido (Free)" : "Profundo"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
+                    <span className="text-muted font-medium">Modelo</span>
+                    <span className="font-bold text-foreground text-[10px]">{autoFreeTier ? "Llama 3.3 70B (Free)" : "Amber AI Pro"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
+                    <span className="text-muted font-medium">Fila</span>
+                    <span className="font-bold text-brand tabular-nums">{contents.filter(c => c.status === "na_fila" || c.status === "processando").length} jobs</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-line/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAgent(prev => prev === "hefesto" ? "amber" : "hefesto");
+                      showToast("Modelo alternado com sucesso!");
+                    }}
+                    className="py-1.5 text-[10px] font-bold text-muted hover:text-foreground bg-neutral-900 border border-line hover:border-brand/20 rounded-lg transition text-center"
+                  >
+                    Trocar modelo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("[LOGS DO AGENTE HEFESTO]\n- Conectando com OpenRouter API...\n- Temperatura criativa sintonizada em 0.85.\n- Memórias carregadas da LTM.\n- Estado de execução pronto!");
+                    }}
+                    className="py-1.5 text-[10px] font-bold text-muted hover:text-foreground bg-neutral-900 border border-line hover:border-brand/20 rounded-lg transition text-center"
+                  >
+                    Ver logs
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* ── 4. SUPERVISOR DE EVOLUÇÃO (ODIN) ── */}
+            <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-surface/50 p-6 shadow-xl backdrop-blur-md">
+              <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
               
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-emerald-400 animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-wider uppercase text-emerald-400">Supervisor de Evolução (Odin)</h2>
+                  <Cpu size={16} className="text-brand animate-pulse" />
+                  <h2 className="text-xs font-bold tracking-wider uppercase text-foreground">Supervisor de Evolução (ODIN)</h2>
                 </div>
-                <Brain size={14} className="text-emerald-400" />
+                <Brain size={14} className="text-brand opacity-60" />
               </div>
 
               <p className="text-[11px] text-muted leading-relaxed mb-4">
-                Monitora falhas de edição armazenadas na LTM e atualiza o system prompt dos modelos gratuitos automaticamente para estabilizar os cortes sem desvios.
+                Monitora falhas da edição, cortes, estabilidade e ajuste automático dos modelos gratuitos.
               </p>
 
               {/* Targets and status indicators */}
               <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400 animate-ping" /> Gemini 2.0 Flash (Free)</span>
+                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Gemini 2.0 Flash (Free)
+                  </span>
                   <span className="text-emerald-400 font-bold">Evoluindo</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-sky-400" /> Qwen 2.5 VL (Free)</span>
-                  <span className="text-sky-400 font-bold">Estável</span>
+                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-emerald-500" /> Qwen 2.5 VL (Free)
+                  </span>
+                  <span className="text-emerald-400 font-bold">Estável</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-purple-400 animate-pulse" /> Llama 3.3 70B (Free)</span>
-                  <span className="text-purple-400 font-bold">Otimizado</span>
+                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Llama 3.3 70B (Free)
+                  </span>
+                  <span className="text-emerald-400 font-bold">Otimizado</span>
                 </div>
               </div>
 
@@ -1313,7 +1285,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
                   alert(`[ODIN EVOLUTION PIPELINE] Lendo base de rejeições LTM do usuário '${username}'...\n\n1. Consolidando correções de transição rápida no Qwen 2.5-VL.\n2. Reajustando ganchos de persuasão no Llama 3.3.\n3. Parâmetros de pesos e sistema sintonizados a custo $0.00!`);
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-surface px-4 py-2.5 text-xs font-bold text-emerald-400 transition duration-300 hover:bg-emerald-500 hover:text-neutral-950"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2.5 text-xs font-bold transition duration-300"
               >
                 <RefreshCw size={13} className="animate-spin" />
                 Auto-Sintonizar e Ajustar Modelos (Free)
@@ -1321,35 +1293,51 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             </section>
           </div>
 
-          {/* RIGHT COLUMN: DIGITAL ASSETS GRID OR VIDEO STUDIO WORKSPACE */}
+          {/* RIGHT COLUMN: WORKSPACE CONTENT */}
           <div className="space-y-6">
+            
+            {/* ── ACERVO OPERACIONAL ── */}
             {activeTab !== "videos" ? (
               <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md">
                 
-                {/* ── Header of Acervo ── */}
+                {/* Header of Acervo */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line pb-4 mb-4 gap-2">
                   <div>
                     <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
                       <Layers size={18} className="text-brand" />
                       Acervo Operacional
                     </h2>
-                    <p className="text-xs text-muted">Acompanhe seu fluxo de ideias, roteiros e legendas</p>
+                    <p className="text-xs text-muted">Fluxo de ideias, roteiros, legendas e hashtags em produção.</p>
                   </div>
-                  <span className="self-start rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-[11px] font-bold text-brand uppercase">
-                    {filteredContents.length} {filteredContents.length === 1 ? "item" : "itens"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-[11px] font-bold text-brand uppercase">
+                      {filteredContents.length} {filteredContents.length === 1 ? "item" : "itens"}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("title-input");
+                        if (el) {
+                          el.focus();
+                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }
+                      }}
+                      className="rounded-lg border border-brand/40 bg-surface px-2.5 py-1 text-[10px] font-bold text-brand hover:bg-brand hover:text-neutral-950 transition"
+                    >
+                      + Novo item
+                    </button>
+                  </div>
                 </div>
 
-                {/* ── Toolbar: Search + Filter Tabs (P2: Filters) ── */}
+                {/* ── Toolbar: Search + Filter Chips ── */}
                 <div className="flex flex-col md:flex-row gap-3 mb-6">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
                     <input
                       type="text"
-                      placeholder="Buscar por título..."
+                      placeholder="Buscar no acervo por título..."
                       value={acervoSearch}
                       onChange={(e) => setAcervoSearch(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-line bg-surface-strong pl-9 pr-3 text-xs text-foreground outline-none focus:border-brand/40 focus:ring-1 focus:ring-brand/20 transition"
+                      className="h-10 w-full rounded-lg border border-line bg-surface-strong pl-9 pr-3 text-xs text-foreground outline-none focus:border-brand/40 focus:ring-1 focus:ring-brand/20 transition"
                     />
                   </div>
                   <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0">
@@ -1358,7 +1346,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         key={f}
                         type="button"
                         onClick={() => setAcervoFilter(f)}
-                        className={`rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border transition shrink-0 ${
+                        className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border transition shrink-0 ${
                           acervoFilter === f 
                             ? "border-brand bg-brand/10 text-brand" 
                             : "border-line bg-surface text-muted hover:text-foreground"
@@ -1370,14 +1358,13 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </div>
                 </div>
 
-                {/* ── Digital Assets Grid ── */}
+                {/* ── Digital Assets List ── */}
                 <div className="grid gap-4">
                   {filteredContents.length ? (
                     filteredContents.map((item) => {
                       const normalizedStatus = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
                       const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG["rascunho"];
                       const etapa = item.etapa_fluxo || "ideia";
-                      const etapaConf = ETAPA_CONFIG[etapa] || ETAPA_CONFIG["ideia"];
                       const nextAct = getNextAction(item);
 
                       return (
@@ -1385,7 +1372,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           key={item.id} 
                           className={`group relative overflow-hidden rounded-xl border p-5 shadow-sm transition duration-300 hover:bg-surface-strong/60 ${config.bg}`}
                         >
-                          {/* Yggdrasil background texture detail for brand aesthetic (opacity 0.03) */}
                           <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                           
                           {/* Card Top: Metadata & Secondary Menu Dropdown */}
@@ -1417,7 +1403,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                               <button 
                                 type="button"
                                 onClick={() => setOpenCardMenu(openCardMenu === item.id ? null : item.id)}
-                                className="p-1 rounded-lg border border-line bg-surface hover:bg-surface-strong hover:text-foreground transition text-muted"
+                                className="p-1.5 rounded-lg border border-line bg-surface hover:bg-surface-strong hover:text-foreground transition text-muted"
                               >
                                 <MoreVertical size={14} />
                               </button>
@@ -1436,7 +1422,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                                         setManualTitle(item.title);
                                         setManualIdea(item.idea);
                                         setOpenCardMenu(null);
-                                        showToast("Dados do item carregados no formulário!");
+                                        showToast("Dados carregados no Console de Criação!");
                                       }}
                                       className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-sidebar-hover transition"
                                     >
@@ -1474,13 +1460,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           </div>
 
                           {/* Briefing Idea Preview */}
-                          <p className="text-xs text-muted leading-relaxed line-clamp-2 mt-2 bg-surface-strong/20 p-2 rounded-lg border border-line/10">
+                          <p className="text-xs text-muted leading-relaxed line-clamp-3 mt-2 bg-surface-strong/20 p-3 rounded-lg border border-line/10">
                             {item.idea || "Sem briefing detalhado definido."}
                           </p>
 
                           {/* Card Bottom: Core Stage Stepper Line + Primary Action Button */}
                           <div className="mt-4 pt-3 border-t border-line/30 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-                            {/* Visual stage micro-stepper */}
                             <div className="flex items-center gap-1">
                               {["ideia", "roteiro", "legenda", "hashtag"].map((stg) => {
                                 const stgConf = ETAPA_CONFIG[stg];
@@ -1512,7 +1497,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                               onClick={async () => {
                                 if (nextAct.spinning) return;
                                 showToast(`Iniciando ação: ${nextAct.label}...`);
-                                // Simulate transition
                                 setContents(prev => prev.map(c => c.id === item.id ? { ...c, status: "processando" } : c));
                                 await new Promise(r => setTimeout(r, 1500));
                                 setContents(prev => prev.map(c => {
@@ -1539,18 +1523,36 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       );
                     })
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-line rounded-2xl bg-surface/10">
-                      <div className="grid size-14 place-items-center rounded-2xl bg-brand/5 text-brand/60 mb-4 animate-pulse">
+                    // ── PREMIUM EMPTY STATE ──
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center border border-dashed border-line rounded-2xl bg-surface/10 space-y-4">
+                      <div className="grid size-14 place-items-center rounded-2xl bg-brand/5 text-brand/60 animate-pulse">
                         <activeTabObj.icon size={26} />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground">Nenhum item nesta pauta</h3>
-                      <p className="mt-1 text-xs text-muted max-w-xs">Gere novos conceitos ou pautas usando o formulário inteligente ao lado.</p>
+                      <div className="space-y-1.5">
+                        <h3 className="text-sm font-bold text-foreground">Nenhum {activeTab.slice(0, -1)} criado ainda</h3>
+                        <p className="text-xs text-muted max-w-xs leading-relaxed">
+                          Transforme uma ideia em {activeTab.slice(0, -1)} usando o botão de Gerar Roteiro / Console de Criação.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("title-input");
+                          if (el) {
+                            el.focus();
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }
+                        }}
+                        className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2 text-xs font-bold transition"
+                      >
+                        <Plus size={13} />
+                        <span>Criar primeiro {activeTab.slice(0, -1)}</span>
+                      </button>
                     </div>
                   )}
                 </div>
               </section>
             ) : (
-              
               // 📹 INTERACTIVE VIDEO EDITING STUDIO CORE WORKSPACE
               <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md space-y-6">
                 
@@ -1645,7 +1647,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 {/* 3. CORE COLLABORATION PIPELINE DISPLAY */}
                 <div className="grid gap-6 lg:grid-cols-[160px_1fr]">
                   
-                  {/* Left Aspect Ratio Preview (Static and Reactive to state) */}
+                  {/* Left Aspect Ratio Preview */}
                   <div className="flex flex-col items-center justify-start border-r border-line/20 pr-4">
                     <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">Simulação Final</span>
                     
@@ -1673,7 +1675,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   {/* Right Collaborative Reasoning Council Space */}
                   <div className="space-y-4">
                     
-                    {/* Simulated Timeline cuts display (Caminho Projetado) */}
+                    {/* Simulated Timeline cuts display */}
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Caminho Projetado (Linha do Tempo de Roteiro)</span>
                       
@@ -1713,11 +1715,10 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         </div>
                       </div>
                     ) : (
-                      // Idle workflow presentation instructions
                       <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-line rounded-xl bg-surface/10">
                         <Cpu className="text-rose-400/40 size-10 mb-2" />
                         <h3 className="text-xs font-bold text-foreground">Orquestração Multi-Agente Pronta</h3>
-                        <p className="text-[10px] text-muted mt-1 max-w-sm">Insira seus clipes brutos, escolha o preset acima e clique em "Disparar Orquestra" para que o conselho de IAs desenhe e delibere o plano de edição.</p>
+                        <p className="text-[10px] text-muted mt-1 max-w-sm">Insira seus clipes brutos, escolha o preset ao lado e clique em "Disparar Orquestra" para que o conselho de IAs desenhe e delibere o plano de edição.</p>
                       </div>
                     )}
 

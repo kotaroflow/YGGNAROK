@@ -307,7 +307,7 @@ interface CommercialTabsProps {
 
 function CommercialTabs({ activeTab, onChange }: CommercialTabsProps) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-1.5 flex gap-1 overflow-x-auto scrollbar-none shadow-inner">
+    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-1.5 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 w-full shadow-inner">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -317,7 +317,7 @@ function CommercialTabs({ activeTab, onChange }: CommercialTabsProps) {
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition whitespace-nowrap border ${
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition whitespace-nowrap border w-full ${
               isActive
                 ? "bg-brand/15 text-brand border-brand/20 shadow-sm"
                 : "text-muted border-transparent hover:text-foreground hover:bg-white/[0.04]"
@@ -353,47 +353,13 @@ function VendasTabContent({ salesList, setSalesList, showToast }: VendasTabProps
     });
   }, [salesList, search, statusFilter]);
 
-  const handleSimulateSale = () => {
-    const clients = ["Mateus Andrade", "Letícia Pinheiro", "Roberto Albuquerque", "Bárbara Rossi"];
-    const products = ["YGGNAROK Mentoria Alpha", "Council of IAs SaaS Access", "Scripting Automation Masterclass"];
-    const values = [997.00, 297.00, 197.00];
-    const methods = ["Pix", "Cartão", "Boleto"];
-    
-    const randomIdx = Math.floor(Math.random() * clients.length);
-    const randomProdIdx = Math.floor(Math.random() * products.length);
-    const randomVal = values[randomProdIdx];
-    const randomMethod = methods[Math.floor(Math.random() * methods.length)];
-    
-    const newSale = {
-      id: `YGG-${Math.floor(1000 + Math.random() * 9000)}`,
-      client: clients[randomIdx],
-      email: `${clients[randomIdx].toLowerCase().replace(" ", ".")}@email.com`,
-      product: products[randomProdIdx],
-      value: randomVal,
-      method: randomMethod,
-      status: "Aprovada",
-      date: "Agora mesmo"
-    };
-
-    setSalesList(prev => [newSale, ...prev]);
-    showToast(`Venda simulada com sucesso! R$ ${randomVal.toFixed(2)} recebidos de ${clients[randomIdx]}.`);
-  };
-
   return (
     <div className="rounded-2xl border border-line bg-surface p-6 space-y-6 shadow-xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold tracking-tight">Transações Comerciais</h3>
-          <p className="text-xs text-muted">Acompanhe relatórios de pedidos reais ou simule entradas para homologação.</p>
+          <p className="text-xs text-muted">Acompanhe o fluxo de faturamento, status de pagamentos e transações comerciais em tempo real.</p>
         </div>
-
-        <button
-          onClick={handleSimulateSale}
-          className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2.5 text-xs font-bold transition shadow-sm self-start sm:self-auto"
-        >
-          <Plus size={14} />
-          Simular Nova Venda
-        </button>
       </div>
 
       {/* Filter and Search Bar */}
