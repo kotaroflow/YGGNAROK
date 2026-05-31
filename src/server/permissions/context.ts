@@ -7,7 +7,7 @@ export async function getCurrentPermissionContext(): Promise<PermissionContext |
   let supabase;
   try {
     supabase = await createSupabaseServerClient();
-  } catch (e) {
+  } catch {
     // Retorna um mock de admin localmente para testes da interface
     return {
       userId: "mock-user-id",

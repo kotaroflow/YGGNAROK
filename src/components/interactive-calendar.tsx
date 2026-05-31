@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight, Plus, Eye, Clock, CheckCircle, HelpCircle } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react";
 
 interface ContentItem {
   id: string;
@@ -25,7 +25,7 @@ const monthNames = [
 
 export function InteractiveCalendar({ initialContents }: { initialContents: ContentItem[] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [, setSelectedDay] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
 
   const year = currentDate.getFullYear();

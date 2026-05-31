@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { 
-  Brain, Sparkles, Trash2, Plus, RefreshCw, GitCommit, CheckCircle, 
-  Settings, Filter, ArrowUpRight, Scale, Zap, Info, ChevronRight, HelpCircle
+  Brain, Trash2, Plus, RefreshCw
 } from "lucide-react";
-import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
 
 type MemoryItem = {
   id: string;
@@ -429,7 +427,7 @@ export function AgentEvolutionDashboard() {
                   <div>
                     <select
                       value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value as any)}
+                      onChange={(e) => setNewCategory(e.target.value)}
                       className="w-full rounded-lg border border-line bg-surface/50 px-2 py-2 text-xs text-foreground focus:border-brand focus:outline-none"
                     >
                       <option value="copy">Copywriting</option>

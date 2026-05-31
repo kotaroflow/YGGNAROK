@@ -8,7 +8,7 @@ interface PromptItem {
   id: string;
   title: string;
   category: string;
-  icon: any;
+  icon: React.ComponentType<{ size?: number }>;
   description: string;
   promptText: string;
 }

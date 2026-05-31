@@ -80,7 +80,10 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
 
   // Sync with localStorage on mount
   useEffect(() => {
-    setSelectedId(loadSelectedModel());
+    const timer = setTimeout(() => {
+      setSelectedId(loadSelectedModel());
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Close on outside click
@@ -177,7 +180,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
           <div className="max-h-[340px] overflow-y-auto">
             {groups.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-muted">
-                Nenhum modelo recomendado neste setor. Mude para a aba "Todos".
+                Nenhum modelo recomendado neste setor. Mude para a aba &quot;Todos&quot;.
               </div>
             ) : (
               groups.map(({ provider, models }) => (

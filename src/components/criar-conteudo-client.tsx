@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useState, useCallback, useRef } from "react";
 import { 
-  Lightbulb, ScrollText, Subtitles, Hash, Brain, Send, Sparkles, 
+  Lightbulb, Brain, Send, Sparkles, 
   Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle, 
-  Trash2, ShieldAlert, Cpu, HelpCircle, ArrowRight, Video, Scissors,
-  Upload, Music, Radio, Star, Award, Heart, MessageSquare, ThumbsUp, RefreshCw, Plus, X, FileText, Image, Check,
-  MoreVertical, Copy, RotateCcw, Loader2, Filter, Search, Zap, ChevronRight
+  Trash2, ShieldAlert, Cpu, HelpCircle, Video, Scissors,
+  Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image, Check,
+  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library
 } from "lucide-react";
-import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
+import { inputClass } from "@/components/field";
 
 type Profile = {
   id: string;
@@ -16,7 +17,6 @@ type Profile = {
 };
 
 type EtapaFluxo = "ideia" | "roteiro" | "legenda" | "hashtag" | "publicacao";
-type ContentStatus = "rascunho" | "na_fila" | "processando" | "em_revisao" | "pronto" | "erro";
 type ContentOrigem = "manual" | "hefesto" | "amber" | "openrouter" | "local" | "sistema";
 
 type ContentItem = {
@@ -153,10 +153,14 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   );
   
   const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
+  const [carouselIdx, setCarouselIdx] = useState(0);
   
   const [contentType, setContentType] = useState("ideia");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
-  const [refinementInstructions, setRefinementInstructions] = useState("");
+  const [showChannelMention, setShowChannelMention] = useState(false);
+  const [channelFilter, setChannelFilter] = useState("");
+  const briefingRef = useRef<HTMLTextAreaElement>(null);
+  const [, setRefinementInstructions] = useState("");
   
   const [acervoFilter, setAcervoFilter] = useState<string>("todos");
   const [acervoSearch, setAcervoSearch] = useState("");
@@ -176,24 +180,13 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [manualTitle, setManualTitle] = useState("");
   const [manualIdea, setManualIdea] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("hefesto");
-  const [aiInstructions, setAiInstructions] = useState("");
 
-  const estimatedCharacters = manualTitle.length + manualIdea.length + aiInstructions.length;
-  const isApproachingLimit = estimatedCharacters > 500;
 
   const [videoStyle, setVideoStyle] = useState<string>("tiktok");
   const [allPresets, setAllPresets] = useState<Record<string, VideoStylePreset>>(DEFAULT_PRESETS);
-  const [showStyleCreator, setShowStyleCreator] = useState(false);
-  
-  const [customStyleName, setCustomStyleName] = useState("");
-  const [customStyleDuration, setCustomStyleDuration] = useState("");
-  const [customStyleMusic, setCustomStyleMusic] = useState("");
-  const [customStyleTransitions, setCustomStyleTransitions] = useState("");
-  const [customStyleDirectives, setCustomStyleDirectives] = useState("");
+  const [, setShowStyleCreator] = useState(false);
 
   const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
-  const [referenceLink, setReferenceLink] = useState("");
-  const [editingInstructions, setEditingInstructions] = useState("");
 
   const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
   const [progressVal, setProgressVal] = useState(0);
@@ -213,12 +206,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     { id: "clip_3", title: "Demonstração (15s)", dur: "15s", script: "[Mostrar tela do canvas visual n8n neon pulsando e os dados fluindo em tempo real pelo navegador]", type: "Visual" },
     { id: "clip_4", title: "CTA Final (10s)", dur: "10s", script: "Pare de ter surpresas na fatura de IA. Clique no link abaixo e inicie sua orquestra gratuita agora mesmo!", type: "CTA" },
   ]);
-
-  const [rawFiles, setRawFiles] = useState<string[]>([
-    "arquivo_bruto_intro_kotaro.mp4",
-    "b-roll_canvas_nodes.mov"
-  ]);
-  const [newFileName, setNewFileName] = useState("");
 
   const [videoGenre, setVideoGenre] = useState<"viral" | "educational" | "comedy" | "documentary" | "serious" | "sales">("viral");
   const [adaptationMode, setAdaptationMode] = useState<"liquid" | "fixed">("liquid");
@@ -268,6 +255,47 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const toggleChannel = (ch: string) => {
     setSelectedChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
   };
+
+  const handleBriefingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setManualIdea(val);
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    if (atMatch) {
+      setShowChannelMention(true);
+      setChannelFilter(atMatch[1].toLowerCase());
+    } else {
+      setShowChannelMention(false);
+      setChannelFilter("");
+    }
+  };
+
+  const selectChannelFromMention = (ch: string) => {
+    if (!selectedChannels.includes(ch)) {
+      setSelectedChannels(prev => [...prev, ch]);
+    }
+    if (briefingRef.current) {
+      const val = manualIdea;
+      const cursorPos = briefingRef.current.selectionStart;
+      const textBeforeCursor = val.slice(0, cursorPos);
+      const textAfterCursor = val.slice(cursorPos);
+      const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${ch} `);
+      const newVal = newTextBefore + textAfterCursor;
+      setManualIdea(newVal);
+      setTimeout(() => {
+        const newPos = newTextBefore.length;
+        briefingRef.current?.setSelectionRange(newPos, newPos);
+        briefingRef.current?.focus();
+      }, 0);
+    }
+    setShowChannelMention(false);
+    setChannelFilter("");
+  };
+
+  const filteredMentionChannels = CHANNELS.filter(
+    ch => ch.toLowerCase().includes(channelFilter) && !selectedChannels.includes(ch)
+  );
 
   const handleSaveDraft = async () => {
     if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
@@ -353,209 +381,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setVideoTimeline(prev => prev.map(c => c.id === id ? { ...c, script: nextText } : c));
   };
 
-  const handleAddRawFile = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFileName.trim()) return;
-    setRawFiles([...rawFiles, newFileName.trim()]);
-    setNewFileName("");
-  };
-
-  const handleRemoveRawFile = (index: number) => {
-    setRawFiles(rawFiles.filter((_, i) => i !== index));
-  };
-
-  const handleCreateCustomStyle = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customStyleName.trim() || !customStyleDirectives.trim()) return;
-
-    const styleKey = `custom_${Date.now()}`;
-    const newPreset: VideoStylePreset = {
-      name: `✨ ${customStyleName.trim()} (Estilo Único)`,
-      duration: customStyleDuration.trim() || "Configuração Livre",
-      trendingMusic: customStyleMusic ? customStyleMusic.split(",").map(m => m.trim()) : ["Músicas Customizadas"],
-      trendingTransitions: customStyleTransitions ? customStyleTransitions.split(",").map(t => t.trim()) : ["Transições livres"],
-      mostSearched: ["Configurações customizadas do Kotaro"],
-      baseDirectives: customStyleDirectives.trim(),
-      isCustom: true
-    };
-
-    setAllPresets(prev => ({
-      ...prev,
-      [styleKey]: newPreset
-    }));
-    setVideoStyle(styleKey);
-    setShowStyleCreator(false);
-    
-    setCustomStyleName("");
-    setCustomStyleDuration("");
-    setCustomStyleMusic("");
-    setCustomStyleTransitions("");
-    setCustomStyleDirectives("");
-  };
-
-  const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
-    const fileNamesMap = {
-      image: "referencia_estilo_moodboard.png",
-      video: "corte_exemplo_referencia.mp4",
-      audio: "efeito_sonoro_swoosh.mp3",
-      doc: "roteiro_planejado_vendas.pdf"
-    };
-
-    const nextAsset: ReferenceAsset = {
-      id: `asset_${Date.now()}`,
-      name: fileNamesMap[type],
-      type,
-      size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB",
-      status: "uploading",
-      progress: 0
-    };
-
-    setReferenceAssets(prev => [...prev, nextAsset]);
-
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 25;
-      setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, progress: prog } : a));
-
-      if (prog >= 100) {
-        clearInterval(interval);
-        setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, status: "completed" } : a));
-      }
-    }, 400);
-  };
-
-  const handleRemoveAsset = (id: string) => {
-    setReferenceAssets(referenceAssets.filter(a => a.id !== id));
-  };
-
-  const runVideoEditingPipeline = () => {
-    if (videoStatus !== "idle" && videoStatus !== "rejected") return;
-
-    setProgressVal(10);
-    setVideoStatus("analyzing");
-
-    setTimeout(() => {
-      setProgressVal(35);
-      setVideoStatus("projecting");
-      
-      setTimeout(() => {
-        setProgressVal(60);
-        setVideoStatus("council_review");
-        
-        setCouncilMessages([
-          { agent: "Isis (Edição & Pacing)", avatar: "✨", message: "Analisando cortes brutos... Proponho zoom digital rápido a cada 1.4 segundos para manter o ritmo hipnótico e prender a atenção do Kotaro.", status: "thinking" }
-        ]);
-
-        setTimeout(() => {
-          setCouncilMessages(prev => [
-            ...prev.map(c => ({ ...c, status: "approved" as const })),
-            { agent: "Morax (Ganchos de Venda)", avatar: "🔥", message: "O hook inicial de 3s está excelente. Injetando quebra de padrão visual no frame 1 com tela Amber escura e som swoosh para retenção máxima de leads.", status: "thinking" }
-          ]);
-        }, 1500);
-
-        setTimeout(() => {
-          setCouncilMessages(prev => [
-            ...prev.map(c => c.agent.includes("Morax") ? { ...c, status: "approved" as const } : c),
-            { agent: "Hefesto (Tipografia & Estilo)", avatar: "🦾", message: "Fatos neurais carregados da LTM do Kotaro. Legenda em destaque duplo amarelo/branco aprovada. A tipografia será 'Inter' ultra-bold.", status: "thinking" }
-          ]);
-        }, 3000);
-
-        setTimeout(() => {
-          setCouncilMessages(prev => prev.map(c => ({ ...c, status: "approved" as const })));
-          setProgressVal(80);
-          setVideoStatus("rendering");
-
-          setTimeout(() => {
-            setProgressVal(100);
-            setVideoStatus("completed");
-          }, 2000);
-
-        }, 4500);
-
-      }, 2500);
-
-    }, 2000);
-  };
-
-  const handleRejectVideo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rejectionError.trim()) return;
-
-    const errorFact = `[ERRO DE EDIÇÃO DE VÍDEO DETECTADO] Estilo: ${videoStyle}. Correção crítica exigida: ${rejectionError.trim()}`;
-    const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
-    const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
-    let memoriesList = [];
-    if (storedMems) {
-      memoriesList = JSON.parse(storedMems);
-    }
-    const newMem = {
-      id: `mem_video_error_${Date.now()}`,
-      category: "tecnico" as const,
-      fact: errorFact,
-      timestamp: "Absorbido via Feedback de Edição",
-      confidence: 100
-    };
-    localStorage.setItem(`yggnarok.${username}.ltm_memories`, JSON.stringify([newMem, ...memoriesList]));
-
-    setAbsorbedFeedback([rejectionError.trim(), ...absorbedFeedback]);
-    setVideoStatus("rejected");
-    setRejectionError("");
-    setProgressVal(0);
-    setCouncilMessages([]);
-  };
-
-  const triggerPlatformPublish = (platform: "4k" | "tiktok" | "reels" | "shorts") => {
-    setExportPlatform(platform);
-    setVideoStatus("exporting");
-    setExportStep(0);
-
-    const stepsMap = {
-      "4k": [
-        "Iniciando Renderização H.264 / ProRes a 60fps...",
-        "Calculando anti-aliasing vetorial e sobreposição neon...",
-        "Ajustando bitrate de exportação para 50 Mbps (Qualidade Máxima)...",
-        "✓ Sucesso! Vídeo salvo em ProRes 4K Ultra-HD sem compactação local!"
-      ],
-      tiktok: [
-        "Conectando com a API oficial do TikTok...",
-        "Ignorando compressão automática do servidor TikTok...",
-        "Carregando vídeo original ProRes via Chunk Uploading...",
-        "✓ Sucesso! Vídeo publicado no TikTok em Resolução Nativa Máxima!"
-      ],
-      reels: [
-        "Negociando codec HDR com a API do Instagram Graph...",
-        "Estabilizando taxa de quadros e cores Void & Amber em 4K...",
-        "Carregando arquivo brutamente em alta fidelidade...",
-        "✓ Sucesso! Reels publicado em Altíssima Qualidade no Instagram!"
-      ],
-      shorts: [
-        "Abrindo túnel de alta velocidade com o YouTube Creator API...",
-        "Processando áudio original sem compactação em WAV...",
-        "Transmitindo pacote de dados sem perdas...",
-        "✓ Sucesso! YouTube Short agendado em Ultra-HD original!"
-      ]
-    };
-
-    const steps = stepsMap[platform];
-    setExportLogs([steps[0]]);
-
-    let idx = 0;
-    const interval = setInterval(() => {
-      idx++;
-      if (idx < steps.length) {
-        setExportStep(idx);
-        setExportLogs(prev => [...prev, steps[idx]]);
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          setVideoStatus("idle");
-          setExportPlatform(null);
-          setExportLogs([]);
-        }, 3000);
-      }
-    }, 2000);
-  };
-
   return (
     <main className="min-h-screen text-foreground relative overflow-hidden bg-radial-gradient">
       
@@ -597,367 +422,321 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
         )}
 
-        {/* ── Header with YGN Seal (P2: identity) ── */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-line pb-6">
+        {/* ── Header ── */}
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="h-px w-6 bg-brand" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-brand">創作工房 · KŌBŌ</p>
-              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">YGN OS</span>
-            </div>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
-              Estúdio de Criação &amp; Vídeos
-            </h1>
-            <p className="mt-1.5 text-xs text-muted">
-              Engine de inteligência criativa, roteiros, legendas e linha do tempo de vídeo integrada.
-            </p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-brand mb-1">Fase de Criação</p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Estúdio de Criação</h1>
+            <p className="text-xs text-muted mt-1">Seu hub inteligente para ideias, roteiros, legendas, campanhas e criações com IA de ponta.</p>
           </div>
-          
-          {/* Header Action Buttons */}
-          <div className="flex items-center flex-wrap gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-[10px] font-bold text-emerald-400">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>YGN Online &amp; IA Ativa</span>
-            </div>
-            <button
-              onClick={() => {
-                const el = document.getElementById("title-input");
-                if (el) {
-                  el.focus();
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }}
-              className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4.5 py-2.5 text-xs font-bold transition shadow-md shadow-brand/10"
-            >
-              <Plus size={14} />
-              <span>Nova Criação</span>
-            </button>
-            <a
-              href="/biblioteca"
-              className="flex items-center gap-1.5 rounded-xl border border-line bg-surface hover:bg-surface-strong px-4.5 py-2.5 text-xs font-bold text-muted hover:text-foreground transition"
-            >
-              <span>Abrir Biblioteca</span>
-            </a>
-          </div>
-        </div>
-
-        {/* ── Pipeline Cards (P1: Grid of 4 flow cards) ── */}
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {tabs.map((tab) => {
-            const count = contents.filter(c => 
-              tab.id === "ideias" 
-                ? true 
-                : c.content_type?.toLowerCase().includes(tab.id.slice(0, -1))
-            ).length;
-
-            const isActive = activeTab === tab.id;
-
-            // Determine status text based on count
-            let stageStatus = "Aguardando";
-            if (tab.id === "ideias") {
-              stageStatus = count > 0 ? "Em captação ativa" : "Sem novas pautas";
-            } else if (tab.id === "roteiros") {
-              stageStatus = count > 0 ? `${count} scripts prontos` : "Aguardando ideias";
-            } else if (tab.id === "legendas") {
-              stageStatus = count > 0 ? `${count} prontas para redes` : "Sem roteiros prontos";
-            } else if (tab.id === "hashtags") {
-              stageStatus = count > 0 ? "Prontas para copiar" : "Aguardando publicações";
-            }
-
-            return (
+          <div className="flex items-center gap-1 rounded-xl bg-surface-strong/60 border border-line p-1">
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`group text-left relative overflow-hidden rounded-2xl border p-5 transition duration-300 ${
-                  isActive
-                    ? "border-brand/40 bg-brand/5 shadow-lg shadow-brand/[0.02]"
-                    : "border-line bg-surface/30 hover:border-white/10 hover:bg-surface/50"
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
+                  activeTab === tab.id
+                    ? "bg-brand text-neutral-950 shadow-sm"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className={`grid size-10 place-items-center rounded-xl transition ${
-                    isActive 
-                      ? "bg-brand text-neutral-950" 
-                      : "bg-surface-strong text-muted group-hover:text-foreground"
-                  }`}>
-                    <tab.icon size={18} />
-                  </div>
-                  <span className="text-[10px] font-bold font-mono text-muted uppercase tracking-wider">
-                    Fase {tabs.indexOf(tab) + 1}
-                  </span>
-                </div>
-
-                <div className="mt-4">
-                  <h3 className={`text-sm font-bold tracking-tight transition ${isActive ? "text-brand" : "text-foreground"}`}>
-                    {tab.label}
-                  </h3>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-xl font-black font-mono tabular-nums">{count}</span>
-                    <span className="text-[10px] text-muted font-bold uppercase">{count === 1 ? "item" : "itens"}</span>
-                  </div>
-                  <p className="text-[10px] text-muted font-semibold mt-2 flex items-center gap-1.5 border-t border-line/40 pt-2">
-                    <span className={`size-1.5 rounded-full ${isActive ? "bg-brand animate-pulse" : "bg-neutral-600"}`} />
-                    {stageStatus}
-                  </p>
-                </div>
+                <tab.icon size={12} />
+                {tab.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
 
-        {/* ── Stepper / Pipeline Navigation Bar ── */}
-        <div className="mb-8 flex items-center gap-1.5 rounded-xl border border-line bg-surface/40 p-1.5 overflow-x-auto scrollbar-none">
-          {tabs.map((tab, idx) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-grow flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg text-xs font-bold transition shrink-0 ${
-                  isActive 
-                    ? "text-brand bg-brand/10 border border-brand/20" 
-                    : "text-muted hover:text-foreground hover:bg-white/[0.02]"
-                }`}
-              >
-                <span className={`size-5 rounded-md grid place-items-center text-[10px] font-mono ${
-                  isActive ? "bg-brand text-neutral-950" : "bg-surface-strong text-muted"
-                }`}>
-                  {idx + 1}
+        {/* ── Creation Card (hero, cream bg) ── */}
+        <div className="mb-8 rounded-2xl border border-line/60 bg-[#faf8f4] dark:bg-[#1a1814] shadow-lg overflow-hidden">
+          {/* Card Header */}
+          <div className="flex items-start gap-4 px-6 pt-6 pb-2">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10">
+              <Lightbulb size={18} className="text-brand" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-bold text-foreground">O que você quer criar hoje?</h2>
+              <p className="text-xs text-muted mt-0.5">Descreva sua ideia, roteiro, briefing, imagem ou documento...</p>
+            </div>
+            <Sparkles size={18} className="text-brand/40 shrink-0 mt-1" />
+          </div>
+
+          {/* Textarea */}
+          <div className="px-6 py-2">
+            <textarea
+              ref={briefingRef}
+              value={manualIdea}
+              onChange={handleBriefingChange}
+              onBlur={() => setTimeout(() => setShowChannelMention(false), 150)}
+              placeholder="Comece a escrever..."
+              rows={8}
+              className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted/40 focus:outline-none min-h-[180px]"
+            />
+            {/* @mention Dropdown */}
+            {showChannelMention && filteredMentionChannels.length > 0 && (
+              <div className="relative">
+                <div className="absolute left-0 bottom-0 z-30 w-52 rounded-xl border border-line bg-surface-strong shadow-xl py-1 animate-alert-pop">
+                  <p className="px-3 py-1 text-[9px] font-bold text-muted uppercase tracking-wider">Redes</p>
+                  {filteredMentionChannels.map(ch => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); selectChannelFromMention(ch); }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-foreground hover:bg-brand/10 hover:text-brand transition"
+                    >
+                      <AtSign size={12} className="text-muted" />
+                      {ch}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Channel Chips */}
+          {selectedChannels.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 px-6 pb-2">
+              {selectedChannels.map(ch => (
+                <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-brand/25 bg-brand/8 px-2.5 py-0.5 text-[10px] font-bold text-brand">
+                  @{ch}
+                  <button type="button" onClick={() => toggleChannel(ch)} className="ml-0.5 rounded-full hover:bg-brand/20 p-0.5 transition">
+                    <X size={9} />
+                  </button>
                 </span>
-                <span>{tab.label}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Type Chips */}
+          <div className="flex flex-wrap items-center gap-1.5 px-6 pb-3">
+            {[
+              { icon: Lightbulb, label: "Ideia" },
+              { icon: ScrollText, label: "Roteiro" },
+              { icon: Subtitles, label: "Legenda" },
+              { icon: Hash, label: "Hashtags" },
+              { icon: Video, label: "Vídeo" },
+              { icon: Layers, label: "Campanha" },
+              { icon: Globe, label: "Multicanal" },
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  if (item.label === "Ideia") setContentType("ideia");
+                  else if (item.label === "Roteiro") setContentType("script_video");
+                  else if (item.label === "Legenda") setContentType("post_estatico");
+                  else if (item.label === "Hashtags") setContentType("thread");
+                  else if (item.label === "Vídeo") setContentType("reel");
+                  else if (item.label === "Campanha") setContentType("campanha");
+                  else setContentType("artigo");
+                }}
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition ${
+                  contentType === "ideia" && item.label === "Ideia"
+                    ? "border-brand/40 bg-brand/10 text-brand"
+                    : "border-line bg-surface hover:border-brand/20 text-muted hover:text-foreground"
+                }`}
+              >
+                <item.icon size={11} />
+                {item.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Bottom Toolbar */}
+          <div className="flex items-center justify-between border-t border-line/40 px-4 py-3 bg-surface/30">
+            <div className="flex items-center gap-1">
+              <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
+                <Image size={13} alt="" />
+                Anexar imagem
+              </button>
+              <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
+                <FileText size={13} />
+                Anexar documento
+              </button>
+              <Link href="/biblioteca" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
+                <Library size={13} />
+                Biblioteca
+              </Link>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCreationMode(prev => prev === "manual" ? "ia" : "manual")}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
+                    creationMode === "ia" ? "bg-brand/10 text-brand" : "text-muted hover:text-foreground hover:bg-surface-strong"
+                  }`}
+                >
+                  {creationMode === "ia" ? <Brain size={13} /> : <Sliders size={13} />}
+                  Ferramentas
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={actionLoading !== null || !manualIdea.trim()}
+                className="flex items-center gap-1.5 rounded-xl border border-line bg-surface hover:bg-surface-strong px-3.5 py-2 text-[11px] font-bold text-muted hover:text-foreground transition disabled:opacity-30"
+              >
+                {actionLoading === "draft" ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                Rascunho
+              </button>
+              <button
+                type="button"
+                onClick={creationMode === "ia" ? handleGenerateContent : handleSendForReview}
+                disabled={actionLoading !== null || !manualIdea.trim()}
+                className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2 text-[11px] font-bold transition shadow-sm shadow-brand/20 disabled:opacity-30"
+              >
+                {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                Criar com IA
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ── Main interactive split workspace ── */}
-        <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-          
-          {/* LEFT COLUMN: CREATION ENGINE + CONTROLS */}
-          <div className="space-y-6">
-            
-            {/* ── 1. CONSOLE DE CRIAÇÃO (Card principal de formulário) ── */}
             {activeTab !== "videos" ? (
-              <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md">
-                <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Layers size={16} className="text-brand" />
-                    <h2 className="text-sm font-bold tracking-wider uppercase text-foreground">Console de Criação</h2>
-                  </div>
-                </div>
+              <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
+                    <div className="relative flex flex-col rounded-2xl border border-line/80 bg-surface-strong shadow-md transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 focus-within:shadow-lg">
+                      <textarea
+                        ref={briefingRef}
+                        value={manualIdea}
+                        onChange={handleBriefingChange}
+                        onBlur={() => setTimeout(() => setShowChannelMention(false), 150)}
+                        placeholder="Escreva sua ideia, briefing ou pauta..."
+                        rows={6}
+                        className="w-full resize-none bg-transparent px-5 pt-5 pb-2 text-[15px] leading-relaxed text-foreground placeholder:text-muted/40 focus:outline-none min-h-[160px] max-h-[400px]"
+                      />
 
-                {/* ── Mode Switcher ── */}
-                <div className="flex items-center gap-1 rounded-lg bg-surface-strong/60 border border-line p-1 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setCreationMode("manual")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${
-                      creationMode === "manual" ? "bg-brand text-neutral-950 shadow-sm" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Layers size={13} />
-                    Manual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCreationMode("ia")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${
-                      creationMode === "ia" ? "bg-brand text-neutral-950 shadow-sm" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Brain size={13} />
-                    IA Especializada
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-muted mb-4 leading-relaxed">
-                  {creationMode === "manual" 
-                    ? "Estruture e salve uma ideia sem acionar geração automática instantânea." 
-                    : "Use agentes para gerar, revisar ou expandir conteúdo com IA."}
-                </p>
-
-                <div className="space-y-4">
-                  {/* ── Title ── */}
-                  <Field label="Título Operacional">
-                    <input 
-                      id="title-input"
-                      className={`${inputClass} border-line bg-surface-strong focus:border-brand`} 
-                      value={manualTitle}
-                      onChange={(e) => setManualTitle(e.target.value)}
-                      required 
-                      placeholder="Ex: Masterclass de Engenharia de Prompt" 
-                    />
-                  </Field>
-                  
-                  {/* ── Type + Channel ── */}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Tipo de Conteúdo">
-                      <select 
-                        className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
-                        value={contentType}
-                        onChange={(e) => setContentType(e.target.value)}
-                      >
-                        {CONTENT_TYPES.map(ct => (
-                          <option key={ct.value} value={ct.value}>{ct.label}</option>
-                        ))}
-                      </select>
-                    </Field>
-                    <div>
-                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-2">Canal / Rede</label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {CHANNELS.map(ch => {
-                          const isSelected = selectedChannels.includes(ch);
-                          return (
+                      {/* @mention Dropdown */}
+                      {showChannelMention && filteredMentionChannels.length > 0 && (
+                        <div className="absolute left-4 bottom-full mb-2 z-30 w-52 rounded-xl border border-line bg-surface-strong shadow-xl py-1 animate-alert-pop">
+                          <p className="px-3 py-1 text-[9px] font-bold text-muted uppercase tracking-wider">Redes</p>
+                          {filteredMentionChannels.map(ch => (
                             <button
                               key={ch}
                               type="button"
-                              onClick={() => toggleChannel(ch)}
-                              className={`rounded-md px-2.5 py-1.5 text-[10px] font-bold border transition ${
-                                isSelected 
-                                  ? "border-brand/40 bg-brand/10 text-brand" 
-                                  : "border-line bg-surface-strong text-muted hover:text-foreground"
-                              }`}
+                              onMouseDown={(e) => { e.preventDefault(); selectChannelFromMention(ch); }}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-foreground hover:bg-brand/10 hover:text-brand transition"
                             >
+                              <AtSign size={12} className="text-muted" />
                               {ch}
                             </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* ── Briefing ── */}
-                  <Field label="Briefing Criativo / Direcionamento">
-                    <textarea 
-                      className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
-                      value={manualIdea}
-                      onChange={(e) => setManualIdea(e.target.value)}
-                      placeholder="Explique objetivo, público, promessa central, tom desejado, referências, CTA e restrições." 
-                      rows={5} 
-                    />
-                  </Field>
+                          ))}
+                        </div>
+                      )}
 
-                  {/* ── IA-specific fields ── */}
-                  {creationMode === "ia" && (
-                    <>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field label="Agente Executor">
-                          <select 
-                            className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
-                            value={selectedAgent}
-                            onChange={(e) => setSelectedAgent(e.target.value)}
-                          >
-                            <option value="hefesto">Hefesto (Redator Estrela)</option>
-                            <option value="amber">Amber AI (Análise Profunda)</option>
-                            <option value="local">Local / Ollama (Fallback)</option>
-                            <option value="openrouter">OpenRouter (Multi-modelo)</option>
-                          </select>
-                        </Field>
-                        <Field label="Modo Operacional">
-                          <select 
-                            className={`${inputClass} border-line bg-surface-strong text-xs`}
-                            value={autoFreeTier ? "fast" : "deep"}
-                            disabled={autoFreeTier}
-                            onChange={() => {}}
-                          >
-                            <option value="fast">Rápido (Free Forçado)</option>
-                            <option value="deep">Profundo (Amber AI)</option>
-                          </select>
-                        </Field>
-                      </div>
-                      
-                      <Field label="Instruções de Refinamento">
-                        <textarea 
-                          className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
-                          value={refinementInstructions}
-                          onChange={(e) => setRefinementInstructions(e.target.value)}
-                          placeholder="Ex: tom direto, foco em conversão, CTA para link na bio, evitar linguagem genérica." 
-                          rows={3} 
-                        />
-                      </Field>
-                    </>
-                  )}
-                  
-                  {/* ── Action Buttons ── */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-line/50">
-                    {creationMode === "manual" ? (
-                      <>
-                        <button 
-                          type="button" 
-                          onClick={handleSaveDraft}
-                          disabled={actionLoading !== null}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-neutral-950 shadow-md shadow-brand/10 transition duration-300 hover:bg-brand-strong disabled:opacity-50"
-                        >
-                          {actionLoading === "draft" ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                          Salvar rascunho
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={handleSendForReview}
-                          disabled={actionLoading !== null}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand/40 bg-surface py-2.5 text-xs font-bold text-brand transition hover:bg-brand hover:text-neutral-950 disabled:opacity-50"
-                        >
-                          {actionLoading === "review" ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                          Enviar para revisão IA
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button 
-                          type="button"
-                          onClick={handleGenerateContent}
-                          disabled={actionLoading !== null}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-neutral-950 shadow-md shadow-brand/10 transition duration-300 hover:bg-brand-strong disabled:opacity-50"
-                        >
-                          {actionLoading === "generate" ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
-                          🚀 Gerar roteiro + legenda + hashtags
-                        </button>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button 
+                      {/* Bottom Toolbar */}
+                      <div className="flex items-center justify-between border-t border-line/30 px-3 py-2.5">
+                        <div className="flex items-center gap-1">
+                          <button
                             type="button"
-                            onClick={handleSaveDraft}
-                            disabled={actionLoading !== null}
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2 text-xs font-semibold text-muted transition hover:text-foreground hover:border-brand/30 disabled:opacity-50"
+                            onClick={() => setCreationMode(prev => prev === "manual" ? "ia" : "manual")}
+                            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
+                              creationMode === "ia" ? "bg-brand/10 text-brand" : "text-muted hover:text-foreground hover:bg-surface-strong"
+                            }`}
                           >
-                            {actionLoading === "draft" ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
-                            Salvar rascunho
+                            {creationMode === "ia" ? <Brain size={12} /> : <Layers size={12} />}
+                            {creationMode === "ia" ? "IA" : "Manual"}
                           </button>
-                          <button 
-                            type="button"
-                            onClick={handleSendForReview}
-                            disabled={actionLoading !== null}
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2 text-xs font-semibold text-muted transition hover:text-foreground hover:border-brand/30 disabled:opacity-50"
+
+                          <select
+                            value={contentType}
+                            onChange={(e) => setContentType(e.target.value)}
+                            className="rounded-lg bg-transparent px-2 py-1.5 text-[11px] font-bold text-muted hover:text-foreground transition cursor-pointer focus:outline-none appearance-none"
                           >
-                            {actionLoading === "review" ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                            Revisão IA
+                            {CONTENT_TYPES.map(ct => (
+                              <option key={ct.value} value={ct.value}>{ct.label}</option>
+                            ))}
+                          </select>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (briefingRef.current) {
+                                const pos = briefingRef.current.selectionStart || manualIdea.length;
+                                const before = manualIdea.slice(0, pos);
+                                const after = manualIdea.slice(pos);
+                                setManualIdea(before + "@" + after);
+                                setShowChannelMention(true);
+                                setChannelFilter("");
+                                setTimeout(() => { briefingRef.current?.setSelectionRange(pos + 1, pos + 1); briefingRef.current?.focus(); }, 0);
+                              }
+                            }}
+                            className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-strong hover:text-foreground"
+                            title="Mencionar rede"
+                          >
+                            <AtSign size={14} />
                           </button>
                         </div>
-                      </>
-                    )}
-                    
-                    {/* Limpar campos button */}
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setManualTitle("");
-                        setManualIdea("");
-                        setRefinementInstructions("");
-                        setSelectedChannels([]);
-                        showToast("Campos do Console limpos!");
-                      }}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2.5 text-xs font-semibold text-muted hover:text-foreground hover:border-rose-500/20 hover:bg-rose-500/5 transition"
-                    >
-                      <RotateCcw size={12} />
-                      Limpar campos
-                    </button>
-                  </div>
-                </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {creationMode === "ia" && (
+                            <select
+                              value={selectedAgent}
+                              onChange={(e) => setSelectedAgent(e.target.value)}
+                              className="rounded-lg bg-transparent px-2 py-1.5 text-[11px] font-bold text-muted hover:text-foreground transition cursor-pointer focus:outline-none appearance-none"
+                            >
+                              <option value="hefesto">Hefesto</option>
+                              <option value="amber">Morax</option>
+                              <option value="local">Ollama</option>
+                              <option value="openrouter">OpenRouter</option>
+                            </select>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => { setManualTitle(""); setManualIdea(""); setRefinementInstructions(""); setSelectedChannels([]); showToast("Limpo!"); }}
+                            className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-strong hover:text-foreground"
+                            title="Limpar"
+                          >
+                            <RotateCcw size={12} />
+                          </button>
+
+                          {creationMode === "manual" ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleSaveDraft}
+                                disabled={actionLoading !== null || !manualIdea.trim()}
+                                className="flex items-center gap-1.5 rounded-xl bg-surface-strong border border-line px-3 py-1.5 text-[11px] font-bold text-muted hover:text-foreground transition disabled:opacity-30"
+                              >
+                                {actionLoading === "draft" ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                                Rascunho
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSendForReview}
+                                disabled={actionLoading !== null || !manualIdea.trim()}
+                                className="flex items-center gap-1.5 rounded-xl bg-brand text-neutral-950 px-3.5 py-1.5 text-[11px] font-bold transition hover:bg-brand-strong disabled:opacity-30"
+                              >
+                                {actionLoading === "review" ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                                Revisão IA
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleGenerateContent}
+                              disabled={actionLoading !== null || !manualIdea.trim()}
+                              className="flex items-center gap-1.5 rounded-xl bg-brand text-neutral-950 px-3.5 py-1.5 text-[11px] font-bold transition hover:bg-brand-strong disabled:opacity-30"
+                            >
+                              {actionLoading === "generate" ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />}
+                              Gerar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-muted/50 mt-2 text-center">
+                      @ para redes · shift+enter nova linha
+                    </p>
               </section>
             ) : (
               // 📹 INGESTÃO DE MÍDIA BRUTA (Se tab for videos)
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
+                <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
+                
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Video size={16} className="text-rose-400" />
@@ -965,7 +744,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </div>
                   
                   <button 
-                    type="button"
+                    type="button" 
                     onClick={() => setShowStyleCreator(true)}
                     className="rounded-lg border border-brand/40 bg-surface px-2.5 py-1 text-[10px] font-bold text-brand hover:bg-brand hover:text-neutral-950 transition duration-300"
                   >
@@ -977,328 +756,348 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   Gerencie presets de vídeo ou envie clipes de corte rápido para análise da orquestra criativa.
                 </p>
 
-                {/* Preset selectors and configuration parameters */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Preset de Estilo de Vídeo</label>
-                    <select 
-                      className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
-                      value={videoStyle}
-                      onChange={(e) => setVideoStyle(e.target.value)}
-                    >
-                      {Object.keys(allPresets).map(key => (
-                        <option key={key} value={key}>{allPresets[key].name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Formato / Proporção</label>
-                      <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
-                        <button 
-                          type="button" 
-                          onClick={() => setVideoAspect("916")}
-                          className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "916" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                        >
-                          9:16
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setVideoAspect("169")}
-                          className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "169" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                        >
-                          16:9
-                        </button>
-                      </div>
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Preset de Estilo de Vídeo</label>
+                      <select 
+                        className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
+                        value={videoStyle}
+                        onChange={(e) => setVideoStyle(e.target.value)}
+                      >
+                        {Object.keys(allPresets).map(key => (
+                          <option key={key} value={key}>{allPresets[key].name}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Duração Alvo</label>
-                      <div className="py-1.5 px-3 bg-surface-strong border border-line rounded-lg text-xs font-bold font-mono text-center">
-                        {activePreset.duration}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] text-emerald-400 flex items-center gap-1.5">
-                    <Cpu size={12} className="animate-pulse" />
-                    <span>Corte e Inteligência de tendências via <strong>Gemini 2.0 Flash (Free)</strong>.</span>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* ── 2. EVOLUÇÃO & PERFEIÇÃO (Comportamento de IA) ── */}
-            {activeTab !== "videos" ? (
-              <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md">
-                <div className="absolute right-0 top-0 size-24 bg-brand/10 blur-2xl pointer-events-none" />
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Sliders size={16} className="text-brand animate-pulse" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Evolução &amp; Perfeição</h2>
-                  </div>
-                  <div title="Ajuste a tolerância de caos ou rigidez criativa de aprendizado">
-                    <HelpCircle size={14} className="text-brand opacity-60 animate-bounce" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* 1. Perfection vs Caos Slider */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted font-semibold">Tolerância Criativa</span>
-                      <span className="text-brand font-bold">{learningMargin}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={learningMargin}
-                      onChange={(e) => setLearningMargin(Number(e.target.value))}
-                      className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand"
-                    />
-                    <div className="flex justify-between text-[9px] text-muted font-mono uppercase tracking-wider">
-                      <span>Perfeição Rígida</span>
-                      <span>Modo Caos</span>
-                    </div>
-                    <p className="text-[10px] text-muted leading-relaxed mt-1">
-                      {learningMargin < 30 ? (
-                        <span className="text-amber-400 font-semibold">⚡ Conservador: Os agentes seguirão diretrizes estritas do Kotaro sem desviar ou tentar termos novos.</span>
-                      ) : learningMargin < 75 ? (
-                        <span>⚖️ Balanceado: Combina aprendizados históricos com pequenos ganchos experimentais controlados.</span>
-                      ) : (
-                        <span className="text-brand font-semibold">🔥 Experimental: Modo criativo alto: permite variações narrativas, metáforas e abordagens menos previsíveis.</span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* 2. Auto-Free fallback switch */}
-                  <div className="pt-2 border-t border-brand/10 flex items-center justify-between">
-                    <div className="max-w-[240px]">
-                      <span className="text-xs font-bold text-foreground block">Auto-Economia Ativa</span>
-                      <span className="text-[9px] text-muted leading-tight block mt-0.5">Prioriza modelos gratuitos/locais avançados (Llama 3.3/Nemo) para economizar recursos.</span>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setAutoFreeTier(!autoFreeTier)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${autoFreeTier ? "bg-brand" : "bg-neutral-800"}`}
-                    >
-                      <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-neutral-950 shadow ring-0 transition duration-200 ease-in-out ${autoFreeTier ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-
-                  {/* ⚠️ 3. Token/Character Limit Warning Banner */}
-                  {isApproachingLimit && (
-                    <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-[10px] text-amber-200 animate-alert-pop flex items-start gap-2 leading-relaxed">
-                      <AlertTriangle size={15} className="text-brand shrink-0 mt-0.5 animate-pulse" />
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <strong>Alerta de Carga Neural:</strong> Volume de texto elevado ({estimatedCharacters} chrs). 
-                        <span className="block mt-1 text-[9px] text-brand font-bold">✓ Modo Inteligente Ativo: Roteamento travado no Llama 3.3 70B Free Tier para economizar chamadas.</span>
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Formato / Proporção</label>
+                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
+                          <button 
+                            type="button" 
+                            onClick={() => setVideoAspect("916")}
+                            className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "916" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
+                          >
+                            9:16
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => setVideoAspect("169")}
+                            className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "169" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
+                          >
+                            16:9
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Duração Alvo</label>
+                        <div className="py-1.5 px-3 bg-surface-strong border border-line rounded-lg text-xs font-bold font-mono text-center">
+                          {activePreset.duration}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </section>
-            ) : (
-              // 📹 RADAR DE GÊNERO & TRENDS (Se tab for videos)
-              <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md space-y-4">
-                <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none" />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Radio size={16} className="text-brand animate-pulse" />
-                    <h2 className="text-sm font-bold tracking-wider uppercase text-brand">Radar de Gênero &amp; Trends</h2>
                   </div>
-                  <Brain size={14} className="text-brand opacity-60" />
-                </div>
 
-                <p className="text-[11px] text-muted leading-relaxed">
-                  Configura a consciência do motor IA. Permite alternar entre explorar tendências voláteis ou travar em estilos fixos de marca.
-                </p>
+                  <div className="flex flex-col justify-between">
+                    <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4 text-[10px] text-emerald-400 flex items-start gap-1.5 leading-normal">
+                      <Cpu size={14} className="animate-pulse shrink-0 mt-0.5" />
+                      <span>Corte e Inteligência de tendências via <strong>Gemini 2.0 Flash (Free)</strong>.</span>
+                    </div>
 
-                {/* Video Genre target selection */}
-                <div>
-                  <label className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">Gênero Alvo do Vídeo</label>
-                  <select 
-                    className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
-                    value={videoGenre}
-                    onChange={(e) => setVideoGenre(e.target.value as any)}
-                  >
-                    <option value="viral">Trends &amp; Virais (Frenesi de Engajamento)</option>
-                    <option value="educational">Vídeos Educativos / Tutoriais</option>
-                    <option value="comedy">Humor &amp; Comédia (Quebra de Padrão)</option>
-                    <option value="documentary">Cinematográfico / Documentários</option>
-                    <option value="serious">Sérios &amp; Pautas Corporativas</option>
-                    <option value="sales">VSL / Vídeos de Alta Conversão</option>
-                  </select>
-                </div>
-
-                {/* Pacing adaptation Mode Selection */}
-                <div>
-                  <label className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1.5">Modo de Adaptação de Pacing</label>
-                  <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
-                    <button 
-                      type="button" 
-                      onClick={() => setAdaptationMode("liquid")}
-                      className={`py-1 text-[9px] font-bold rounded transition ${adaptationMode === "liquid" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                      title="Sintoniza com as trends de áudio e ritmo mais quentes das últimas 24h"
-                    >
-                      Algoritmo Líquido
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setAdaptationMode("fixed")}
-                      className={`py-1 text-[9px] font-bold rounded transition ${adaptationMode === "fixed" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                      title="Estilo Fixo Rígido de Marca"
-                    >
-                      Estilo Fixo Rígido
-                    </button>
+                    <div className="rounded-xl border border-dashed border-line bg-surface-strong/20 p-4 text-center mt-3">
+                      <span className="text-[10px] font-bold text-muted uppercase block">Estilo de Edição Selecionado</span>
+                      <p className="text-[9px] text-muted leading-tight mt-1">Diretivas: {activePreset.baseDirectives}</p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Dynamic radar status logs */}
-                <div className="space-y-1.5 p-2.5 rounded-xl bg-neutral-950 border border-line/30 font-mono text-[9px] text-muted">
-                  <span className="text-[8px] font-bold uppercase text-brand block mb-1">Mapeamento de Algoritmo Ativo:</span>
-                  {trendRadarLogs.map((log, idx) => (
-                    <p key={idx} className="flex items-center gap-1.5 truncate">
-                      <span className="text-brand">•</span>
-                      <span>{log}</span>
-                    </p>
-                  ))}
-                </div>
-
-                {/* Radar trigger scan button */}
-                <button
-                  type="button"
-                  onClick={runActiveTrendScan}
-                  disabled={isScanningTrends}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-brand/40 bg-surface px-4 py-2 text-xs font-bold text-brand hover:bg-brand hover:text-neutral-950 transition duration-300"
-                >
-                  <RefreshCw size={11} className={isScanningTrends ? "animate-spin" : ""} />
-                  {isScanningTrends ? "Sintonizando Trends..." : "Atualizar Consciência de Trends"}
-                </button>
-              </section>
-            )}
-
-            {/* ── 3. PAINEL DO AGENTE ── */}
-            {activeTab !== "videos" && (
-              <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-surface/50 p-5 shadow-xl backdrop-blur-md">
-                <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Brain size={14} className="text-brand" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Painel do Agente</h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Online
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
-                    <span className="text-muted font-medium">Agente ativo</span>
-                    <span className="font-bold text-foreground capitalize">{selectedAgent}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
-                    <span className="text-muted font-medium">Modo</span>
-                    <span className="font-bold text-foreground">{autoFreeTier ? "Rápido (Free)" : "Profundo"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
-                    <span className="text-muted font-medium">Modelo</span>
-                    <span className="font-bold text-foreground text-[10px]">{autoFreeTier ? "Llama 3.3 70B (Free)" : "Amber AI Pro"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2.5 rounded-xl border border-line/30">
-                    <span className="text-muted font-medium">Fila</span>
-                    <span className="font-bold text-brand tabular-nums">{contents.filter(c => c.status === "na_fila" || c.status === "processando").length} jobs</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-line/60">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAgent(prev => prev === "hefesto" ? "amber" : "hefesto");
-                      showToast("Modelo alternado com sucesso!");
-                    }}
-                    className="py-1.5 text-[10px] font-bold text-muted hover:text-foreground bg-neutral-900 border border-line hover:border-brand/20 rounded-lg transition text-center"
-                  >
-                    Trocar modelo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert("[LOGS DO AGENTE HEFESTO]\n- Conectando com OpenRouter API...\n- Temperatura criativa sintonizada em 0.85.\n- Memórias carregadas da LTM.\n- Estado de execução pronto!");
-                    }}
-                    className="py-1.5 text-[10px] font-bold text-muted hover:text-foreground bg-neutral-900 border border-line hover:border-brand/20 rounded-lg transition text-center"
-                  >
-                    Ver logs
-                  </button>
                 </div>
               </section>
             )}
 
-            {/* ── 4. SUPERVISOR DE EVOLUÇÃO (ODIN) ── */}
-            <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-surface/50 p-6 shadow-xl backdrop-blur-md">
-              <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
-              
-              <div className="flex items-center justify-between mb-4">
+          {/* ── Controle de IA & Sintonia (below creation panel, full width) ── */}
+          <div className="w-full">
+            <div className="relative overflow-hidden w-full rounded-2xl border border-line bg-surface/50 p-5 shadow-xl backdrop-blur-md flex flex-col justify-between min-h-[410px]">
+              {/* Decorative Blur */}
+              <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none" />
+
+              {/* Header with Nav Arrows */}
+              <div className="flex items-center justify-between border-b border-line pb-3 mb-4 z-10">
                 <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-brand animate-pulse" />
-                  <h2 className="text-xs font-bold tracking-wider uppercase text-foreground">Supervisor de Evolução (ODIN)</h2>
+                  <Sparkles size={14} className="text-brand animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Controle de IA &amp; Sintonia</span>
                 </div>
-                <Brain size={14} className="text-brand opacity-60" />
-              </div>
-
-              <p className="text-[11px] text-muted leading-relaxed mb-4">
-                Monitora falhas da edição, cortes, estabilidade e ajuste automático dos modelos gratuitos.
-              </p>
-
-              {/* Targets and status indicators */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Gemini 2.0 Flash (Free)
-                  </span>
-                  <span className="text-emerald-400 font-bold">Evoluindo</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-emerald-500" /> Qwen 2.5 VL (Free)
-                  </span>
-                  <span className="text-emerald-400 font-bold">Estável</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] bg-neutral-900/60 p-2.5 rounded-lg border border-line/20 font-mono text-muted">
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Llama 3.3 70B (Free)
-                  </span>
-                  <span className="text-emerald-400 font-bold">Otimizado</span>
+                
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    type="button" 
+                    onClick={() => setCarouselIdx(prev => (prev === 0 ? 2 : prev - 1))}
+                    className="size-7 rounded-lg border border-line bg-surface hover:bg-sidebar-hover text-muted hover:text-foreground flex items-center justify-center transition"
+                  >
+                    <ChevronRight size={14} className="rotate-180" />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setCarouselIdx(prev => (prev === 2 ? 0 : prev + 1))}
+                    className="size-7 rounded-lg border border-line bg-surface hover:bg-sidebar-hover text-muted hover:text-foreground flex items-center justify-center transition"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               </div>
 
-              {/* Tuning action button */}
-              <button 
-                type="button"
-                onClick={() => {
-                  const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
-                  alert(`[ODIN EVOLUTION PIPELINE] Lendo base de rejeições LTM do usuário '${username}'...\n\n1. Consolidando correções de transição rápida no Qwen 2.5-VL.\n2. Reajustando ganchos de persuasão no Llama 3.3.\n3. Parâmetros de pesos e sistema sintonizados a custo $0.00!`);
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2.5 text-xs font-bold transition duration-300"
-              >
-                <RefreshCw size={13} className="animate-spin" />
-                Auto-Sintonizar e Ajustar Modelos (Free)
-              </button>
-            </section>
+              {/* Sliding Track */}
+              <div className="relative h-[290px] overflow-hidden z-10">
+                <div 
+                  className="flex transition-transform duration-500 ease-out h-full"
+                  style={{ transform: `translateX(-${carouselIdx * 100}%)`, width: '300%' }}
+                >
+                  {/* Slide 0: Agents or Trends */}
+                  <div className="w-[33.333%] shrink-0 px-1 flex flex-col justify-between h-full">
+                    {activeTab !== "videos" ? (
+                      /* Agent Info */
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Brain size={14} className="text-brand" />
+                            <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">Painel do Agente</span>
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-[8px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Online
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2 rounded-lg border border-line/30">
+                            <span className="text-muted">Agente Ativo</span>
+                            <span className="font-bold text-foreground capitalize">{selectedAgent}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2 rounded-lg border border-line/30">
+                            <span className="text-muted">Modo</span>
+                            <span className="font-bold text-foreground">{autoFreeTier ? "Rápido (Free)" : "Profundo"}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2 rounded-lg border border-line/30">
+                            <span className="text-muted">Modelo Base</span>
+                            <span className="font-bold text-foreground text-[10px]">{autoFreeTier ? "Llama 3.3 (Free)" : "Amber AI Pro"}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] bg-neutral-900/60 p-2 rounded-lg border border-line/30">
+                            <span className="text-muted">Fila de Espera</span>
+                            <span className="font-bold text-brand tabular-nums">{contents.filter(c => c.status === "na_fila" || c.status === "processando").length} pautas</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAgent(prev => prev === "hefesto" ? "amber" : "hefesto");
+                              showToast("Modelo alternado com sucesso!");
+                            }}
+                            className="py-1.5 text-[9px] font-bold text-muted hover:text-foreground bg-neutral-950 border border-line rounded-lg transition text-center"
+                          >
+                            Trocar Agente
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              alert("[LOGS DO AGENTE HEFESTO]\n- Conectando com OpenRouter API...\n- Temperatura criativa sintonizada em 0.85.\n- Memórias carregadas da LTM.\n- Estado de execução pronto!");
+                            }}
+                            className="py-1.5 text-[9px] font-bold text-muted hover:text-foreground bg-neutral-950 border border-line rounded-lg transition text-center"
+                          >
+                            Ver Logs
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Radar de Gênero */
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-1.5">
+                          <Radio size={14} className="text-brand animate-pulse" />
+                          <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">Radar de Trends</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[8px] font-bold text-muted uppercase tracking-wider block mb-1">Gênero Alvo</label>
+                            <select 
+                              className={`${inputClass} border-line bg-surface-strong text-xs font-semibold py-1`}
+                              value={videoGenre}
+                              onChange={(e) => setVideoGenre(e.target.value)}
+                            >
+                              <option value="viral">Trends &amp; Virais</option>
+                              <option value="educational">Educativo / Tutorial</option>
+                              <option value="comedy">Humor / Quebra de Padrão</option>
+                              <option value="documentary">Cinematográfico</option>
+                              <option value="serious">Sérios &amp; Pautas</option>
+                              <option value="sales">VSL / Alta Conversão</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[8px] font-bold text-muted uppercase tracking-wider block mb-1">Pacing Adaptativo</label>
+                            <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
+                              <button 
+                                type="button" 
+                                onClick={() => setAdaptationMode("liquid")}
+                                className={`py-1 text-[8px] font-bold rounded transition ${adaptationMode === "liquid" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
+                              >
+                                Líquido
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={() => setAdaptationMode("fixed")}
+                                className={`py-1 text-[8px] font-bold rounded transition ${adaptationMode === "fixed" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
+                              >
+                                Fixo Rígido
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-0.5 p-2 rounded-lg bg-neutral-950 border border-line/30 font-mono text-[8px] text-muted">
+                            {trendRadarLogs.slice(-2).map((log, idx) => (
+                              <p key={idx} className="truncate">• {log}</p>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={runActiveTrendScan}
+                          disabled={isScanningTrends}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-brand/40 bg-surface py-1.5 text-[9px] font-bold text-brand hover:bg-brand hover:text-neutral-950 transition duration-300"
+                        >
+                          <RefreshCw size={10} className={isScanningTrends ? "animate-spin" : ""} />
+                          {isScanningTrends ? "Scanner Ativo..." : "Scan Consciência Trends"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Slide 1: Odin Supervisor */}
+                  <div className="w-[33.333%] shrink-0 px-1 flex flex-col justify-between h-full">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-1.5">
+                        <Cpu size={14} className="text-brand animate-pulse" />
+                        <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">Supervisor (Odin OS)</span>
+                      </div>
+                      
+                      <p className="text-[10px] text-muted leading-relaxed">
+                        Monitora falhas de edição, latências da LTM e ajuste automático dos modelos gratuitos.
+                      </p>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[9px] bg-neutral-900/60 p-2 rounded border border-line/20 font-mono text-muted">
+                          <span className="flex items-center gap-1">
+                            <span className="size-1 rounded-full bg-emerald-500 animate-pulse" /> Gemini 2.0
+                          </span>
+                          <span className="text-emerald-400 font-bold">Evoluindo</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] bg-neutral-900/60 p-2 rounded border border-line/20 font-mono text-muted">
+                          <span className="flex items-center gap-1">
+                            <span className="size-1 rounded-full bg-emerald-500" /> Qwen 2.5
+                          </span>
+                          <span className="text-emerald-400 font-bold">Estável</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] bg-neutral-900/60 p-2 rounded border border-line/20 font-mono text-muted">
+                          <span className="flex items-center gap-1">
+                            <span className="size-1 rounded-full bg-emerald-500 animate-pulse" /> Llama 3.3
+                          </span>
+                          <span className="text-emerald-400 font-bold">Otimizado</span>
+                        </div>
+                      </div>
+
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
+                          alert(`[ODIN EVOLUTION PIPELINE] Lendo base de rejeições LTM do usuário '${username}'...\n\n1. Consolidando correções de transição rápida no Qwen 2.5-VL.\n2. Reajustando ganchos de persuasão no Llama 3.3.\n3. Parâmetros de pesos e sistema sintonizados a custo $0.00!`);
+                        }}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand hover:bg-brand-strong text-neutral-950 py-2 text-[10px] font-bold transition duration-300"
+                      >
+                        <RefreshCw size={11} className="animate-spin" />
+                        Auto-Sintonizar LTM OS
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Slide 2: Evolução & Perfeição */}
+                  <div className="w-[33.333%] shrink-0 px-1 flex flex-col justify-between h-full">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Sliders size={14} className="text-brand animate-pulse" />
+                          <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">Evolução &amp; Perfeição</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-muted">Tolerância Criativa</span>
+                            <span className="text-brand font-bold">{learningMargin}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={learningMargin}
+                            onChange={(e) => setLearningMargin(Number(e.target.value))}
+                            className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand"
+                          />
+                          <div className="flex justify-between text-[8px] text-muted font-mono uppercase">
+                            <span>Perfeito</span>
+                            <span>Modo Caos</span>
+                          </div>
+                        </div>
+
+                        <p className="text-[9px] text-muted leading-tight min-h-[36px]">
+                          {learningMargin < 30 ? (
+                            <span className="text-amber-400">⚡ Rígido: Segue diretrizes estritas do Kotaro sem desviar.</span>
+                          ) : learningMargin < 75 ? (
+                            <span>⚖️ Balanceado: Combina aprendizados com pequenos ganchos experimentais.</span>
+                          ) : (
+                            <span className="text-brand font-semibold">🔥 Experimental: Modo criativo livre: metáforas e ganchos audaciosos.</span>
+                          )}
+                        </p>
+
+                        <div className="pt-2 border-t border-line/40 flex items-center justify-between">
+                          <div className="max-w-[140px]">
+                            <span className="text-[10px] font-bold text-foreground block">Auto-Economia</span>
+                            <span className="text-[8px] text-muted leading-tight block">Usa Llama 3.3 Free Tier de backup.</span>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setAutoFreeTier(!autoFreeTier)}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${autoFreeTier ? "bg-brand" : "bg-neutral-800"}`}
+                          >
+                            <span className={`pointer-events-none inline-block size-3 transform rounded-full bg-neutral-950 shadow transition duration-200 ${autoFreeTier ? "translate-x-3" : "translate-x-0"}`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Indicator Dots */}
+              <div className="flex justify-center gap-1 mt-4 pt-2 border-t border-line/30 z-10">
+                {[0, 1, 2].map((idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCarouselIdx(idx)}
+                    className={`size-1.5 rounded-full transition-all duration-300 ${
+                      carouselIdx === idx ? "bg-brand w-3.5" : "bg-neutral-700"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* RIGHT COLUMN: WORKSPACE CONTENT */}
-          <div className="space-y-6">
-            
-            {/* ── ACERVO OPERACIONAL ── */}
-            {activeTab !== "videos" ? (
-              <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md">
+        {/* ── Bottom row layout: Operational Acervo or Video Studio (placed below) ── */}
+        <div className="w-full">
+          {activeTab !== "videos" ? (
+            <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md">
                 
                 {/* Header of Acervo */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line pb-4 mb-4 gap-2">
@@ -1718,7 +1517,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-line rounded-xl bg-surface/10">
                         <Cpu className="text-rose-400/40 size-10 mb-2" />
                         <h3 className="text-xs font-bold text-foreground">Orquestração Multi-Agente Pronta</h3>
-                        <p className="text-[10px] text-muted mt-1 max-w-sm">Insira seus clipes brutos, escolha o preset ao lado e clique em "Disparar Orquestra" para que o conselho de IAs desenhe e delibere o plano de edição.</p>
+                        <p className="text-[10px] text-muted mt-1 max-w-sm">Insira seus clipes brutos, escolha o preset ao lado e clique em &quot;Disparar Orquestra&quot; para que o conselho de IAs desenhe e delibere o plano de edição.</p>
                       </div>
                     )}
 
@@ -1737,7 +1536,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         onClick={() => handleSimulateAssetUpload("image")}
                         className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5"
                       >
-                        <Image size={16} className="text-amber-400" />
+                        <Image size={16} className="text-amber-400" alt="" />
                         <span className="text-[9px] font-bold text-muted">Imagens (Mood)</span>
                       </button>
                       <button 
@@ -1945,7 +1744,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       {absorbedFeedback.map((fb, idx) => (
                         <p key={idx} className="flex items-center gap-1.5">
                           <span className="text-brand font-bold">•</span>
-                          <span>Fato neural injetado na LTM: <em>"Corrigir: {fb}"</em></span>
+                           <span>Fato neural injetado na LTM: <em>&quot;Corrigir: {fb}&quot;</em></span>
                         </p>
                       ))}
                     </div>
@@ -1981,8 +1780,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
 
         </div>
-
-      </div>
-    </main>
-  );
+      </main>
+    );
 }

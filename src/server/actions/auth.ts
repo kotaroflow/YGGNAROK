@@ -14,6 +14,11 @@ export async function signIn(formData: FormData) {
     redirect("/login?error=validacao");
   }
 
+  // Dev bypass: skip Supabase when URL is a placeholder
+  if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("localhost")) {
+    redirect("/");
+  }
+
   const input = parsed.data;
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(input);

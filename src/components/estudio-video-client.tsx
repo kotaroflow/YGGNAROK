@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { 
-  Film, Play, Sliders, AlertTriangle, 
-  Trash2, ShieldAlert, Cpu, HelpCircle, ArrowRight, Video, Scissors,
-  Upload, Music, Radio, Star, Award, Heart, MessageSquare, ThumbsUp, RefreshCw, Plus, X, FileText, Image, Check,
-  MoreVertical, Copy, RotateCcw, Loader2, Filter, Search, Zap, ChevronRight, Wand2, CheckCircle, Brain
+import { useState } from "react";
+import {
+  Film, Play, AlertTriangle,
+  Cpu, Video, Scissors,
+  Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image,
+  Wand2, CheckCircle, Brain
 } from "lucide-react";
-import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
+import { Field, inputClass, textareaClass } from "@/components/field";
 
 type ReferenceAsset = {
   id: string;
@@ -64,7 +64,7 @@ const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
 };
 
 export function EstudioVideoClient() {
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [showStyleCreator, setShowStyleCreator] = useState(false);
   
   // Custom Style Form inputs
@@ -85,22 +85,21 @@ export function EstudioVideoClient() {
   const [videoAspect, setVideoAspect] = useState<"916" | "169">("916");
 
   // Odin neural states
-  const [learningMargin, setLearningMargin] = useState(85);
-  const [autoFreeTier, setAutoFreeTier] = useState(true);
+
 
   // Video timeline states
   const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
   const [progressVal, setProgressVal] = useState(0);
   const [exportPlatform, setExportPlatform] = useState<"4k" | "tiktok" | "reels" | "shorts" | null>(null);
   const [exportLogs, setExportLogs] = useState<string[]>([]);
-  const [exportStep, setExportStep] = useState(0);
+  const [, setExportStep] = useState(0);
 
   const [rejectionError, setRejectionError] = useState("");
   const [absorbedFeedback, setAbsorbedFeedback] = useState<string[]>([]);
   const [councilMessages, setCouncilMessages] = useState<{agent: string, avatar: string, message: string, status: "thinking" | "approved"}[]>([]);
 
-  const [videoScriptTitle, setVideoScriptTitle] = useState("Como Economizar 100% de APIs com YGGNAROK");
-  const [videoTimeline, setVideoTimeline] = useState([
+  const [videoScriptTitle] = useState("Como Economizar 100% de APIs com YGGNAROK");
+  const [videoTimeline] = useState([
     { id: "clip_1", title: "Hook de Vídeo (3s)", dur: "3s", script: "Você sabia que está jogando dinheiro fora usando IAs pagas para coisas simples?", type: "Hook" },
     { id: "clip_2", title: "Apresentação (12s)", dur: "12s", script: "Apresento o YGGNAROK OS, seu centro de controle neural. Ele seleciona e direciona o modelo gratuito ideal para cada tarefa automaticamente.", type: "Content" },
     { id: "clip_3", title: "Demonstração (15s)", dur: "15s", script: "[Mostrar tela do canvas visual n8n neon pulsando e os dados fluindo em tempo real pelo navegador]", type: "Visual" },
@@ -122,16 +121,9 @@ export function EstudioVideoClient() {
     "Estética do Algoritmo: Lettering Void & Amber piscante com ironia."
   ]);
 
-  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   const activePreset = allPresets[videoStyle] || DEFAULT_PRESETS["tiktok"];
 
-  const handleUpdateClipScript = (id: string, nextText: string) => {
-    setVideoTimeline(prev => prev.map(c => c.id === id ? { ...c, script: nextText } : c));
-  };
 
   const handleAddRawFile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -586,7 +578,7 @@ export function EstudioVideoClient() {
                 <select 
                   className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
                   value={videoGenre}
-                  onChange={(e) => setVideoGenre(e.target.value as any)}
+                  onChange={(e) => setVideoGenre(e.target.value)}
                 >
                   <option value="viral">Trends &amp; Virais</option>
                   <option value="educational">Educativos / Tutoriais</option>
@@ -796,7 +788,7 @@ export function EstudioVideoClient() {
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-line rounded-xl bg-surface/10">
                       <Cpu className="text-rose-400/40 size-10 mb-2" />
-                      <p className="text-[10px] text-muted max-w-sm">Insira seus clipes, escolha o preset e clique em "Disparar Orquestra" para que o conselho de IAs execute a Mesa de Edição!</p>
+                       <p className="text-[10px] text-muted max-w-sm">Insira seus clipes, escolha o preset e clique em &quot;Disparar Orquestra&quot; para que o conselho de IAs execute a Mesa de Edição!</p>
                     </div>
                   )}
                 </div>
@@ -807,7 +799,7 @@ export function EstudioVideoClient() {
                 <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Adicionar Arquivos de Referência</span>
                 <div className="grid grid-cols-4 gap-2">
                   <button type="button" onClick={() => handleSimulateAssetUpload("image")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <Image size={16} className="text-amber-400" />
+                    <Image size={16} className="text-amber-400" alt="" />
                     <span className="text-[9px] font-bold text-muted">Imagem</span>
                   </button>
                   <button type="button" onClick={() => handleSimulateAssetUpload("video")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
@@ -924,7 +916,7 @@ export function EstudioVideoClient() {
                     {absorbedFeedback.map((fb, idx) => (
                       <p key={idx} className="flex items-center gap-1.5">
                         <span className="text-brand font-bold">•</span>
-                        <span>Fato neural injetado na LTM: <em>"Corrigir: {fb}"</em></span>
+                        <span>Fato neural injetado na LTM: <em>&quot;Corrigir: {fb}&quot;</em></span>
                       </p>
                     ))}
                   </div>

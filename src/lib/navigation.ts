@@ -1,8 +1,8 @@
 import {
-  Home, Users, ListChecks, Workflow,
-  ShoppingBag, Package, UserCheck, Link2, Megaphone, BarChart3, TrendingUp, FileBarChart,
-  PenLine, Bot, RefreshCw, BookOpen, Lightbulb, Terminal, Subtitles, Hash, Library, Film, Trash2, Send,
-  Shield, Briefcase, Brain, UserCog, KeyRound, Settings, ScrollText, Activity, ClipboardList,
+  Home, Users,
+  ShoppingBag, Link2, FileBarChart,
+  PenLine, Bot, BookOpen, Library, Film, Trash2, Send,
+  Shield, Briefcase, Brain, UserCog, KeyRound, Settings, ScrollText,
   MessageSquare
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";

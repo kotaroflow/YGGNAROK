@@ -201,7 +201,10 @@ export function ChatWorkspaceProvider({ children }: { children: ReactNode }) {
   }, [applyLocal]);
 
   useEffect(() => {
-    void refresh();
+    const timer = setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [refresh]);
 
   useEffect(() => {

@@ -1,16 +1,16 @@
 import { AppShell } from "@/components/app-shell";
 import { getDeletedLibraryItems } from "@/server/data/dashboard";
 import { restoreLibraryItem, deleteLibraryItemPermanently } from "@/server/actions/content";
-import { Trash2, RefreshCw, AlertTriangle, FileText, Bot, Layers } from "lucide-react";
+import { Trash2, RefreshCw, AlertTriangle, FileText } from "lucide-react";
+
+const MOCK_NOW = Date.now();
+const MOCK_FALLBACKS = [
+  { id: "mock-1", title: "Roteiro Antigo - Vendas Exponenciais", type: "Roteiro", body: "Roteiro focado em gerar escassez imediata...", deleted_at: new Date(MOCK_NOW - 86400000 * 2).toISOString() },
+  { id: "mock-2", title: "Pauta de Conteúdo: Inteligência Artificial no Cotidiano", type: "Ideia", body: "Uma pauta abordando como a IA otimiza tarefas diárias...", deleted_at: new Date(MOCK_NOW - 86400000 * 5).toISOString() },
+];
 
 export default async function LixeiraInteligentePage() {
   const deletedItems = await getDeletedLibraryItems();
-
-  // Premium mock fallbacks if database trash is empty so the page is always functional and gorgeous!
-  const mockFallbacks = [
-    { id: "mock-1", title: "Roteiro Antigo - Vendas Exponenciais", type: "Roteiro", body: "Roteiro focado em gerar escassez imediata...", deleted_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-    { id: "mock-2", title: "Pauta de Conteúdo: Inteligência Artificial no Cotidiano", type: "Ideia", body: "Uma pauta abordando como a IA otimiza tarefas diárias...", deleted_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  ];
 
   const displayItems = deletedItems.length > 0 
     ? deletedItems.map(item => ({
@@ -21,7 +21,7 @@ export default async function LixeiraInteligentePage() {
         deleted_at: item.deleted_at || new Date().toISOString(),
         isMock: false
       }))
-    : mockFallbacks.map(item => ({
+    : MOCK_FALLBACKS.map(item => ({
         ...item,
         isMock: true
       }));

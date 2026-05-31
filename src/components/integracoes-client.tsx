@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import {
-  Plug, Camera, Video, MessageCircle, Globe, ArrowUpRight, Check, AlertCircle,
-  Plus, Trash2, Star, X, Key, Database, FolderHeart, Sparkles
+  Plug, Camera, Video, MessageCircle,
+  Plus, Trash2, Star, X, Database, FolderHeart, Sparkles
 } from "lucide-react";
 import { BackButton } from "@/components/back-button";
 
@@ -18,7 +18,7 @@ interface IntegrationItem {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ size?: number }>;
   color: string;
   accounts: AccountItem[];
 }

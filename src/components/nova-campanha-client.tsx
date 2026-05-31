@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/back-button";
-import { Megaphone, TrendingUp, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Megaphone, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export function NovaCampanhaClient() {
   const router = useRouter();

@@ -2,24 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
-import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "@/server/actions/auth";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
 import type { RecentChat } from "@/lib/use-recent-chats";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
-
-const visibleItemLimits: Record<string, number> = {
-  iriguchi: 4,
-  "ura-ichiba": 3,
-  "sosaku-kobo": 6,
-  "sakusen-honbu": 4,
-};
 
 const defaultExpandedGroups: Record<string, boolean> = {
   iriguchi: true,
@@ -459,7 +451,7 @@ export function Sidebar({
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSidebarClick = (e: React.MouseEvent) => {
+  const handleSidebarClick = () => {
     // Triple click detector: opens/expands the sidebar
     clickCountRef.current += 1;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
@@ -482,27 +474,21 @@ export function Sidebar({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
     const savedState = readSavedSidebarState();
-    if (savedState.collapsed !== undefined) {
-      setCollapsed(savedState.collapsed);
-    }
-    if (savedState.width !== undefined) {
-      setSidebarWidth(savedState.width);
-    }
-    if (savedState.expandedGroups !== undefined) {
-      setExpandedGroups(prev => ({ ...prev, ...savedState.expandedGroups }));
-    }
-    if (savedState.showAll !== undefined) {
-      setShowAll(savedState.showAll);
-    }
-    setMobileOpen(readSavedMobileOpen());
 
-    // Enable transitions after a tiny delay to avoid the hydration/mount visual flash
+    // Batch all saved-state updates in a microtask to avoid cascading renders
     const timer = setTimeout(() => {
+      setIsMounted(true);
+      if (savedState.collapsed !== undefined) setCollapsed(savedState.collapsed);
+      if (savedState.width !== undefined) setSidebarWidth(savedState.width);
+      if (savedState.expandedGroups !== undefined) {
+        setExpandedGroups(prev => ({ ...prev, ...savedState.expandedGroups }));
+      }
+      if (savedState.showAll !== undefined) setShowAll(savedState.showAll);
+      setMobileOpen(readSavedMobileOpen());
       setTransitionsEnabled(true);
-    }, 50);
+    }, 0);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -542,11 +528,7 @@ export function Sidebar({
 
   useEffect(() => {
     if (!isMounted) return;
-    if (typeof window === "undefined") {
-      return;
-    }
 
-    // Save to localStorage as backup
     window.localStorage.setItem(
       storageKey,
       JSON.stringify({
@@ -557,28 +539,15 @@ export function Sidebar({
       }),
     );
 
-    // Save to cookies to prevent SSR/hydration visual flash (F5 bug)
     document.cookie = `ygn_sidebar_collapsed=${collapsed}; path=/; max-age=31536000; SameSite=Lax`;
     document.cookie = `ygn_sidebar_width=${sidebarWidth}; path=/; max-age=31536000; SameSite=Lax`;
   }, [collapsed, expandedGroups, showAll, sidebarWidth, isMounted]);
 
   useEffect(() => {
     if (!isMounted) return;
-    if (typeof window === "undefined") {
-      return;
-    }
 
     window.sessionStorage.setItem(mobileStorageKey, String(mobileOpen));
   }, [mobileOpen, isMounted]);
-
-  function toggleGroup(id: string) {
-    setExpandedGroups((current) => ({ ...current, [id]: !current[id] }));
-  }
-
-  function toggleShowAll(id: string) {
-    setShowAll((current) => ({ ...current, [id]: !current[id] }));
-    setExpandedGroups((current) => ({ ...current, [id]: true }));
-  }
 
   function closeMobile() {
     setMobileOpen(false);
@@ -606,11 +575,14 @@ export function Sidebar({
     if (!isMounted) return;
     const criacaoHrefs = ["/criar-conteudo", "/estudio-video", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
     const mercadoHrefs = ["/comercial", "/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
-    if (criacaoHrefs.some(h => pathname.startsWith(h))) {
-      setActiveTabRaw("criacao");
-    } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
-      setActiveTabRaw("mercado");
-    }
+    const timer = setTimeout(() => {
+      if (criacaoHrefs.some(h => pathname.startsWith(h))) {
+        setActiveTabRaw("criacao");
+      } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
+        setActiveTabRaw("mercado");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [pathname, isMounted]);
 
   const sidebar = (

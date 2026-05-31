@@ -190,7 +190,7 @@ export async function loadMessages(userId: string, conversationId: string): Prom
 
   return [
     CHAT_SYSTEM_MESSAGE,
-    ...data.map((row: any) => ({
+    ...data.map((row: { id: unknown; role: unknown; content: unknown }) => ({
       id: String(row.id),
       role: row.role as ChatMessage["role"],
       content: String(row.content),

@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { 
-  Brain, CircleDot, FileText, GitBranch, Plus, Save, ShieldCheck, 
-  Sparkles, Trash2, Play, Loader2, Check, X, AlertCircle, DollarSign, 
-  Layers, Wrench, ShieldAlert, Cpu, RefreshCw, Zap, TrendingUp
+  Brain, CircleDot, GitBranch, Plus, Save, ShieldCheck, 
+  Sparkles, Trash2, Play, Loader2, Check, X, 
+  Layers, ShieldAlert, Cpu, RefreshCw, Zap
 } from "lucide-react";
 import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
 
@@ -457,8 +457,7 @@ export function AgentNodeStudio() {
         setNodes((current) => 
           current.map((n) => {
             // Realignment (perfect grid snapping + vertical alignment)
-            let updatedY = n.y;
-            let updatedX = n.x;
+            const updatedY = n.y;
 
             if (n.id === "creator") {
               updatedY = 90; // Snap
@@ -588,7 +587,6 @@ export function AgentNodeStudio() {
     );
   };
 
-  const totalSandboxCost = sandboxLogs.reduce((sum, item) => sum + item.cost, 0);
   const totalSandboxTokens = sandboxLogs.reduce((sum, item) => sum + item.tokens, 0);
 
   return (
@@ -977,7 +975,7 @@ export function AgentNodeStudio() {
                 {sandboxLogs.length === 0 ? (
                   <div className="h-48 rounded-xl border border-line border-dashed flex flex-col items-center justify-center text-center text-xs text-muted">
                     <Play className="size-8 text-line mb-2" />
-                    Pressione "Iniciar Pipeline" para rodar o fluxo
+                    Pressione &quot;Iniciar Pipeline&quot; para rodar o fluxo
                   </div>
                 ) : (
                   <div className="space-y-3">

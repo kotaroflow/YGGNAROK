@@ -43,7 +43,7 @@ export function ChatClient() {
   const searchParams = useSearchParams();
   const convId = searchParams.get("conv") ?? "";
   const initialQuery = searchParams.get("q");
-  const { addChat, createConversation, mode } = useChatWorkspace();
+  const { addChat, createConversation } = useChatWorkspace();
 
   const [messages, setMessages] = useState<ChatMessage[]>([CHAT_SYSTEM_MESSAGE]);
   const [input, setInput] = useState("");
@@ -123,7 +123,7 @@ export function ChatClient() {
   useEffect(() => {
     if (!convId) return;
     let cancelled = false;
-    setHydrated(false);
+    const timer = setTimeout(() => setHydrated(false), 0);
     void loadConversation(convId).then((loaded) => {
       if (!cancelled) {
         setMessages(loaded);
@@ -131,6 +131,7 @@ export function ChatClient() {
       }
     });
     return () => {
+      clearTimeout(timer);
       cancelled = true;
     };
   }, [convId]);
@@ -149,8 +150,11 @@ export function ChatClient() {
   // AUTO-RESET RULE: Reset selected model back to default free model when active conversation context changes
   useEffect(() => {
     if (!convId) return;
-    setSelectedModel(DEFAULT_MODEL_ID);
-    saveSelectedModel(DEFAULT_MODEL_ID);
+    const timer = setTimeout(() => {
+      setSelectedModel(DEFAULT_MODEL_ID);
+      saveSelectedModel(DEFAULT_MODEL_ID);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [convId]);
 
   // IDLE WATCHDOG: Reset selected model back to default free model on 15 minutes of user inactivity/idle
@@ -404,7 +408,7 @@ export function ChatClient() {
     });
 
     // Enrich system context with high-capacity cognitive memories and financial self-awareness context
-    let enrichedMessages = [...apiMessages];
+    const enrichedMessages = [...apiMessages];
     try {
       const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
       const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
@@ -431,19 +435,19 @@ export function ChatClient() {
 
           if (prefFacts.length > 0) {
             additionalInstructions += `\n\n  🧬 Namespace: [PREFERÊNCIAS & IDENTIDADE DO KOTARO]\n  ` + 
-              prefFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+              prefFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (copyFacts.length > 0) {
             additionalInstructions += `\n\n  🎨 Namespace: [COPYWRITING, REDAÇÃO & TOM DE ESCRITA]\n  ` + 
-              copyFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+              copyFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (techFacts.length > 0) {
             additionalInstructions += `\n\n  💻 Namespace: [DIRETRIZES TÉCNICAS, CÓDIGO & INFRA]\n  ` + 
-              techFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+              techFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (salesFacts.length > 0) {
             additionalInstructions += `\n\n  📈 Namespace: [METAS DE CONVERSÃO, CRO & VENDAS]\n  ` + 
-              salesFacts.map((m, idx) => `• ${m.fact}`).join("\n  ");
+              salesFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
         }
       }
@@ -474,7 +478,7 @@ export function ChatClient() {
           content: CHAT_SYSTEM_MESSAGE + additionalInstructions
         });
       }
-    } catch (e) {
+    } catch {
       // fallback
     }
 
@@ -546,8 +550,11 @@ export function ChatClient() {
     if (hasUser) return;
 
     initialQuerySentRef.current = true;
-    void send(initialQuery);
+    const timer = setTimeout(() => {
+      void send(initialQuery);
+    }, 0);
     router.replace(`/chat?conv=${convId}`);
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery, hydrated, convId]);
 
@@ -784,7 +791,7 @@ export function ChatClient() {
                           {files.map((file, idx) => (
                             <div key={idx} className="flex items-center gap-2 rounded-lg border border-line bg-surface/50 px-2.5 py-1 text-xs text-foreground font-medium select-none shadow-sm">
                               {file.type.startsWith("image/") ? (
-                                <Image size={13} className="text-brand shrink-0" />
+                                <Image size={13} className="text-brand shrink-0" alt="" />
                               ) : (
                                 <FileText size={13} className="text-brand shrink-0" />
                               )}

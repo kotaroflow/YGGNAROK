@@ -2,15 +2,20 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ShoppingBag, Package, UserCheck, Link2, Megaphone, BarChart3, TrendingUp, FileBarChart,
-  ArrowUpRight, DollarSign, Users, Lock, ChevronRight, Activity, CheckCircle, Play,
-  Search, Plus, Trash2, Edit2, Check, Copy, Calculator, Send, AlertTriangle, Sparkles, Filter
+  ArrowUpRight, DollarSign, Users, Lock, Activity,
+  Search, Plus, Trash2, Edit2, Check, Copy, Sparkles
 } from "lucide-react";
 
 // --- Types & Interfaces ---
 type TabId = "vendas" | "produtos" | "afiliados" | "links" | "campanhas" | "comissoes" | "oportunidades" | "relatorios";
+
+interface SaleItem { id: string; client: string; product: string; value: number; status: string; date: string; }
+interface ProductItem { id: string; name: string; price: number; status: string; }
+interface AffiliateItem { id: string; name: string; commission: number; status: string; }
+interface PayoutItem { id: string; amount: number; date: string; pixKey: string; status: string; }
+interface OpportunityItem { id: string; title: string; description: string; impact: string; effort: string; type: string; }
 
 interface TabItem {
   id: TabId;
@@ -45,58 +50,41 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
   };
 
   // 1. Metric Cards States (updated dynamically by actions)
-  const [revenue, setRevenue] = useState(0);
-  const [activeClients, setActiveClients] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
-  const [ticketMedio, setTicketMedio] = useState(0);
 
   // 2. Sales list state
-  const [salesList, setSalesList] = useState([
-    { id: "YGG-9843", client: "João Silva Mota", email: "joao.mota@email.com", product: "YGGNAROK Mentoria Alpha", value: 997.00, method: "Pix", status: "Aprovada", date: "Hoje, 10:15" },
-    { id: "YGG-9842", client: "Guilherme Santos", email: "gui.santos@email.com", product: "Council of IAs SaaS Access", value: 297.00, method: "Cartão", status: "Aprovada", date: "Ontem, 18:43" },
-    { id: "YGG-9841", client: "Mariana Costa", email: "mari.costa@email.com", product: "Scripting Automation Masterclass", value: 197.00, method: "Boleto", status: "Pendente", date: "Ontem, 14:12" },
-  ]);
+  const [salesList] = useState<{
+    id: string; client: string; email: string; product: string;
+    value: number; method: string; status: string; date: string;
+  }[]>([]);
 
   // 3. Products list state
-  const [productsList, setProductsList] = useState([
-    { id: "prod-1", name: "YGGNAROK Mentoria Alpha", price: 997.00, sales: 48, status: "Ativo" },
-    { id: "prod-2", name: "Council of IAs SaaS Access", price: 297.00, sales: 112, status: "Ativo" },
-    { id: "prod-3", name: "Scripting Automation Masterclass", price: 197.00, sales: 84, status: "Rascunho" },
-  ]);
+  const [productsList, setProductsList] = useState<{
+    id: string; name: string; price: number; sales: number; status: string;
+  }[]>([]);
 
   // 4. Affiliates state
-  const [affiliatesList, setAffiliatesList] = useState([
-    { id: "af-1", name: "Carlos Henrique Medeiros", commission: 15, clicks: 340, sales: 42, unpaid: 1540.20 },
-    { id: "af-2", name: "Ana Paula de Souza", commission: 10, clicks: 120, sales: 12, unpaid: 356.40 },
-    { id: "af-3", name: "David Kovac", commission: 12, clicks: 85, sales: 6, unpaid: 141.80 },
-  ]);
+  const [affiliatesList, setAffiliatesList] = useState<{
+    id: string; name: string; commission: number; clicks: number; sales: number; unpaid: number;
+  }[]>([]);
 
-  // 5. Commissions state (PIX payout simulation)
-  const [availableBalance, setAvailableBalance] = useState(1540.20);
-  const [pendingBalance, setPendingBalance] = useState(450.00);
-  const [payoutsHistory, setPayoutsHistory] = useState([
-    { id: "PAY-003", value: 890.00, status: "Concluído", date: "15/05/2026", method: "Pix" },
-    { id: "PAY-002", value: 1250.00, status: "Concluído", date: "02/05/2026", method: "Pix" },
-  ]);
+  // 5. Commissions state
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [pendingBalance] = useState(0);
+  const [payoutsHistory, setPayoutsHistory] = useState<{
+    id: string; value: number; status: string; date: string; method: string;
+  }[]>([]);
 
   // 6. Opportunities / AI Insights State
-  const [opportunities, setOpportunities] = useState([
-    { id: "op-1", title: "Ativar Upsell em Mentoria Alpha", desc: "Sugerir 'Council of IAs Access' com 35% de desconto no checkout.", impact: "+R$ 4.200/mês", status: "Pendente" },
-    { id: "op-2", title: "Recuperação de Carrinho por IA", desc: "Disparar fluxo WhatsApp automatizado pelas IAs assistentes.", impact: "+18% de conversão", status: "Pendente" },
-    { id: "op-3", title: "Campanha de Remarketing Cold Leads", desc: "Oferecer Masterclass de automação para leads que não abriram e-mails.", impact: "+R$ 1.800/mês", status: "Pendente" },
-  ]);
+  const [opportunities, setOpportunities] = useState<{
+    id: string; title: string; desc: string; impact: string; status: string;
+  }[]>([]);
 
-  // Calculate dynamic metrics based on active lists
-  useMemo(() => {
-    const approvedSales = salesList.filter(s => s.status === "Aprovada");
-    const totalRev = approvedSales.reduce((acc, curr) => acc + curr.value, 0);
-    const clientsCount = approvedSales.length;
-    const computedTicket = clientsCount > 0 ? totalRev / clientsCount : 0;
-    
-    setRevenue(totalRev);
-    setActiveClients(clientsCount);
-    setTicketMedio(computedTicket);
-  }, [salesList]);
+  // Derive metrics directly from salesList
+  const approvedSales = salesList.filter(s => s.status === "Aprovada");
+  const derivedRevenue = approvedSales.reduce((acc, curr) => acc + curr.value, 0);
+  const derivedClients = approvedSales.length;
+  const derivedTicket = derivedClients > 0 ? derivedRevenue / derivedClients : 0;
 
   return (
     <div className="mx-auto w-full max-w-[1360px] px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-fade-in text-foreground relative">
@@ -116,16 +104,16 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Receita do mês"
-          value={revenue > 0 ? `R$ ${revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}
-          status={revenue > 0 ? "Alimentado por integrações" : "Aguardando vendas"}
-          chip={revenue > 0 ? "Real" : "Sem dados"}
+          value={derivedRevenue > 0 ? `R$ ${derivedRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}
+          status={derivedRevenue > 0 ? "Alimentado por integrações" : "Aguardando vendas"}
+          chip={derivedRevenue > 0 ? "Real" : "Sem dados"}
           icon={DollarSign}
         />
         <MetricCard
           title="Clientes ativos"
-          value={activeClients.toString()}
-          status={activeClients > 0 ? "Clientes logados/compras" : "Nenhum cliente conectado"}
-          chip={activeClients > 0 ? "Ativo" : "Sem dados"}
+          value={derivedClients.toString()}
+          status={derivedClients > 0 ? "Clientes logados/compras" : "Nenhum cliente conectado"}
+          chip={derivedClients > 0 ? "Ativo" : "Sem dados"}
           icon={Users}
         />
         <MetricCard
@@ -137,9 +125,9 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
         />
         <MetricCard
           title="Ticket médio"
-          value={ticketMedio > 0 ? `R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}
-          status={ticketMedio > 0 ? "Consolidado em tempo real" : "Calculado após vendas"}
-          chip={ticketMedio > 0 ? "Atualizado" : "Pendente"}
+          value={derivedTicket > 0 ? `R$ ${derivedTicket.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}
+          status={derivedTicket > 0 ? "Consolidado em tempo real" : "Calculado após vendas"}
+          chip={derivedTicket > 0 ? "Atualizado" : "Pendente"}
           icon={Activity}
         />
       </div>
@@ -150,7 +138,7 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
       {/* 4. Tab Content Area */}
       <div className="transition-all duration-300">
         {activeTab === "vendas" && (
-          <VendasTabContent salesList={salesList} setSalesList={setSalesList} showToast={showToast} />
+          <VendasTabContent salesList={salesList} />
         )}
 
         {activeTab === "produtos" && (
@@ -193,7 +181,7 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
           <div className="grid gap-6 lg:grid-cols-3 items-start">
             {/* Left: Empty State & Checklist (takes 2 columns) */}
             <div className="lg:col-span-2 space-y-6">
-              <ReportsEmptyState />
+              <ReportsEmptyState showToast={showToast} />
               <IntegrationChecklist />
             </div>
 
@@ -334,12 +322,10 @@ function CommercialTabs({ activeTab, onChange }: CommercialTabsProps) {
 
 // --- TAB CONTENT 1: VENDAS (Stateful & Functional) ---
 interface VendasTabProps {
-  salesList: any[];
-  setSalesList: React.Dispatch<React.SetStateAction<any[]>>;
-  showToast: (message: string, type?: "success" | "warning" | "info") => void;
+  salesList: SaleItem[];
 }
 
-function VendasTabContent({ salesList, setSalesList, showToast }: VendasTabProps) {
+function VendasTabContent({ salesList }: VendasTabProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
 
@@ -443,8 +429,8 @@ function VendasTabContent({ salesList, setSalesList, showToast }: VendasTabProps
 
 // --- TAB CONTENT 2: PRODUTOS (Stateful & Functional Add/Delete) ---
 interface ProdutosTabProps {
-  productsList: any[];
-  setProductsList: React.Dispatch<React.SetStateAction<any[]>>;
+  productsList: ProductItem[];
+  setProductsList: React.Dispatch<React.SetStateAction<ProductItem[]>>;
   showToast: (message: string, type?: "success" | "warning" | "info") => void;
 }
 
@@ -555,7 +541,13 @@ function ProdutosTabContent({ productsList, setProductsList, showToast }: Produt
 
       {/* Products Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {productsList.map((product) => (
+        {productsList.length === 0 ? (
+          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-dashed border-line bg-surface-strong/20 p-10 text-center">
+            <Package size={32} className="mx-auto text-muted mb-3" />
+            <p className="text-sm font-bold text-foreground">Nenhum produto cadastrado</p>
+            <p className="text-xs text-muted mt-1">Clique em &quot;Adicionar Produto&quot; para criar seu primeiro infoproduto.</p>
+          </div>
+        ) : productsList.map((product) => (
           <div key={product.id} className="rounded-xl border border-line bg-neutral-900/40 p-5 space-y-4 hover:border-brand/20 transition-all flex flex-col justify-between">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-3">
@@ -601,8 +593,8 @@ function ProdutosTabContent({ productsList, setProductsList, showToast }: Produt
 
 // --- TAB CONTENT 3: AFILIADOS (Stateful Commission Editor) ---
 interface AfiliadosTabProps {
-  affiliatesList: any[];
-  setAffiliatesList: React.Dispatch<React.SetStateAction<any[]>>;
+  affiliatesList: AffiliateItem[];
+  setAffiliatesList: React.Dispatch<React.SetStateAction<AffiliateItem[]>>;
   showToast: (message: string, type?: "success" | "warning" | "info") => void;
 }
 
@@ -635,7 +627,13 @@ function AfiliadosTabContent({ affiliatesList, setAffiliatesList, showToast }: A
       </div>
 
       <div className="space-y-3">
-        {affiliatesList.map((af) => (
+        {affiliatesList.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line bg-surface-strong/20 p-10 text-center">
+            <UserCheck size={32} className="mx-auto text-muted mb-3" />
+            <p className="text-sm font-bold text-foreground">Nenhum afiliado cadastrado</p>
+            <p className="text-xs text-muted mt-1">Os afiliados aparecerão aqui quando integrados às plataformas de vendas.</p>
+          </div>
+        ) : affiliatesList.map((af) => (
           <div key={af.id} className="rounded-xl border border-line bg-neutral-900/30 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-white/10 transition">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -645,7 +643,7 @@ function AfiliadosTabContent({ affiliatesList, setAffiliatesList, showToast }: A
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                 <span>Cliques: <strong className="text-foreground">{af.clicks}</strong></span>
                 <span>Vendas: <strong className="text-foreground">{af.sales}</strong></span>
-                <span>Conversão: <strong className="text-foreground">{((af.sales / af.clicks) * 100).toFixed(1)}%</strong></span>
+                <span>Conversão: <strong className="text-foreground">{af.clicks > 0 ? ((af.sales / af.clicks) * 100).toFixed(1) : "0.0"}%</strong></span>
               </div>
             </div>
 
@@ -964,8 +962,8 @@ interface ComissoesTabProps {
   availableBalance: number;
   setAvailableBalance: React.Dispatch<React.SetStateAction<number>>;
   pendingBalance: number;
-  payoutsHistory: any[];
-  setPayoutsHistory: React.Dispatch<React.SetStateAction<any[]>>;
+  payoutsHistory: PayoutItem[];
+  setPayoutsHistory: React.Dispatch<React.SetStateAction<PayoutItem[]>>;
   showToast: (message: string, type?: "success" | "warning" | "info") => void;
 }
 
@@ -1088,7 +1086,13 @@ function ComissoesTabContent({
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {payoutsHistory.map((payout) => (
+              {payoutsHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-muted text-xs">
+                    Nenhum saque realizado ainda.
+                  </td>
+                </tr>
+              ) : payoutsHistory.map((payout) => (
                 <tr key={payout.id}>
                   <td className="py-3 font-mono text-muted">{payout.id}</td>
                   <td className="py-3 font-semibold text-foreground">{payout.method}</td>
@@ -1116,8 +1120,8 @@ function ComissoesTabContent({
 
 // --- TAB CONTENT 7: OPORTUNIDADES (Interactive AI insights applicator) ---
 interface OportunidadesTabProps {
-  opportunities: any[];
-  setOpportunities: React.Dispatch<React.SetStateAction<any[]>>;
+  opportunities: OpportunityItem[];
+  setOpportunities: React.Dispatch<React.SetStateAction<OpportunityItem[]>>;
   setConversionRate: React.Dispatch<React.SetStateAction<number>>;
   showToast: (message: string, type?: "success" | "warning" | "info") => void;
 }
@@ -1155,7 +1159,13 @@ function OportunidadesTabContent({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {opportunities.map((op) => (
+        {opportunities.length === 0 ? (
+          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-dashed border-line bg-surface-strong/20 p-10 text-center">
+            <Sparkles size={32} className="mx-auto text-muted mb-3" />
+            <p className="text-sm font-bold text-foreground">Nenhuma oportunidade disponível</p>
+            <p className="text-xs text-muted mt-1">As IAs analisarão seus checkouts e tráfego para sugerir oportunidades de aumento de faturamento.</p>
+          </div>
+        ) : opportunities.map((op) => (
           <div key={op.id} className="rounded-xl border border-line bg-neutral-900/30 p-5 flex flex-col justify-between gap-4 hover:border-brand/20 transition-all">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -1197,7 +1207,7 @@ function OportunidadesTabContent({
 }
 
 // --- 4. Reports Empty State Component ---
-function ReportsEmptyState() {
+function ReportsEmptyState({ showToast }: { showToast: (message: string, type?: "success" | "warning" | "info") => void }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-neutral-950/40 p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start gap-6 backdrop-blur">
       <div className="size-16 rounded-2xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.08)]">
@@ -1224,7 +1234,7 @@ function ReportsEmptyState() {
           </Link>
           <button
             type="button"
-            onClick={() => alert("Estrutura YGGNAROK LTM: Relatórios consolidam dados das APIs Hotmart, Kiwify e Stripe via Webhooks unificados.")}
+            onClick={() => showToast("Conecte integrações de vendas (Hotmart, Kiwify, Stripe) via Webhooks para liberar os relatórios.", "info")}
             className="rounded-xl border border-line bg-surface/50 hover:bg-surface-strong px-4.5 py-2 text-xs font-bold text-muted hover:text-foreground transition"
           >
             Ver estrutura de relatórios

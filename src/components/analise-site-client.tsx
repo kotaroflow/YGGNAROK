@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, BarChart3, Search, Sparkles, AlertCircle, CheckCircle2, ChevronRight, Layout, TrendingUp, Zap, HelpCircle } from "lucide-react";
+import { Globe, Search, Sparkles, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
 
 interface AuditResult {
   url: string;
