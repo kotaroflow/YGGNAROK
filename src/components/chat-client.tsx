@@ -791,7 +791,7 @@ export function ChatClient() {
                           {files.map((file, idx) => (
                             <div key={idx} className="flex items-center gap-2 rounded-lg border border-line bg-surface/50 px-2.5 py-1 text-xs text-foreground font-medium select-none shadow-sm">
                               {file.type.startsWith("image/") ? (
-                                <Image size={13} className="text-brand shrink-0" alt="" />
+                                <Image size={13} className="text-brand shrink-0" />
                               ) : (
                                 <FileText size={13} className="text-brand shrink-0" />
                               )}
