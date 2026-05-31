@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   Lightbulb, ScrollText, Subtitles, Hash, Brain, Send, Sparkles, 
   Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle, 
   Trash2, ShieldAlert, Cpu, HelpCircle, ArrowRight, Video, Scissors,
-  Upload, Music, Radio, Star, Award, Heart, MessageSquare, ThumbsUp, RefreshCw, Plus, X, FileText, Image, Check
+  Upload, Music, Radio, Star, Award, Heart, MessageSquare, ThumbsUp, RefreshCw, Plus, X, FileText, Image, Check,
+  MoreVertical, Copy, RotateCcw, Loader2, Filter, Search, Zap, ChevronRight
 } from "lucide-react";
 import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
 
@@ -13,6 +14,10 @@ type Profile = {
   id: string;
   name: string;
 };
+
+type EtapaFluxo = "ideia" | "roteiro" | "legenda" | "hashtag" | "publicacao";
+type ContentStatus = "rascunho" | "na_fila" | "processando" | "em_revisao" | "pronto" | "erro";
+type ContentOrigem = "manual" | "hefesto" | "amber" | "openrouter" | "local" | "sistema";
 
 type ContentItem = {
   id: string;
@@ -23,6 +28,9 @@ type ContentItem = {
   idea: string;
   status: string;
   created_at: string;
+  etapa_fluxo?: EtapaFluxo;
+  origem?: ContentOrigem;
+  agente_executor?: string;
 };
 
 type ReferenceAsset = {
@@ -49,6 +57,52 @@ type CriarConteudoClientProps = {
   initialContents: ContentItem[];
   activeTab: string;
 };
+
+// ── Content Type Options ─────────────────────────────────────────────────────
+const CONTENT_TYPES = [
+  { value: "ideia", label: "Ideia" },
+  { value: "reel", label: "Reel" },
+  { value: "shorts", label: "Shorts" },
+  { value: "carrossel", label: "Carrossel" },
+  { value: "post_estatico", label: "Post Estático" },
+  { value: "story", label: "Story" },
+  { value: "thread", label: "Thread" },
+  { value: "artigo", label: "Artigo" },
+  { value: "script_video", label: "Script de Vídeo" },
+  { value: "campanha", label: "Campanha" },
+];
+
+const CHANNELS = [
+  "Instagram", "YouTube", "TikTok", "LinkedIn", "X/Twitter", "Pinterest", "Blog", "Multicanal"
+];
+
+// ── Status visual config ─────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  rascunho:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-500/10 border-neutral-500/20" },
+  na_fila:     { label: "Na fila",      color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20" },
+  processando: { label: "Processando",  color: "text-sky-400",     bg: "bg-sky-500/10 border-sky-500/20" },
+  em_revisao:  { label: "Em revisão",   color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/20" },
+  pronto:      { label: "Pronto",       color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  erro:        { label: "Erro",         color: "text-rose-400",    bg: "bg-rose-500/10 border-rose-500/20" },
+  // Legacy fallbacks
+  idea:        { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-500/10 border-neutral-500/20" },
+  Pendente:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-500/10 border-neutral-500/20" },
+};
+
+const ETAPA_CONFIG: Record<string, { label: string; icon: typeof Lightbulb }> = {
+  ideia:      { label: "Ideia",      icon: Lightbulb },
+  roteiro:    { label: "Roteiro",    icon: ScrollText },
+  legenda:    { label: "Legenda",    icon: Subtitles },
+  hashtag:    { label: "Hashtag",    icon: Hash },
+  publicacao:  { label: "Publicação", icon: Send },
+};
+
+// ── Demo data for empty Acervo ───────────────────────────────────────────────
+const DEMO_CONTENTS: ContentItem[] = [
+  { id: "demo-1", profile_id: "", title: "Estratégia de Lançamento Q3", content_type: "campanha", platform: "Multicanal", idea: "Campanha integrada para lançamento do produto principal no terceiro trimestre, com foco em topo de funil.", status: "pronto", created_at: new Date(Date.now() - 86400000).toISOString(), etapa_fluxo: "roteiro", origem: "hefesto" },
+  { id: "demo-2", profile_id: "", title: "Reels Topo de Funil — Engenharia de Prompt", content_type: "reel", platform: "Instagram", idea: "Série de 5 reels curtos mostrando técnicas de prompt engineering para iniciantes.", status: "processando", created_at: new Date(Date.now() - 172800000).toISOString(), etapa_fluxo: "ideia", origem: "manual" },
+  { id: "demo-3", profile_id: "", title: "Sequência de Posts — IAs Gratuitas", content_type: "carrossel", platform: "Instagram", idea: "Carrossel educativo comparando 5 IAs gratuitas com alto desempenho para criadores de conteúdo.", status: "rascunho", created_at: new Date(Date.now() - 259200000).toISOString(), etapa_fluxo: "ideia", origem: "manual" },
+];
 
 const tabs = [
   { id: "ideias", label: "Ideias", icon: Lightbulb, description: "Novas Pautas", color: "from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30" },
@@ -95,11 +149,36 @@ const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
 
 export function CriarConteudoClient({ profiles, initialContents, activeTab: currentTab }: CriarConteudoClientProps) {
   const [activeTab, setActiveTab] = useState(currentTab);
-  const [contents, setContents] = useState<ContentItem[]>(initialContents);
+  // Use demo data when DB is empty (P0: remove test data)
+  const [contents, setContents] = useState<ContentItem[]>(
+    initialContents.length > 0 ? initialContents : DEMO_CONTENTS
+  );
+  
+  // ── Creation mode: Manual vs IA Especializada (P1: clear separation) ──
+  const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
+  
+  // ── Form fields (P0: proper dropdowns) ──
+  const [contentType, setContentType] = useState("ideia");
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [refinementInstructions, setRefinementInstructions] = useState("");
+  
+  // ── Acervo filters (P2: simple filters) ──
+  const [acervoFilter, setAcervoFilter] = useState<string>("todos");
+  const [acervoSearch, setAcervoSearch] = useState("");
+  const [openCardMenu, setOpenCardMenu] = useState<string | null>(null);
+  
+  // ── Toast notification (P1: feedback) ──
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
   
   // 🧠 1. Margem de Aprendizado & Perfeição Slider
-  const [learningMargin, setLearningMargin] = useState(85); // 0 (Zero Desvios / Perfeição Rígida) a 100 (Tolerância Criativa / Caos)
-  const [autoFreeTier, setAutoFreeTier] = useState(true); // Always use free models for sketches/drafts
+  const [learningMargin, setLearningMargin] = useState(85);
+  const [autoFreeTier, setAutoFreeTier] = useState(true);
 
   // ⚠️ 2. Real-time content character counter & dynamic models warning
   const [manualTitle, setManualTitle] = useState("");
@@ -108,7 +187,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [aiInstructions, setAiInstructions] = useState("");
 
   const estimatedCharacters = manualTitle.length + manualIdea.length + aiInstructions.length;
-  const isApproachingLimit = estimatedCharacters > 500; // Trigger warn when text starts to get long
+  const isApproachingLimit = estimatedCharacters > 500;
 
   // 📹 3. Dynamic Styles presets and Custom registration Form
   const [videoStyle, setVideoStyle] = useState<string>("tiktok");
@@ -191,6 +270,108 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
   const activeTabObj = tabs.find(t => t.id === activeTab) || tabs[0];
   const activePreset = allPresets[videoStyle] || DEFAULT_PRESETS["tiktok"];
+
+  // ── Filtered Acervo (P2: filters) ──
+  const filteredContents = contents.filter(c => {
+    // Tab filter
+    if (activeTab !== "ideias" && !c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))) return false;
+    // Status filter
+    if (acervoFilter !== "todos") {
+      const normalized = (c.status || "rascunho").toLowerCase().replace(/\s/g, "_");
+      if (normalized !== acervoFilter && c.etapa_fluxo !== acervoFilter) return false;
+    }
+    // Search filter
+    if (acervoSearch && !c.title.toLowerCase().includes(acervoSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  // ── Channel toggle helper ──
+  const toggleChannel = (ch: string) => {
+    setSelectedChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
+  };
+
+  // ── P1: Action handlers (save draft, review IA, generate full) ──
+  const handleSaveDraft = async () => {
+    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
+    setActionLoading("draft");
+    // Simulate save — in production: Supabase insert
+    await new Promise(r => setTimeout(r, 800));
+    const newItem: ContentItem = {
+      id: `local-${Date.now()}`,
+      profile_id: profiles[0]?.id || "",
+      title: manualTitle.trim(),
+      content_type: contentType,
+      platform: selectedChannels.join(", ") || "Multicanal",
+      idea: manualIdea.trim(),
+      status: "rascunho",
+      created_at: new Date().toISOString(),
+      etapa_fluxo: "ideia",
+      origem: "manual",
+    };
+    setContents(prev => [newItem, ...prev]);
+    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
+    setActionLoading(null);
+    showToast("Rascunho salvo com sucesso!");
+  };
+
+  const handleSendForReview = async () => {
+    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
+    setActionLoading("review");
+    await new Promise(r => setTimeout(r, 1200));
+    const newItem: ContentItem = {
+      id: `local-${Date.now()}`,
+      profile_id: profiles[0]?.id || "",
+      title: manualTitle.trim(),
+      content_type: contentType,
+      platform: selectedChannels.join(", ") || "Multicanal",
+      idea: manualIdea.trim(),
+      status: "na_fila",
+      created_at: new Date().toISOString(),
+      etapa_fluxo: "ideia",
+      origem: "manual",
+      agente_executor: selectedAgent,
+    };
+    setContents(prev => [newItem, ...prev]);
+    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
+    setActionLoading(null);
+    showToast("Enviado para revisão IA!");
+  };
+
+  const handleGenerateContent = async () => {
+    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
+    setActionLoading("generate");
+    await new Promise(r => setTimeout(r, 1800));
+    const newItem: ContentItem = {
+      id: `local-${Date.now()}`,
+      profile_id: profiles[0]?.id || "",
+      title: manualTitle.trim(),
+      content_type: contentType,
+      platform: selectedChannels.join(", ") || "Multicanal",
+      idea: manualIdea.trim(),
+      status: "processando",
+      created_at: new Date().toISOString(),
+      etapa_fluxo: "ideia",
+      origem: selectedAgent as ContentOrigem,
+      agente_executor: selectedAgent,
+    };
+    setContents(prev => [newItem, ...prev]);
+    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
+    setActionLoading(null);
+    showToast("Pipeline de geração acionado! Acompanhe no Acervo.");
+  };
+
+  // ── Next action helper for Acervo cards ──
+  const getNextAction = (item: ContentItem) => {
+    const etapa = item.etapa_fluxo || "ideia";
+    const status = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
+    if (status === "processando") return { label: "Processando...", disabled: true, spinning: true };
+    if (status === "erro") return { label: "Tentar novamente", disabled: false, spinning: false };
+    if (etapa === "ideia" && (status === "rascunho" || status === "pronto" || status === "idea" || status === "pendente")) return { label: "Gerar roteiro", disabled: false, spinning: false };
+    if (etapa === "roteiro" && status === "pronto") return { label: "Gerar legenda", disabled: false, spinning: false };
+    if (etapa === "legenda" && status === "pronto") return { label: "Gerar hashtags", disabled: false, spinning: false };
+    if (etapa === "hashtag" && status === "pronto") return { label: "Preparar publicação", disabled: false, spinning: false };
+    return { label: "Abrir", disabled: false, spinning: false };
+  };
 
   const handleUpdateClipScript = (id: string, nextText: string) => {
     setVideoTimeline(prev => prev.map(c => c.id === id ? { ...c, script: nextText } : c));
@@ -442,12 +623,25 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
       <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-8">
         
-        {/* Header */}
+        {/* ── Toast Notification (P1: feedback) ── */}
+        {toast && (
+          <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg animate-alert-pop ${
+            toast.type === "success" 
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" 
+              : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+          }`}>
+            {toast.type === "success" ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+            {toast.message}
+          </div>
+        )}
+
+        {/* ── Header with YGN Seal (P2: identity) ── */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="h-px w-6 bg-brand" />
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">創作工房 · Kobo</p>
+              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">YGN</span>
             </div>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
               Estúdio de Criação &amp; Vídeos
@@ -457,7 +651,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             </p>
           </div>
           
-          {/* Step Navigation Map */}
+          {/* ── Step Navigation (kept as primary nav — P1: stepper) ── */}
           <div className="hidden lg:flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-neutral-900">
             {tabs.map((tab, idx) => (
               <button 
@@ -474,41 +668,54 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
         </div>
 
-        {/* Interactive Steps Grid */}
-        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {tabs.map((tab) => (
+        {/* ── Compact Metric Counters (P1: replaces redundant large cards) ── */}
+        <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {tabs.map((tab) => {
+            const count = contents.filter(c => tab.id === "ideias" ? true : tab.id === "videos" ? false : c.content_type?.toLowerCase().includes(tab.id.slice(0, -1))).length;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`group flex items-center gap-3 rounded-xl border p-3 transition duration-200 ${
+                  activeTab === tab.id
+                    ? "border-brand/40 bg-brand/5"
+                    : "border-line bg-surface/30 hover:border-brand/20"
+                }`}
+              >
+                <div className={`grid size-9 place-items-center rounded-lg transition ${
+                  activeTab === tab.id 
+                    ? "bg-brand text-neutral-950" 
+                    : "bg-surface-strong text-muted group-hover:text-foreground"
+                }`}>
+                  <tab.icon size={16} />
+                </div>
+                <div className="text-left">
+                  <p className={`text-xs font-bold tracking-tight transition ${activeTab === tab.id ? "text-brand" : "text-foreground"}`}>
+                    {tab.label}
+                  </p>
+                  <p className="text-[10px] text-muted font-semibold tabular-nums">{count} {count === 1 ? "item" : "itens"}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Mobile Tab Selector (visible only on small screens) ── */}
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface/40 p-1 lg:hidden">
+          {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`group flex flex-col justify-between rounded-2xl border p-4 transition duration-300 relative overflow-hidden backdrop-blur text-left ${
-                activeTab === tab.id
-                  ? "border-brand/40 bg-surface-strong/60 shadow-[0_0_15px_rgba(245,158,11,0.05)]"
-                  : "border-line bg-surface/30 hover:border-brand/20 hover:bg-surface-strong/20"
+              className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                activeTab === tab.id ? "bg-brand text-neutral-950" : "text-muted"
               }`}
             >
-              {activeTab === tab.id && <div className="absolute -left-10 -top-10 size-24 rounded-full bg-brand/10 blur-xl" />}
-              
-              <div className="relative flex items-center justify-between">
-                <div className={`grid size-11 place-items-center rounded-xl transition duration-300 ${
-                  activeTab === tab.id 
-                    ? "bg-brand text-neutral-950 shadow-md shadow-brand/10" 
-                    : "bg-surface-strong text-muted group-hover:text-foreground"
-                }`}>
-                  <tab.icon size={20} />
-                </div>
-              </div>
-              
-              <div className="mt-5 relative z-10">
-                <p className="text-sm font-bold tracking-tight text-foreground transition group-hover:text-brand">
-                  {tab.label}
-                </p>
-                <p className="text-[11px] text-muted font-medium mt-0.5">{tab.description}</p>
-              </div>
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Main interactive split workspace */}
+        {/* ── Main interactive split workspace ── */}
         <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
           
           {/* LEFT SIDEBAR: CREATION ENGINE + NEW PERFECTION CONTROLS */}
@@ -587,19 +794,44 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </div>
             </section>
 
-            {/* Standard Composition Box */}
+            {/* ── P1: Creation Panel with Manual / IA Tabs ── */}
             {activeTab !== "videos" ? (
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md">
                 <div className="absolute right-0 top-0 size-24 bg-brand/5 blur-2xl pointer-events-none" />
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <Layers size={16} className="text-brand" />
-                    <h2 className="text-sm font-bold tracking-wider uppercase text-foreground">Composição Manual</h2>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-line text-muted">Aba Ativa</span>
+                
+                {/* ── Mode Switcher (P1: clear separation) ── */}
+                <div className="flex items-center gap-1 rounded-lg bg-surface-strong/60 border border-line p-1 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("manual")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${
+                      creationMode === "manual" ? "bg-brand text-neutral-950 shadow-sm" : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Layers size={13} />
+                    Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("ia")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-bold transition ${
+                      creationMode === "ia" ? "bg-brand text-neutral-950 shadow-sm" : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Brain size={13} />
+                    IA Especializada
+                  </button>
                 </div>
 
+                {/* Mode description */}
+                <p className="text-[11px] text-muted mb-4 leading-relaxed">
+                  {creationMode === "manual" 
+                    ? "Estruture e salve uma ideia sem acionar geração automática." 
+                    : "Use agentes para gerar, revisar ou expandir conteúdo com IA."}
+                </p>
+
                 <div className="space-y-4">
+                  {/* ── Title ── */}
                   <Field label="Título Operacional">
                     <input 
                       className={`${inputClass} border-line bg-surface-strong focus:border-brand`} 
@@ -610,29 +842,149 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     />
                   </Field>
                   
+                  {/* ── Type + Channel (P0: proper dropdowns) ── */}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Tipo">
-                      <input className={`${inputClass} border-line bg-surface-strong font-mono text-xs`} value={activeTab} readOnly />
+                    <Field label="Tipo de Conteúdo">
+                      <select 
+                        className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
+                        value={contentType}
+                        onChange={(e) => setContentType(e.target.value)}
+                      >
+                        {CONTENT_TYPES.map(ct => (
+                          <option key={ct.value} value={ct.value}>{ct.label}</option>
+                        ))}
+                      </select>
                     </Field>
-                    <Field label="Canal / Rede">
-                      <input className={`${inputClass} border-line bg-surface-strong focus:border-brand`} placeholder="Instagram, YouTube, etc." />
-                    </Field>
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Canal / Rede</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CHANNELS.map(ch => (
+                          <button
+                            key={ch}
+                            type="button"
+                            onClick={() => toggleChannel(ch)}
+                            className={`rounded-md px-2 py-1 text-[10px] font-bold border transition ${
+                              selectedChannels.includes(ch) 
+                                ? "border-brand/40 bg-brand/10 text-brand" 
+                                : "border-line bg-surface-strong text-muted hover:text-foreground"
+                            }`}
+                          >
+                            {ch}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   
+                  {/* ── Briefing ── */}
                   <Field label="Briefing Criativo / Direcionamento">
                     <textarea 
                       className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
                       value={manualIdea}
                       onChange={(e) => setManualIdea(e.target.value)}
-                      placeholder="Estruture a ideia básica, objetivos ou tópicos que devem constar no material..." 
-                      rows={5} 
+                      placeholder="Explique objetivo, público, promessa central, tom desejado, referências e CTA." 
+                      rows={4} 
                     />
                   </Field>
+
+                  {/* ── IA-specific fields (only when IA mode) ── */}
+                  {creationMode === "ia" && (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label="Agente Executor">
+                          <select 
+                            className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
+                            value={selectedAgent}
+                            onChange={(e) => setSelectedAgent(e.target.value)}
+                          >
+                            <option value="hefesto">Hefesto (Redator Estrela)</option>
+                            <option value="amber">Amber AI (Análise Profunda)</option>
+                            <option value="local">Local / Ollama (Fallback)</option>
+                            <option value="openrouter">OpenRouter (Multi-modelo)</option>
+                          </select>
+                        </Field>
+                        <Field label="Modo Operacional">
+                          <select 
+                            className={`${inputClass} border-line bg-surface-strong text-xs`}
+                            value={autoFreeTier ? "fast" : "deep"}
+                            disabled={autoFreeTier}
+                            onChange={() => {}}
+                          >
+                            <option value="fast">Rápido (Free Forçado)</option>
+                            <option value="deep">Profundo (Amber AI)</option>
+                          </select>
+                        </Field>
+                      </div>
+                      
+                      <Field label="Instruções de Refinamento">
+                        <textarea 
+                          className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
+                          value={refinementInstructions}
+                          onChange={(e) => setRefinementInstructions(e.target.value)}
+                          placeholder="Ex: tom direto, foco em conversão, CTA para link na bio, evitar linguagem genérica." 
+                          rows={3} 
+                        />
+                      </Field>
+                    </>
+                  )}
                   
-                  <button type="button" className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-neutral-950 shadow-md shadow-brand/10 transition duration-300 hover:bg-brand-strong">
-                    <Send size={15} />
-                    Salvar na Fila
-                  </button>
+                  {/* ── P1: Unified Action Bar ── */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-line/50">
+                    {creationMode === "manual" ? (
+                      <>
+                        <button 
+                          type="button" 
+                          onClick={handleSaveDraft}
+                          disabled={actionLoading !== null}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-neutral-950 shadow-md shadow-brand/10 transition duration-300 hover:bg-brand-strong disabled:opacity-50"
+                        >
+                          {actionLoading === "draft" ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                          Salvar rascunho
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={handleSendForReview}
+                          disabled={actionLoading !== null}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand/40 bg-surface py-2.5 text-xs font-bold text-brand transition hover:bg-brand hover:text-neutral-950 disabled:opacity-50"
+                        >
+                          {actionLoading === "review" ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                          Enviar para revisão IA
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button 
+                          type="button"
+                          onClick={handleGenerateContent}
+                          disabled={actionLoading !== null}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-neutral-950 shadow-md shadow-brand/10 transition duration-300 hover:bg-brand-strong disabled:opacity-50"
+                        >
+                          {actionLoading === "generate" ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                          🚀 Gerar roteiro + legenda + hashtags
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            type="button"
+                            onClick={handleSaveDraft}
+                            disabled={actionLoading !== null}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2 text-xs font-semibold text-muted transition hover:text-foreground hover:border-brand/30 disabled:opacity-50"
+                          >
+                            {actionLoading === "draft" ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                            Salvar rascunho
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={handleSendForReview}
+                            disabled={actionLoading !== null}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2 text-xs font-semibold text-muted transition hover:text-foreground hover:border-brand/30 disabled:opacity-50"
+                          >
+                            {actionLoading === "review" ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                            Revisão IA
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </section>
             ) : (
@@ -805,60 +1157,42 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </section>
             )}
 
-            {/* AI Specialized Director */}
-            <section className="relative overflow-hidden rounded-2xl border border-brand/25 bg-gradient-to-b from-brand/5 to-surface/20 p-6 shadow-xl backdrop-blur-md">
-              <div className="absolute right-0 top-0 size-24 bg-brand/10 blur-2xl pointer-events-none" />
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Brain size={16} className="text-brand animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-wider uppercase text-brand">Diretoria IA Especializada</h2>
+            {/* ── P1: Compact Agent Status Panel (replaces old Diretoria IA form) ── */}
+            {activeTab !== "videos" && (
+              <section className="relative overflow-hidden rounded-2xl border border-brand/25 bg-gradient-to-b from-brand/5 to-surface/20 p-5 shadow-xl backdrop-blur-md">
+                <div className="absolute right-0 top-0 size-24 bg-brand/10 blur-2xl pointer-events-none" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Brain size={14} className="text-brand" />
+                    <h2 className="text-xs font-bold tracking-wider uppercase text-brand">Painel do Agente</h2>
+                  </div>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">Online</span>
                 </div>
-                <Sparkles size={14} className="text-brand" />
-              </div>
 
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Agente Executor">
-                    <select 
-                      className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`} 
-                      value={selectedAgent}
-                      onChange={(e) => setSelectedAgent(e.target.value)}
-                    >
-                      <option value="hefesto">Hefesto (Redator Estrela)</option>
-                      <option value="isis">Isis (Editora Sênior)</option>
-                      <option value="morax">Morax (Copywriter de Elite)</option>
-                    </select>
-                  </Field>
-                  <Field label="Modo Operacional">
-                    <select 
-                      className={`${inputClass} border-line bg-surface-strong text-xs`}
-                      value={autoFreeTier ? "fast" : "deep"}
-                      disabled={autoFreeTier}
-                      onChange={() => {}}
-                    >
-                      <option value="fast">Rápido (Free Forçado)</option>
-                      <option value="deep">Profundo (Amber AI)</option>
-                    </select>
-                  </Field>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
+                    <span className="text-muted font-medium">Agente ativo</span>
+                    <span className="font-bold text-foreground capitalize">{selectedAgent}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
+                    <span className="text-muted font-medium">Modo</span>
+                    <span className="font-bold text-foreground">{autoFreeTier ? "Rápido (Free)" : "Profundo"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
+                    <span className="text-muted font-medium">Modelo</span>
+                    <span className="font-bold text-foreground text-[10px]">{autoFreeTier ? "Llama 3.3 70B (Free)" : "Amber AI Pro"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] bg-surface-strong/40 p-2.5 rounded-lg border border-line/30">
+                    <span className="text-muted font-medium">Fila</span>
+                    <span className="font-bold text-brand tabular-nums">{contents.filter(c => c.status === "na_fila" || c.status === "processando").length} jobs</span>
+                  </div>
                 </div>
-                
-                <Field label="Instruções de Refinamento (Prompt)">
-                  <textarea 
-                    className={`${textareaClass} border-line bg-surface-strong focus:border-brand text-xs`} 
-                    value={aiInstructions}
-                    onChange={(e) => setAiInstructions(e.target.value)}
-                    placeholder="Gere 3 pautas pautadas na sua LTM, focadas em engajar o Kotaro..." 
-                    required 
-                    rows={4} 
-                  />
-                </Field>
-                
-                <button type="button" className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand/40 bg-surface px-4 py-3 text-sm font-bold text-brand shadow-inner transition duration-300 hover:bg-brand hover:text-neutral-950">
-                  <Wand2 size={15} />
-                  Disparar Pipeline Inteligente
-                </button>
-              </div>
-            </section>
+
+                <p className="mt-3 text-[9px] text-muted leading-relaxed">
+                  <strong className="text-brand">Hefesto:</strong> estruturação criativa · <strong className="text-brand">Amber:</strong> análise profunda · <strong className="text-brand">Local:</strong> fallback gratuito
+                </p>
+              </section>
+            )}
 
             {/* 📡 ACTIVE TRENDS & GENRES CONSCIOUSNESS CARD (MIMIR) */}
             {activeTab === "videos" && (
@@ -978,7 +1312,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 type="button"
                 onClick={() => {
                   const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
-                  // Simulate weights fine-tuning log notification
                   alert(`[ODIN EVOLUTION PIPELINE] Lendo base de rejeições LTM do usuário '${username}'...\n\n1. Consolidando correções de transição rápida no Qwen 2.5-VL.\n2. Reajustando ganchos de persuasão no Llama 3.3.\n3. Parâmetros de pesos e sistema sintonizados a custo $0.00!`);
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-surface px-4 py-2.5 text-xs font-bold text-emerald-400 transition duration-300 hover:bg-emerald-500 hover:text-neutral-950"
@@ -991,66 +1324,224 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
           {/* RIGHT COLUMN: DIGITAL ASSETS GRID OR VIDEO STUDIO WORKSPACE */}
           <div className="space-y-6">
-            
             {activeTab !== "videos" ? (
               <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between border-b border-line pb-4 mb-6">
+                
+                {/* ── Header of Acervo ── */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line pb-4 mb-4 gap-2">
                   <div>
-                    <h2 className="text-lg font-bold tracking-tight text-foreground">
-                      Acervo de {activeTabObj.label}
+                    <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                      <Layers size={18} className="text-brand" />
+                      Acervo Operacional
                     </h2>
-                    <p className="text-xs text-muted">Materiais catalogados e em processamento</p>
+                    <p className="text-xs text-muted">Acompanhe seu fluxo de ideias, roteiros e legendas</p>
                   </div>
-                  <span className="rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-[11px] font-bold text-brand uppercase">
-                    {contents.filter(c => activeTab === "ideias" ? true : c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))).length} itens
+                  <span className="self-start rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-[11px] font-bold text-brand uppercase">
+                    {filteredContents.length} {filteredContents.length === 1 ? "item" : "itens"}
                   </span>
                 </div>
 
+                {/* ── Toolbar: Search + Filter Tabs (P2: Filters) ── */}
+                <div className="flex flex-col md:flex-row gap-3 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Buscar por título..."
+                      value={acervoSearch}
+                      onChange={(e) => setAcervoSearch(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-line bg-surface-strong pl-9 pr-3 text-xs text-foreground outline-none focus:border-brand/40 focus:ring-1 focus:ring-brand/20 transition"
+                    />
+                  </div>
+                  <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0">
+                    {["todos", "rascunho", "na_fila", "processando", "pronto", "erro"].map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setAcervoFilter(f)}
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border transition shrink-0 ${
+                          acervoFilter === f 
+                            ? "border-brand bg-brand/10 text-brand" 
+                            : "border-line bg-surface text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {f.replace("_", " ")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Digital Assets Grid ── */}
                 <div className="grid gap-4">
-                  {contents.filter(c => activeTab === "ideias" ? true : c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))).length ? 
-                    contents.filter(c => activeTab === "ideias" ? true : c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))).map((item) => (
-                    <article 
-                      key={item.id} 
-                      className="group relative overflow-hidden rounded-2xl border border-line bg-surface-strong/30 p-5 shadow-sm transition duration-300 hover:border-brand/30 hover:bg-surface-strong/60"
-                    >
-                      <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                      
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition duration-300">
-                              {item.title}
-                            </h3>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-surface-strong border border-line px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">
-                              {item.status}
-                            </span>
-                          </div>
+                  {filteredContents.length ? (
+                    filteredContents.map((item) => {
+                      const normalizedStatus = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
+                      const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG["rascunho"];
+                      const etapa = item.etapa_fluxo || "ideia";
+                      const etapaConf = ETAPA_CONFIG[etapa] || ETAPA_CONFIG["ideia"];
+                      const nextAct = getNextAction(item);
+
+                      return (
+                        <article 
+                          key={item.id} 
+                          className={`group relative overflow-hidden rounded-xl border p-5 shadow-sm transition duration-300 hover:bg-surface-strong/60 ${config.bg}`}
+                        >
+                          {/* Yggdrasil background texture detail for brand aesthetic (opacity 0.03) */}
+                          <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                           
-                          <div className="flex items-center gap-2 text-xs font-semibold text-muted">
-                            <span className="capitalize">{item.content_type}</span>
-                            <span className="size-1 rounded-full bg-line" />
-                            <span className="uppercase text-[10px] text-brand">{item.platform || "Multicanais"}</span>
+                          {/* Card Top: Metadata & Secondary Menu Dropdown */}
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition duration-300">
+                                  {item.title}
+                                </h3>
+                                <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${config.color} border-current/25 bg-current/5`}>
+                                  {config.label}
+                                </span>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-muted">
+                                <span className="capitalize px-1.5 py-0.5 rounded bg-surface-strong/80 border border-line">{item.content_type || "Ideia"}</span>
+                                <span className="uppercase text-brand px-1.5 py-0.5 rounded bg-brand/5 border border-brand/10">{item.platform || "Multicanais"}</span>
+                                {item.origem && (
+                                  <span className="uppercase text-sky-400 px-1.5 py-0.5 rounded bg-sky-500/5 border border-sky-500/10 flex items-center gap-1">
+                                    <Cpu size={10} />
+                                    {item.origem}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Secondary Action Dropdown */}
+                            <div className="relative">
+                              <button 
+                                type="button"
+                                onClick={() => setOpenCardMenu(openCardMenu === item.id ? null : item.id)}
+                                className="p-1 rounded-lg border border-line bg-surface hover:bg-surface-strong hover:text-foreground transition text-muted"
+                              >
+                                <MoreVertical size={14} />
+                              </button>
+                              
+                              {openCardMenu === item.id && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenCardMenu(null)}
+                                    className="fixed inset-0 z-10"
+                                  />
+                                  <div className="absolute right-0 mt-1 w-36 rounded-lg border border-line bg-surface-strong shadow-xl p-1 z-20 animate-alert-pop">
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        setManualTitle(item.title);
+                                        setManualIdea(item.idea);
+                                        setOpenCardMenu(null);
+                                        showToast("Dados do item carregados no formulário!");
+                                      }}
+                                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-sidebar-hover transition"
+                                    >
+                                      <Copy size={12} />
+                                      Editar / Duplicar
+                                    </button>
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        showToast("Processo de atualização de etapa iniciado...");
+                                        setOpenCardMenu(null);
+                                      }}
+                                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-brand hover:bg-sidebar-hover transition"
+                                    >
+                                      <RotateCcw size={12} />
+                                      Reprocessar
+                                    </button>
+                                    <div className="my-1 border-t border-line" />
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        setContents(prev => prev.filter(c => c.id !== item.id));
+                                        showToast("Item removido com sucesso!");
+                                        setOpenCardMenu(null);
+                                      }}
+                                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition"
+                                    >
+                                      <Trash2 size={12} />
+                                      Excluir
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
 
-                          <p className="text-xs text-muted leading-relaxed line-clamp-3">
+                          {/* Briefing Idea Preview */}
+                          <p className="text-xs text-muted leading-relaxed line-clamp-2 mt-2 bg-surface-strong/20 p-2 rounded-lg border border-line/10">
                             {item.idea || "Sem briefing detalhado definido."}
                           </p>
-                        </div>
-                      </div>
 
-                      <div className="mt-5 pt-4 border-t border-line/40 flex justify-between items-center">
-                        <div className="flex gap-2">
-                          <button type="button" className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-brand/40 hover:text-foreground">
-                            <Sparkles size={11} className="text-brand" />
-                            Revisão IA
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-muted font-medium">Criado em {new Date(item.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </article>
-                  )) : (
+                          {/* Card Bottom: Core Stage Stepper Line + Primary Action Button */}
+                          <div className="mt-4 pt-3 border-t border-line/30 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                            {/* Visual stage micro-stepper */}
+                            <div className="flex items-center gap-1">
+                              {["ideia", "roteiro", "legenda", "hashtag"].map((stg) => {
+                                const stgConf = ETAPA_CONFIG[stg];
+                                const isCurrent = etapa === stg;
+                                const isDone = ["roteiro", "legenda", "hashtag", "publicacao"].indexOf(etapa) > ["ideia", "roteiro", "legenda", "hashtag"].indexOf(stg);
+                                return (
+                                  <div 
+                                    key={stg} 
+                                    title={`Etapa: ${stgConf.label}`}
+                                    className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-extrabold border transition ${
+                                      isCurrent 
+                                        ? "border-brand/40 bg-brand/10 text-brand scale-105" 
+                                        : isDone 
+                                          ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" 
+                                          : "border-line bg-surface-strong text-muted/50"
+                                    }`}
+                                  >
+                                    <stgConf.icon size={10} />
+                                    <span className="hidden xs:inline uppercase">{stgConf.label}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Dynamic Action Button */}
+                            <button 
+                              type="button" 
+                              disabled={nextAct.disabled}
+                              onClick={async () => {
+                                if (nextAct.spinning) return;
+                                showToast(`Iniciando ação: ${nextAct.label}...`);
+                                // Simulate transition
+                                setContents(prev => prev.map(c => c.id === item.id ? { ...c, status: "processando" } : c));
+                                await new Promise(r => setTimeout(r, 1500));
+                                setContents(prev => prev.map(c => {
+                                  if (c.id === item.id) {
+                                    const currentIdx = ["ideia", "roteiro", "legenda", "hashtag", "publicacao"].indexOf(etapa);
+                                    const nextStage = ["ideia", "roteiro", "legenda", "hashtag", "publicacao"][currentIdx + 1] || etapa;
+                                    return { ...c, status: "pronto", etapa_fluxo: nextStage as EtapaFluxo };
+                                  }
+                                  return c;
+                                }));
+                                showToast("Transição de etapa concluída!");
+                              }}
+                              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition shadow-sm ${
+                                nextAct.disabled
+                                  ? "bg-line text-muted cursor-not-allowed"
+                                  : "bg-brand text-neutral-950 hover:bg-brand-strong"
+                              }`}
+                            >
+                              {nextAct.spinning ? <Loader2 size={12} className="animate-spin" /> : <ChevronRight size={12} />}
+                              {nextAct.label}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })
+                  ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-line rounded-2xl bg-surface/10">
-                      <div className="grid size-14 place-items-center rounded-2xl bg-brand/5 text-brand/60 mb-4">
+                      <div className="grid size-14 place-items-center rounded-2xl bg-brand/5 text-brand/60 mb-4 animate-pulse">
                         <activeTabObj.icon size={26} />
                       </div>
                       <h3 className="text-sm font-bold text-foreground">Nenhum item nesta pauta</h3>
