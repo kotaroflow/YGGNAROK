@@ -821,134 +821,117 @@ function LinksTabContent({ showToast }: { showToast: (message: string, type?: "s
   );
 }
 
-// --- TAB CONTENT 5: CAMPANHAS (Interactive Dynamic ROI Calculator) ---
+// --- TAB CONTENT 5: CAMPANHAS (Real Campaign Performance) ---
 interface CampanhasTabProps {
   setConversionRate: React.Dispatch<React.SetStateAction<number>>;
   showToast: (message: string, type?: "success" | "warning" | "info") => void;
 }
 
 function CampanhasTabContent({ setConversionRate, showToast }: CampanhasTabProps) {
-  // Calculator States
-  const [budget, setBudget] = useState("1000");
-  const [clicks, setClicks] = useState("2500");
-  const [salePrice, setSalePrice] = useState("197");
-  const [convRate, setConvRate] = useState("1.8");
-
-  // Dynamic calculations
-  const totalBudget = parseFloat(budget) || 0;
-  const totalClicks = parseInt(clicks) || 0;
-  const price = parseFloat(salePrice) || 0;
-  const rate = parseFloat(convRate) || 0;
-
-  const cpc = totalClicks > 0 ? totalBudget / totalClicks : 0;
-  const generatedSales = Math.floor(totalClicks * (rate / 100));
-  const estimatedRevenue = generatedSales * price;
-  const netProfit = estimatedRevenue - totalBudget;
-  const roi = totalBudget > 0 ? (estimatedRevenue / totalBudget) * 100 : 0;
-
-  const handleApplyToDashboard = () => {
-    setConversionRate(rate);
-    showToast(`Taxa de conversão de ${rate}% cadastrada e atualizada nos KPIs do painel!`);
-  };
-
+  // In a real implementation, this would fetch actual campaign data from the backend
+  // For now, we'll show a message guiding users to set up proper campaign tracking
+  
   return (
     <div className="rounded-2xl border border-line bg-surface p-6 space-y-6 shadow-xl">
       <div>
-        <h3 className="text-lg font-bold tracking-tight">Simulador Analítico de ROI</h3>
-        <p className="text-xs text-muted">Ajuste métricas comerciais de investimento e conversão para simular o retorno bruto de suas campanhas de marketing.</p>
+        <h3 className="text-lg font-bold tracking-tight">Performance Real de Campanhas</h3>
+        <p className="text-xs text-muted">
+          Visualize o retorno real sobre investimento de suas campanhas de marketing 
+          com base em dados reais de tráfego e conversões.
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Simulator Controls */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted uppercase">Investimento Total (R$)</label>
-            <input
-              type="number"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-line bg-surface-strong text-xs font-mono text-foreground outline-none focus:border-brand/35 transition"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted uppercase">Cliques Obtidos</label>
-            <input
-              type="number"
-              value={clicks}
-              onChange={(e) => setClicks(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-line bg-surface-strong text-xs font-mono text-foreground outline-none focus:border-brand/35 transition"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted uppercase">Preço do Infoproduto (R$)</label>
-            <input
-              type="number"
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-line bg-surface-strong text-xs font-mono text-foreground outline-none focus:border-brand/35 transition"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted uppercase">Taxa de Conversão Estimada (%)</label>
-            <input
-              type="text"
-              value={convRate}
-              onChange={(e) => setConvRate(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-line bg-surface-strong text-xs font-mono text-brand font-bold outline-none focus:border-brand/35 transition"
-            />
-          </div>
-
-          <button
-            onClick={handleApplyToDashboard}
-            className="flex items-center justify-center gap-1.5 w-full h-10 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 text-xs font-bold transition shadow-sm"
-          >
-            Aplicar Conversão ao Dashboard
-          </button>
-        </div>
-
-        {/* Results Screen */}
-        <div className="lg:col-span-2 rounded-xl border border-line bg-surface/40 p-6 flex flex-col justify-between gap-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
-              <p className="text-[10px] text-muted uppercase tracking-wider">Custo por Clique (CPC)</p>
-              <p className="text-xl font-bold font-mono">R$ {cpc.toFixed(2)}</p>
+      {/* Campaign Performance Message */}
+      <div className="rounded-xl border border-line bg-surface/50 p-6">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="size-8 rounded-full bg-brand/10 text-brand flex items-center justify-center">
+                <Megaphone size={16} />
+              </div>
             </div>
-
-            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
-              <p className="text-[10px] text-muted uppercase tracking-wider">Estimativa de Vendas</p>
-              <p className="text-xl font-bold font-mono">{generatedSales} un</p>
-            </div>
-
-            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
-              <p className="text-[10px] text-muted uppercase tracking-wider">Receita Bruta Esperada</p>
-              <p className="text-xl font-bold font-mono text-brand">R$ {estimatedRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-            </div>
-
-            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
-              <p className="text-[10px] text-muted uppercase tracking-wider">Lucro Líquido</p>
-              <p className={`text-xl font-bold font-mono ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                R$ {netProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            <div>
+              <h4 className="font-semibold text-foreground">Como acompanhar o ROI real das suas campanhas</h4>
+              <p className="text-sm text-muted">
+                Para ver dados reais de desempenho de campanhas nesta seção, você precisa:
               </p>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted">
+                <li>
+                  Use o gerador de links de rastreamento na aba &quot;Links&quot; para criar 
+                  URLs com parâmetros UTM únicos para cada campanha
+                </li>
+                <li>
+                  Direcione todo o tráfego pago e orgânico através desses links rastreadores
+                </li>
+                <li>
+                  O YGGNAROK irá automaticamente atribuir vendas e conversões às campanhas 
+                  corretas com base nos parâmetros UTM
+                </li>
+                <li>
+                  Os dados de desempenho real aparecerão aqui assim que houver tráfego 
+                  rastreado e conversões atribuídas
+                </li>
+              </ol>
             </div>
           </div>
-
-          <div className="rounded-xl border border-line bg-surface-strong p-5 flex items-center justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-muted uppercase tracking-wider">Retorno sobre Investimento (ROI)</p>
-              <p className="text-xs text-muted leading-relaxed">Fórmula analítica idealizada para campanhas pagas.</p>
+          
+          {/* Current Status Indicator */}
+          <div className="border-t border-line pt-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <div className="size-6 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <AlertTriangle size={14} />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Status: Aguardando dados de campanha
+                </p>
+                <p className="text-xs text-muted">
+                  Nenhum dado de campanha rastreado encontrado. Comece a usar links 
+                  rastreadores para ver métricas reais de ROI.
+                </p>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="text-right">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-lg font-black font-mono shadow-md ${
-                roi >= 100 
-                  ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-emerald-500/5" 
-                  : "bg-red-500/10 border border-red-500/20 text-red-400 shadow-red-500/5"
-              }`}>
-                {roi.toFixed(1)}%
-              </span>
+      {/* Placeholder for Future Real Data */}
+      <div className="mt-6 rounded-xl border border-line bg-surface/50 p-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-foreground">Prévia: Ranking de Campanhas por ROI</h4>
+            <button
+              onClick={() => showToast("Funcionalidade em desenvolvimento. Configure o rastreamento de campanhas primeiro para ver dados reais.")}
+              className="text-xs font-muted hover:text-foreground transition"
+            >
+              Saiba mais
+            </button>
+          </div>
+          
+          {/* Example of how real data will look */}
+          <div className="space-y-3">
+            <div className="text-xs font-bold text-muted uppercase tracking-wider">
+              Quando dados reais estiverem disponíveis, você verá:
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-line bg-surface/30 p-3">
+                <p className="text-[9px] font-medium text-muted">Campanha</p>
+                <p className="text-[9px] font-bold text-foreground">Spring Launch 2026</p>
+              </div>
+              <div className="rounded-lg border border-line bg-surface/30 p-3">
+                <p className="text-[9px] font-medium text-muted">Investimento</p>
+                <p className="text-[9px] font-bold text-foreground">R$ 2.450,00</p>
+              </div>
+              <div className="rounded-lg border border-line bg-surface/30 p-3">
+                <p className="text-[9px] font-medium text-muted">Receita</p>
+                <p className="text-[9px] font-bold text-foreground">R$ 9.800,00</p>
+              </div>
+              <div className="rounded-lg border border-line bg-surface/30 p-3">
+                <p className="text-[9px] font-medium text-muted">ROI</p>
+                <p className="text-[9px] font-bold text-emerald-400">300%</p>
+              </div>
             </div>
           </div>
         </div>
