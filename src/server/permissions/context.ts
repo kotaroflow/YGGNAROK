@@ -1,10 +1,14 @@
-import { cache } from "react";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PermissionContext } from "@/lib/permissions";
 import type { PermissionKey, RoleKey } from "@/lib/permissions/keys";
 
-export const getCurrentPermissionContext = cache(async (): Promise<PermissionContext | null> => {
+let cachedPermissionContext: Promise<PermissionContext | null> | null = null;
+
+export async function getCurrentPermissionContext(): Promise<PermissionContext | null> {
+  if (cachedPermissionContext) return cachedPermissionContext;
+
+  cachedPermissionContext = (async (): Promise<PermissionContext | null> => {
   let supabase;
   try {
     supabase = await createSupabaseServerClient();
@@ -82,4 +86,7 @@ export const getCurrentPermissionContext = cache(async (): Promise<PermissionCon
     permissions,
     profileIds,
   };
-});
+})();
+
+  return cachedPermissionContext;
+}

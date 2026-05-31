@@ -1,14 +1,17 @@
-import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
 import { assertPublicSupabaseEnv } from "./env";
 
-export const createSupabaseServerClient = cache(async () => {
+let cachedClient: ReturnType<typeof createServerClient<Database>> | null = null;
+
+export async function createSupabaseServerClient() {
+  if (cachedClient) return cachedClient;
+
   const cookieStore = await cookies();
   const env = assertPublicSupabaseEnv();
 
-  return createServerClient<Database>(env.url, env.anonKey, {
+  cachedClient = createServerClient<Database>(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -20,4 +23,6 @@ export const createSupabaseServerClient = cache(async () => {
       },
     },
   });
-});
+
+  return cachedClient;
+}
