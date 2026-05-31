@@ -573,11 +573,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         </div>
 
         
-        {/* ── 12-Column Responsive Grid Layout ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          
-          {/* 1. Left Column (Top) - Creation Engine */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
+        {/* ── Main Layout (Vertical Flow for Full Width) ── */}
+        <div className="flex flex-col gap-6 lg:gap-8">
             {activeTab !== "videos" ? (
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
                     <div className="relative flex flex-col rounded-2xl border border-line/80 bg-surface-strong shadow-md transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 focus-within:shadow-lg">
@@ -801,9 +798,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
                     </div>
 
-          {/* 2. Right Column - AI Control & Carousel */}
-          <div className="lg:col-span-4 lg:row-span-2 flex flex-col gap-6">
-            {/* ── Controle de IA & Sintonia ── */}
+          {/* ── Controle de IA & Sintonia ── */}
           <div className="w-full">
             <div className="relative overflow-hidden w-full rounded-2xl border border-line bg-surface/50 p-5 shadow-xl backdrop-blur-md flex flex-col justify-between min-h-[410px]">
               {/* Decorative Blur */}
@@ -834,14 +829,10 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 </div>
               </div>
 
-              {/* Sliding Track */}
-              <div className="relative h-[290px] overflow-hidden z-10">
-                <div 
-                  className="flex transition-transform duration-500 ease-out h-full"
-                  style={{ transform: `translateX(-${carouselIdx * 100}%)`, width: '300%' }}
-                >
-                  {/* Slide 0: Agents or Trends */}
-                  <div className="w-[33.333%] shrink-0 px-1 flex flex-col justify-between h-full">
+              {/* Grid Layout (Replaced Carousel) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 mt-2">
+                  {/* Panel 1: Agents or Trends */}
+                  <div className="flex flex-col justify-between h-full space-y-4 rounded-xl border border-line bg-surface-strong/20 p-5">
                     {activeTab !== "videos" ? (
                       /* Agent Info */
                       <div className="space-y-4">
@@ -960,8 +951,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     )}
                   </div>
 
-                  {/* Slide 1: Odin Supervisor */}
-                  <div className="w-[33.333%] shrink-0 px-1 flex flex-col justify-between h-full">
+                  {/* Panel 2: Odin Supervisor */}
+                  <div className="flex flex-col justify-between h-full space-y-4 rounded-xl border border-line bg-surface-strong/20 p-5">
                     <div className="space-y-4">
                       <div className="flex items-center gap-1.5">
                         <Cpu size={14} className="text-brand animate-pulse" />
@@ -1064,28 +1055,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Indicator Dots */}
-              <div className="flex justify-center gap-1 mt-4 pt-2 border-t border-line/30 z-10">
-                {[0, 1, 2].map((idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setCarouselIdx(idx)}
-                    className={`size-1.5 rounded-full transition-all duration-300 ${
-                      carouselIdx === idx ? "bg-brand w-3.5" : "bg-neutral-700"
-                    }`}
-                  />
-                ))}
               </div>
-            </div>
           </div>
 
-                  </div>
-
-          {/* 3. Left Column (Bottom) - Acervo / Video Studio */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
+                  
             {/* ── Bottom row layout: Operational Acervo or Video Studio (placed below) ── */}
         <div className="w-full">
           {activeTab !== "videos" ? (
@@ -1770,7 +1744,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             )}
 
           </div>
-
         </div>
       </main>
     );
