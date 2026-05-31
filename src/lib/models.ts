@@ -532,6 +532,54 @@ export function saveSelectedModel(id: string) {
   localStorage.setItem(MODEL_STORAGE_KEY, id);
 }
 
+const USAGE_STORAGE_KEY = "yggnarok.model-usage.v1";
+
+type ModelUsage = {
+  requests: number;
+  date: string;
+};
+
+export function getModelUsage(modelId: string): ModelUsage {
+  if (typeof window === "undefined") return { requests: 0, date: "" };
+  const raw = localStorage.getItem(USAGE_STORAGE_KEY);
+  const all: Record<string, ModelUsage> = raw ? JSON.parse(raw) : {};
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = all[modelId];
+  if (entry && entry.date === today) return entry;
+  return { requests: 0, date: today };
+}
+
+export function getModelUsagePercent(modelId: string): number {
+  const usage = getModelUsage(modelId);
+  const limit = getModelDailyLimit(modelId);
+  return Math.min(usage.requests / limit, 1);
+}
+
+export function getModelDailyLimit(modelId: string): number {
+  const model = getModel(modelId);
+  if (model.free) return 50;
+  if (model.tier === "fast") return 2000;
+  if (model.tier === "balanced") return 1000;
+  return 500;
+}
+
+export function getAllModelUsage(): Record<string, ModelUsage> {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem(USAGE_STORAGE_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+export function incrementModelUsage(modelId: string, tokens?: number) {
+  const all = getAllModelUsage();
+  const today = new Date().toISOString().slice(0, 10);
+  const current = all[modelId];
+  all[modelId] = {
+    requests: (current?.date === today ? current.requests : 0) + 1,
+    date: today,
+  };
+  localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(all));
+}
+
 export const TIER_LABELS: Record<ModelTier, string> = {
   fast: "Rápido",
   balanced: "Balanceado",

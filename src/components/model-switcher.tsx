@@ -13,6 +13,9 @@ import {
   getModel,
   getSectorFromPath,
   SECTOR_LABELS,
+  getModelUsagePercent,
+  getModelDailyLimit,
+  getModelUsage,
 } from "@/lib/models";
 
 const TIER_ICON: Record<ModelTier, React.ReactNode> = {
@@ -129,6 +132,12 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
           {SECTOR_LABELS[sector].split(" & ")[0]}
         </span>
         <span className="font-medium truncate max-w-[120px] sm:max-w-none">{shortName}</span>
+        <div className="h-1 w-8 rounded-full bg-line/30 overflow-hidden shrink-0">
+          <div
+            className="h-full rounded-full bg-brand transition-all duration-700 ease-out"
+            style={{ width: `${Math.min(getModelUsagePercent(selectedId) * 100, 100)}%` }}
+          />
+        </div>
         <ChevronDown
           size={11}
           className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
@@ -226,6 +235,9 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
                             </div>
                             <p className="mt-1 text-[11px] text-muted leading-relaxed line-clamp-2">{m.description}</p>
                             <p className="mt-1 text-[9px] text-muted/70 font-mono">{m.contextK}K ctx · {m.id}</p>
+
+                            {/* Usage bar */}
+                            <UsageBar modelId={m.id} />
                           </div>
 
                           {/* Checkmark */}
@@ -242,6 +254,27 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UsageBar({ modelId }: { modelId: string }) {
+  const pct = getModelUsagePercent(modelId);
+  const usage = getModelUsage(modelId);
+  const limit = getModelDailyLimit(modelId);
+
+  return (
+    <div className="mt-1.5">
+      <div className="flex items-center justify-between text-[8px] text-muted/60 font-mono mb-0.5">
+        <span>{usage.requests}/{limit} req</span>
+        <span>{Math.round(pct * 100)}%</span>
+      </div>
+      <div className="h-1 w-full rounded-full bg-line/40 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-brand/60 to-brand transition-all duration-700 ease-out"
+          style={{ width: `${Math.min(pct * 100, 100)}%` }}
+        />
+      </div>
     </div>
   );
 }
