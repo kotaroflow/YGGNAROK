@@ -572,154 +572,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
         </div>
 
-        {/* ── Creation Card (hero, cream bg) ── */}
-        <div className="mb-8 rounded-2xl border border-line/60 bg-[#faf8f4] dark:bg-[#1a1814] shadow-lg overflow-hidden">
-          {/* Card Header */}
-          <div className="flex items-start gap-4 px-6 pt-6 pb-2">
-            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10">
-              <Lightbulb size={18} className="text-brand" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-bold text-foreground">O que você quer criar hoje?</h2>
-              <p className="text-xs text-muted mt-0.5">Descreva sua ideia, roteiro, briefing, imagem ou documento...</p>
-            </div>
-            <Sparkles size={18} className="text-brand/40 shrink-0 mt-1" />
-          </div>
-
-          {/* Textarea */}
-          <div className="px-6 py-2">
-            <textarea
-              ref={briefingRef}
-              value={manualIdea}
-              onChange={handleBriefingChange}
-              onBlur={() => setTimeout(() => setShowChannelMention(false), 150)}
-              placeholder="Comece a escrever..."
-              rows={8}
-              className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted/40 focus:outline-none min-h-[180px]"
-            />
-            {/* @mention Dropdown */}
-            {showChannelMention && filteredMentionChannels.length > 0 && (
-              <div className="relative">
-                <div className="absolute left-0 bottom-0 z-30 w-52 rounded-xl border border-line bg-surface-strong shadow-xl py-1 animate-alert-pop">
-                  <p className="px-3 py-1 text-[9px] font-bold text-muted uppercase tracking-wider">Redes</p>
-                  {filteredMentionChannels.map(ch => (
-                    <button
-                      key={ch}
-                      type="button"
-                      onMouseDown={(e) => { e.preventDefault(); selectChannelFromMention(ch); }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-foreground hover:bg-brand/10 hover:text-brand transition"
-                    >
-                      <AtSign size={12} className="text-muted" />
-                      {ch}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Channel Chips */}
-          {selectedChannels.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 px-6 pb-2">
-              {selectedChannels.map(ch => (
-                <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-brand/25 bg-brand/8 px-2.5 py-0.5 text-[10px] font-bold text-brand">
-                  @{ch}
-                  <button type="button" onClick={() => toggleChannel(ch)} className="ml-0.5 rounded-full hover:bg-brand/20 p-0.5 transition">
-                    <X size={9} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Type Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 px-6 pb-3">
-            {[
-              { icon: Lightbulb, label: "Ideia" },
-              { icon: ScrollText, label: "Roteiro" },
-              { icon: Subtitles, label: "Legenda" },
-              { icon: Hash, label: "Hashtags" },
-              { icon: Video, label: "Vídeo" },
-              { icon: Layers, label: "Campanha" },
-              { icon: Globe, label: "Multicanal" },
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  if (item.label === "Ideia") setContentType("ideia");
-                  else if (item.label === "Roteiro") setContentType("script_video");
-                  else if (item.label === "Legenda") setContentType("post_estatico");
-                  else if (item.label === "Hashtags") setContentType("thread");
-                  else if (item.label === "Vídeo") setContentType("reel");
-                  else if (item.label === "Campanha") setContentType("campanha");
-                  else setContentType("artigo");
-                }}
-                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition ${
-                  contentType === "ideia" && item.label === "Ideia"
-                    ? "border-brand/40 bg-brand/10 text-brand"
-                    : "border-line bg-surface hover:border-brand/20 text-muted hover:text-foreground"
-                }`}
-              >
-                <item.icon size={11} />
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Bottom Toolbar */}
-          <div className="flex items-center justify-between border-t border-line/40 px-4 py-3 bg-surface/30">
-            <div className="flex items-center gap-1">
-              <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
-                <Image size={13} />
-                Anexar imagem
-              </button>
-              <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
-                <FileText size={13} />
-                Anexar documento
-              </button>
-              <Link href="/biblioteca" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
-                <Library size={13} />
-                Biblioteca
-              </Link>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setCreationMode(prev => prev === "manual" ? "ia" : "manual")}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
-                    creationMode === "ia" ? "bg-brand/10 text-brand" : "text-muted hover:text-foreground hover:bg-surface-strong"
-                  }`}
-                >
-                  {creationMode === "ia" ? <Brain size={13} /> : <Sliders size={13} />}
-                  Ferramentas
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                disabled={actionLoading !== null || !manualIdea.trim()}
-                className="flex items-center gap-1.5 rounded-xl border border-line bg-surface hover:bg-surface-strong px-3.5 py-2 text-[11px] font-bold text-muted hover:text-foreground transition disabled:opacity-30"
-              >
-                {actionLoading === "draft" ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                Rascunho
-              </button>
-              <button
-                type="button"
-                onClick={creationMode === "ia" ? handleGenerateContent : handleSendForReview}
-                disabled={actionLoading !== null || !manualIdea.trim()}
-                className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-4 py-2 text-[11px] font-bold transition shadow-sm shadow-brand/20 disabled:opacity-30"
-              >
-                {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                Criar com IA
-              </button>
-            </div>
-          </div>
-        </div>
-
-            {activeTab !== "videos" ? (
+        {activeTab !== "videos" ? (
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
                     <div className="relative flex flex-col rounded-2xl border border-line/80 bg-surface-strong shadow-md transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 focus-within:shadow-lg">
                       <textarea
@@ -940,7 +793,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </section>
             )}
 
-          {/* ── Controle de IA & Sintonia (below creation panel, full width) ── */}
+                    </div>
+
+          {/* 2. Right Column - AI Control & Carousel */}
+          <div className="lg:col-span-4 lg:row-span-2 flex flex-col gap-6">
+            {/* ── Controle de IA & Sintonia ── */}
           <div className="w-full">
             <div className="relative overflow-hidden w-full rounded-2xl border border-line bg-surface/50 p-5 shadow-xl backdrop-blur-md flex flex-col justify-between min-h-[410px]">
               {/* Decorative Blur */}
@@ -1219,7 +1076,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             </div>
           </div>
 
-        {/* ── Bottom row layout: Operational Acervo or Video Studio (placed below) ── */}
+                  </div>
+
+          {/* 3. Left Column (Bottom) - Acervo / Video Studio */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            {/* ── Bottom row layout: Operational Acervo or Video Studio (placed below) ── */}
         <div className="w-full">
           {activeTab !== "videos" ? (
             <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md">
