@@ -427,7 +427,7 @@ export function AgentEvolutionDashboard() {
                   <div>
                     <select
                       value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
+                      onChange={(e) => setNewCategory(e.target.value as "copy" | "tecnico" | "comercial" | "preferencias")}
                       className="w-full rounded-lg border border-line bg-surface/50 px-2 py-2 text-xs text-foreground focus:border-brand focus:outline-none"
                     >
                       <option value="copy">Copywriting</option>
