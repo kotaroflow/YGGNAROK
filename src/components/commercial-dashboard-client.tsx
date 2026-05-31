@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ShoppingBag, Package, UserCheck, Link2, Megaphone, BarChart3, TrendingUp, FileBarChart,
-  ArrowUpRight, DollarSign, Users, Lock, ChevronRight, Activity, CheckCircle, Play
+  ArrowUpRight, DollarSign, Users, Lock, ChevronRight, Activity, CheckCircle, Play, ArrowLeft
 } from "lucide-react";
 
 // --- Types ---
@@ -116,36 +117,50 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
 
 // --- 1. Commercial Header Component ---
 function CommercialHeader() {
-  return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-line pb-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="h-px w-6 bg-brand" />
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">MERCADO</p>
-        </div>
-        <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
-          Painel Comercial
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Vendas, afiliados, campanhas e métricas de monetização do ecossistema YGGNAROK.
-        </p>
-      </div>
+  const router = useRouter();
 
-      {/* Header Actions */}
-      <div className="flex flex-wrap items-center gap-3 shrink-0">
-        <Link
-          href="/campanhas/nova"
-          className="rounded-xl border border-line bg-surface-strong/30 hover:border-brand/30 hover:text-brand px-4 py-2.5 text-xs font-bold transition shadow-sm"
-        >
-          Nova campanha
-        </Link>
-        <Link
-          href="/integracoes"
-          className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-5 py-2.5 text-xs font-bold transition shadow-md shadow-brand/10"
-        >
-          Conectar integrações
-          <ArrowUpRight size={14} />
-        </Link>
+  return (
+    <div className="flex flex-col gap-4 border-b border-line pb-6">
+      {/* Sleek animated back button */}
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="group flex items-center gap-1.5 text-xs font-bold text-muted hover:text-brand transition-colors w-fit"
+      >
+        <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5 text-muted group-hover:text-brand" />
+        <span>Voltar</span>
+      </button>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="h-px w-6 bg-brand" />
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">MERCADO</p>
+          </div>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
+            Painel Comercial
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Vendas, afiliados, campanhas e métricas de monetização do ecossistema YGGNAROK.
+          </p>
+        </div>
+
+        {/* Header Actions */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <Link
+            href="/campanhas/nova"
+            className="rounded-xl border border-line bg-surface-strong/30 hover:border-brand/30 hover:text-brand px-4 py-2.5 text-xs font-bold transition shadow-sm"
+          >
+            Nova campanha
+          </Link>
+          <Link
+            href="/integracoes"
+            className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-brand-strong text-neutral-950 px-5 py-2.5 text-xs font-bold transition shadow-md shadow-brand/10"
+          >
+            Conectar integrações
+            <ArrowUpRight size={14} />
+          </Link>
+        </div>
       </div>
     </div>
   );
