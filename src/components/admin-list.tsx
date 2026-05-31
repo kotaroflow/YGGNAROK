@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { BackButton } from "@/components/back-button";
 
 export function AdminListPage({
   eyebrow,
@@ -14,6 +15,7 @@ export function AdminListPage({
   return (
     <AppShell>
       <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
+        <BackButton />
         <p className="text-sm font-medium text-brand">{eyebrow}</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{title}</h1>
         <section className="mt-6 rounded-xl border border-line bg-surface p-6 shadow-sm backdrop-blur">

@@ -2,6 +2,7 @@ import { User, Mail, Shield, Key, Bell, Palette, Globe } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentPermissionContext } from "@/server/permissions/context";
+import { BackButton } from "@/components/back-button";
  
 const sections = [
   { id: "perfil", label: "Perfil", icon: User, description: "Nome, avatar e informações pessoais" },
@@ -27,6 +28,7 @@ export default async function MeuPerfilPage() {
     <AppShell>
       <main className="min-h-screen text-foreground">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:px-8">
+          <BackButton />
           {/* Header with avatar */}
           <div className="mb-8 flex items-center gap-5">
             <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-brand text-2xl font-bold text-neutral-950">

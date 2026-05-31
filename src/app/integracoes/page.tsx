@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plug, Camera, Video, MessageCircle, Globe, ArrowUpRight, Check, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { BackButton } from "@/components/back-button";
 
 const integrations = [
   { id: "openrouter", name: "OpenRouter", description: "Modelos de IA (LLaMA, GPT, Claude)", icon: Plug, status: "connected" as const, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
@@ -17,6 +18,7 @@ export default function IntegracoesPage() {
     <AppShell>
       <main className="min-h-screen text-foreground">
         <div className="mx-auto w-full max-w-4xl px-4 py-6 lg:px-8">
+          <BackButton />
           {/* Header */}
           <div className="mb-8">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-brand">Sistema</p>

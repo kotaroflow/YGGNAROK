@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, Copy, Check, ExternalLink, Sparkles, Code, FileText, TrendingUp, Video, Globe } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 
 interface PromptItem {
   id: string;
@@ -86,6 +87,7 @@ export function PromptsClient() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <BackButton />
       {/* Header */}
       <div className="mb-10 text-center sm:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-500 text-xs font-medium mb-3 select-none">
