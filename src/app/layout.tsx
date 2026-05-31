@@ -28,12 +28,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground antialiased">
+      <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("ygn-theme");document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t==="dark"?"dark":"light"}catch(e){document.documentElement.classList.remove("dark");document.documentElement.dataset.theme="light"}`,
+            __html: `try{var t=localStorage.getItem("ygn-theme");if(!t){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t}catch(e){document.documentElement.classList.remove("dark");document.documentElement.dataset.theme="light"}`,
           }}
         />
+      </head>
+      <body className="min-h-full bg-background text-foreground antialiased">
         {children}
       </body>
     </html>

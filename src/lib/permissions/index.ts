@@ -2,6 +2,7 @@ import type { PermissionKey, RoleKey } from "./keys";
 
 export type PermissionContext = {
   userId: string;
+  email?: string | null;
   roles: RoleKey[];
   permissions: PermissionKey[];
   profileIds: string[];

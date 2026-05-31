@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun } from "lucide-react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X, LogOut, MessageSquare, Briefcase, Terminal, Plus, Library, Bot, RefreshCw, ArrowRight, Settings, Globe, HelpCircle, ArrowUpCircle, Download, Info, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
@@ -286,7 +286,7 @@ function RecentsTab() {
 
 function ProjectsSection({ collapsed }: { collapsed: boolean }) {
   const { projects, mounted } = useChatWorkspace();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
 
   function toggleProject(id: string) {
@@ -393,22 +393,14 @@ function ProjectsSection({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-// ─── Theme Toggle (inline for sidebar popover) ──────────────────────────────
+import { useTheme } from "./theme-toggle";
 
 function ThemeToggleInline() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+  const [theme, setTheme] = useTheme();
+  const dark = theme === "dark";
 
   function toggle() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    document.documentElement.dataset.theme = next ? "dark" : "light";
-    window.localStorage.setItem("ygn-theme", next ? "dark" : "light");
-    window.dispatchEvent(new Event("ygn-theme-change"));
+    setTheme(dark ? "light" : "dark");
   }
 
   return (
@@ -437,6 +429,23 @@ export function Sidebar({
   defaultCollapsed?: boolean;
   defaultWidth?: number;
 }) {
+  const router = useRouter();
+  const { createConversation } = useChatWorkspace();
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+
+  const handleNewChat = useCallback(async () => {
+    if (isCreatingChat) return;
+    setIsCreatingChat(true);
+    try {
+      const id = await createConversation({ title: "Nova conversa" });
+      router.push(`/chat?conv=${id}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsCreatingChat(false);
+    }
+  }, [isCreatingChat, createConversation, router]);
+
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(defaultExpandedGroups);
@@ -595,8 +604,8 @@ export function Sidebar({
   // Auto-switch tab based on current pathname
   useEffect(() => {
     if (!isMounted) return;
-    const criacaoHrefs = ["/criar-conteudo", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
-    const mercadoHrefs = ["/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
+    const criacaoHrefs = ["/criar-conteudo", "/estudio-video", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
+    const mercadoHrefs = ["/comercial", "/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
     if (criacaoHrefs.some(h => pathname.startsWith(h))) {
       setActiveTabRaw("criacao");
     } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
@@ -651,7 +660,10 @@ export function Sidebar({
           <div className="px-3 pb-2">
             <div className="flex h-9 rounded-lg bg-black/20 p-1">
               <button
-                onClick={() => setActiveTab("chat")}
+                onClick={() => {
+                  setActiveTab("chat");
+                  router.push("/");
+                }}
                 className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${activeTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
                 <MessageSquare size={14} />
@@ -678,10 +690,19 @@ export function Sidebar({
           <div className="mt-4 flex-1 overflow-y-auto px-2 overscroll-contain">
             {activeTab === "chat" && (
               <div className="mb-4 space-y-0.5 pb-3 border-b border-sidebar-hover/40">
-                <Link href="/chat" className="flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
-                  <Plus size={16} className="text-muted" />
+                <button
+                  type="button"
+                  onClick={handleNewChat}
+                  disabled={isCreatingChat}
+                  className="w-full flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition disabled:opacity-50"
+                >
+                  {isCreatingChat ? (
+                    <Loader2 size={15} className="animate-spin text-brand" />
+                  ) : (
+                    <Plus size={16} className="text-muted" />
+                  )}
                   Novo chat
-                </Link>
+                </button>
                 <ProjectsSection collapsed={collapsed} />
               </div>
             )}
@@ -715,78 +736,88 @@ export function Sidebar({
       )}
 
       {/* Bottom Area */}
-      <div className="mt-auto p-3">
-        <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
-          {!collapsed ? (
-            <div className="flex items-center gap-2">
-              <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
-                K
-              </div>
-              <span className="text-[13px] font-medium text-sidebar-text">
-                kotaro <span className="text-sidebar-text-muted opacity-80">· Free</span>
-              </span>
-            </div>
-          ) : (
-             <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
-                K
-              </div>
-          )}
-          
-          {/* Profile Menu Popover - opens to the RIGHT to avoid sidebar clipping */}
-          <div className="absolute bottom-0 left-full ml-2 z-50 w-64 origin-bottom-left rounded-xl border border-sidebar-hover bg-sidebar p-1.5 opacity-0 invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible shadow-none">
-            <div className="px-2 py-1.5 text-[12px] text-sidebar-text-muted select-none border-b border-sidebar-hover mb-1.5">
-              naoteemteresa@gmail.com
-            </div>
-            
-            <div className="space-y-0.5">
-              <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
-                <Globe size={14} className="text-muted" />
-                <span>Meu Perfil</span>
-              </Link>
-              
-              <Link href="/sistema" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
-                <Settings size={14} className="text-muted" />
-                <span>Configurações do OS</span>
-              </Link>
-              
-              <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
-                <Library size={14} className="text-muted" />
-                <span>Biblioteca de Prompts</span>
-              </Link>
+      {(() => {
+        const email = user?.email ?? "visitante@yggnarok.com";
+        const emailName = email.split("@")[0];
+        const userInitial = emailName.charAt(0).toUpperCase();
+        const isOwner = user?.roles.includes("owner");
+        const planTag = isOwner ? "Admin" : "Free";
 
-              <ThemeToggleInline />
-            </div>
-            
-            <div className="my-1 border-t border-sidebar-hover"></div>
-            
-            <div className="space-y-0.5">
-              <button 
-                type="button"
-                onClick={() => {
-                  if (confirm("Deseja mesmo limpar todo o cache e histórico local do sistema?")) {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.reload();
-                  }
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-red-600 dark:text-red-400 hover:bg-sidebar-hover transition-colors"
-              >
-                <RefreshCw size={14} />
-                <span>Limpar Cache do OS</span>
-              </button>
-            </div>
+        return (
+          <div className="mt-auto p-3">
+            <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
+              {!collapsed ? (
+                <div className="flex items-center gap-2">
+                  <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
+                    {userInitial}
+                  </div>
+                  <span className="text-[13px] font-medium text-sidebar-text truncate max-w-[130px]">
+                    {emailName} <span className="text-sidebar-text-muted opacity-80">· {planTag}</span>
+                  </span>
+                </div>
+              ) : (
+                 <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
+                    {userInitial}
+                  </div>
+              )}
+              
+              {/* Profile Menu Popover - opens to the RIGHT to avoid sidebar clipping */}
+              <div className="absolute bottom-0 left-full ml-2 z-50 w-64 origin-bottom-left rounded-xl border border-sidebar-hover bg-sidebar p-1.5 opacity-0 invisible transition-all duration-200 group-hover:opacity-100 group-hover:visible shadow-none">
+                <div className="px-2 py-1.5 text-[12px] text-sidebar-text-muted select-none border-b border-sidebar-hover mb-1.5 truncate">
+                  {email}
+                </div>
+                
+                <div className="space-y-0.5">
+                  <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                    <Globe size={14} className="text-muted" />
+                    <span>Meu Perfil</span>
+                  </Link>
+                  
+                  <Link href="/sistema" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                    <Settings size={14} className="text-muted" />
+                    <span>Configurações do OS</span>
+                  </Link>
+                  
+                  <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                    <Library size={14} className="text-muted" />
+                    <span>Biblioteca de Prompts</span>
+                  </Link>
 
-            <div className="my-1 border-t border-sidebar-hover"></div>
-            
-            <form action={signOut}>
-              <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
-                <LogOut size={14} className="text-muted" />
-                <span>Sair</span>
-              </button>
-            </form>
+                  <ThemeToggleInline />
+                </div>
+                
+                <div className="my-1 border-t border-sidebar-hover"></div>
+                
+                <div className="space-y-0.5">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Deseja mesmo limpar todo o cache e histórico local do sistema?")) {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        window.location.reload();
+                      }
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-red-600 dark:text-red-400 hover:bg-sidebar-hover transition-colors"
+                  >
+                    <RefreshCw size={14} />
+                    <span>Limpar Cache do OS</span>
+                  </button>
+                </div>
+
+                <div className="my-1 border-t border-sidebar-hover"></div>
+                
+                <form action={signOut}>
+                  <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                    <LogOut size={14} className="text-muted" />
+                    <span>Sair</span>
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
     </aside>
   );
 

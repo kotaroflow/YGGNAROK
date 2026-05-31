@@ -1,6 +1,8 @@
 import { User, Mail, Shield, Key, Bell, Palette, Globe } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentPermissionContext } from "@/server/permissions/context";
+ 
 const sections = [
   { id: "perfil", label: "Perfil", icon: User, description: "Nome, avatar e informações pessoais" },
   { id: "email", label: "E-mail", icon: Mail, description: "E-mail e verificação de conta" },
@@ -10,8 +12,17 @@ const sections = [
   { id: "aparencia", label: "Aparência", icon: Palette, description: "Tema, cores e layout" },
   { id: "idioma", label: "Idioma", icon: Globe, description: "Idioma e região" },
 ];
+ 
+export default async function MeuPerfilPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const permissions = await getCurrentPermissionContext();
 
-export default function MeuPerfilPage() {
+  const email = user?.email ?? "visitante@yggnarok.com";
+  const initial = email.charAt(0).toUpperCase();
+  const isOwner = permissions?.roles.includes("owner");
+  const plan = isOwner ? "Plano Premium / Admin" : "Plano Free / Colaborador";
+
   return (
     <AppShell>
       <main className="min-h-screen text-foreground">
@@ -19,11 +30,11 @@ export default function MeuPerfilPage() {
           {/* Header with avatar */}
           <div className="mb-8 flex items-center gap-5">
             <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-brand text-2xl font-bold text-neutral-950">
-              K
+              {initial}
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Meu Perfil</h1>
-              <p className="mt-1 text-sm text-muted">naoteemteresa@gmail.com · Plano Free</p>
+              <p className="mt-1 text-sm text-muted">{email} · {plan}</p>
             </div>
           </div>
 

@@ -109,7 +109,6 @@ const tabs = [
   { id: "roteiros", label: "Roteiros", icon: ScrollText, description: "Scripts e Falas", color: "from-violet-500/20 to-purple-500/20 text-violet-400 border-violet-500/30" },
   { id: "legendas", label: "Legendas", icon: Subtitles, description: "Copy e Ganchos", color: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30" },
   { id: "hashtags", label: "Hashtags", icon: Hash, description: "Tags e Alcance", color: "from-sky-500/20 to-blue-500/20 text-sky-400 border-sky-500/30" },
-  { id: "videos", label: "Estúdio de Vídeo", icon: Film, description: "Cortes e Linha do Tempo", color: "from-rose-500/20 to-red-500/20 text-rose-400 border-rose-500/30" },
 ];
 
 const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {

@@ -96,6 +96,8 @@ const NEW_FACTS_POOL = [
   "Dica de Hashtags: Tags minimalistas (#yggnarok, #ia) geram 20% mais tráfego qualificado que spam de tags genéricas."
 ];
 
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 export function AgentEvolutionDashboard() {
   const [username, setUsername] = useState("kotaro");
   const [memories, setMemories] = useState<MemoryItem[]>([]);
@@ -109,7 +111,7 @@ export function AgentEvolutionDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFact, setNewFact] = useState("");
   const [newCategory, setNewCategory] = useState<"copy" | "tecnico" | "comercial" | "preferencias">("copy");
-
+ 
   // Active learning reflection simulation state
   const [reflectionStep, setReflectionStep] = useState<number | null>(null);
   const [reflectionLogs, setReflectionLogs] = useState<string[]>([]);
@@ -121,33 +123,36 @@ export function AgentEvolutionDashboard() {
     "Supervisor IA cruzando padrões comportamentais do usuário...",
     "Auto-aprendizado concluído! Novo conhecimento gerado."
   ];
-
+ 
   // Load from localStorage or set defaults
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const activeUser = localStorage.getItem("yggnarok.username") || "kotaro";
+    async function fetchUser() {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const activeUser = user ? (user.email ?? "").split("@")[0] : "visitante";
       setUsername(activeUser);
-
+ 
       const storedMems = localStorage.getItem(`yggnarok.${activeUser}.ltm_memories`);
       const storedMuts = localStorage.getItem(`yggnarok.${activeUser}.prompt_mutations`);
       const storedLvl = localStorage.getItem(`yggnarok.${activeUser}.evolution_level`);
       const storedEff = localStorage.getItem(`yggnarok.${activeUser}.efficiency_rate`);
-
+ 
       if (storedMems) setMemories(JSON.parse(storedMems));
       else {
         setMemories(DEFAULT_MEMORIES);
         localStorage.setItem(`yggnarok.${activeUser}.ltm_memories`, JSON.stringify(DEFAULT_MEMORIES));
       }
-
+ 
       if (storedMuts) setMutations(JSON.parse(storedMuts));
       else {
         setMutations(DEFAULT_MUTATIONS);
         localStorage.setItem(`yggnarok.${activeUser}.prompt_mutations`, JSON.stringify(DEFAULT_MUTATIONS));
       }
-
+ 
       if (storedLvl) setLevel(Number(storedLvl));
       if (storedEff) setEfficiency(Number(storedEff));
     }
+    fetchUser();
   }, []);
 
   // Save memories to localStorage

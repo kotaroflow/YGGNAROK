@@ -5,24 +5,35 @@ import { AgentNodeStudio } from "@/components/agent-node-studio";
 import { AgentEvolutionDashboard } from "@/components/agent-evolution-dashboard";
 import { GitBranch, Brain, Lock, ShieldAlert } from "lucide-react";
 
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 export function AgentesIaClient() {
   const [activeTab, setActiveTab] = useState<"studio" | "evolution">("studio");
   const [username, setUsername] = useState("kotaro");
   
   // Read logged user client-side to avoid hydration mismatch
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("yggnarok.username") || "kotaro";
-      setUsername(stored);
-      
-      // If not admin, default active tab to evolution instead of exposing a blocked studio first
-      if (stored !== "kotaro") {
+    async function fetchUser() {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const email = user.email ?? "";
+        const emailName = email.split("@")[0];
+        setUsername(emailName);
+        
+        const isOwner = emailName === "kotaro" || emailName === "naoteemteresa";
+        if (!isOwner) {
+          setActiveTab("evolution");
+        }
+      } else {
+        setUsername("visitante");
         setActiveTab("evolution");
       }
     }
+    fetchUser();
   }, []);
 
-  const isKotaro = username === "kotaro";
+  const isKotaro = username === "kotaro" || username === "naoteemteresa";
 
   return (
     <main className="w-full px-4 py-6 lg:px-8 space-y-6">

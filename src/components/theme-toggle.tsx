@@ -1,50 +1,61 @@
 "use client";
-
+ 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
-
-type Theme = "light" | "dark";
-
+import { useEffect, useSyncExternalStore, useCallback } from "react";
+ 
+export type Theme = "light" | "dark";
+ 
 const storageKey = "ygn-theme";
 const themeChangeEvent = "ygn-theme-change";
-
+ 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.dataset.theme = theme;
 }
-
+ 
 function getThemeSnapshot(): Theme {
   if (typeof window === "undefined") return "light";
-  return window.localStorage.getItem(storageKey) === "dark" ? "dark" : "light";
+  const saved = window.localStorage.getItem(storageKey);
+  if (saved === "dark" || saved === "light") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
-
+ 
 function subscribeToTheme(callback: () => void) {
   window.addEventListener(themeChangeEvent, callback);
   window.addEventListener("storage", callback);
-
+ 
   return () => {
     window.removeEventListener(themeChangeEvent, callback);
     window.removeEventListener("storage", callback);
   };
 }
 
-export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+export function useTheme() {
   const theme = useSyncExternalStore<Theme>(subscribeToTheme, getThemeSnapshot, () => "light");
+
+  const setTheme = useCallback((nextTheme: Theme) => {
+    window.localStorage.setItem(storageKey, nextTheme);
+    applyTheme(nextTheme);
+    window.dispatchEvent(new Event(themeChangeEvent));
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
+  return [theme, setTheme] as const;
+}
+ 
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const [theme, setTheme] = useTheme();
+ 
   function toggleTheme() {
-    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
-    window.localStorage.setItem(storageKey, nextTheme);
-    applyTheme(nextTheme);
-    window.dispatchEvent(new Event(themeChangeEvent));
+    setTheme(theme === "dark" ? "light" : "dark");
   }
-
+ 
   const Icon = theme === "dark" ? Moon : Sun;
   const label = theme === "dark" ? "Modo escuro" : "Modo claro";
-
+ 
   return (
     <button
       type="button"
