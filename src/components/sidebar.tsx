@@ -720,17 +720,27 @@ export function Sidebar({
             <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
               {!collapsed ? (
                 <div className="flex items-center gap-2">
-                  <div className="grid size-6 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
-                    {userInitial}
-                  </div>
+                  <div 
+                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-[#ebd5aa]"
+                    style={{ 
+                      backgroundImage: 'url(/ygn-coin.png)', 
+                      backgroundPosition: 'left center', 
+                      backgroundSize: '200% 100%' 
+                    }}
+                  />
                   <span className="text-[13px] font-medium text-sidebar-text truncate max-w-[130px]">
                     {emailName} <span className="text-sidebar-text-muted opacity-80">· {planTag}</span>
                   </span>
                 </div>
               ) : (
-                 <div className="mx-auto grid size-7 place-items-center rounded-md bg-brand text-[12px] font-semibold text-white">
-                    {userInitial}
-                  </div>
+                 <div 
+                    className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-[#ebd5aa] transition-transform hover:scale-105"
+                    style={{ 
+                      backgroundImage: 'url(/ygn-coin.png)', 
+                      backgroundPosition: 'right center', 
+                      backgroundSize: '200% 100%' 
+                    }}
+                  />
               )}
               
               {/* Profile Menu Popover - opens to the RIGHT to avoid sidebar clipping */}
