@@ -51,7 +51,7 @@ type WorkspaceContextValue = {
   deleteProject: (id: string) => void;
   addConversationToProject: (projectId: string, conversationId: string, title: string) => void;
   removeConversationFromProject: (projectId: string, conversationId: string) => void;
-  addChat: (chat: Omit<RecentChat, "updatedAt">) => void;
+  addChat: (chat: Omit<RecentChat, "updatedAt">, skipRemote?: boolean) => void;
   pinChat: (id: string) => void;
   renameChat: (id: string, title: string) => void;
   removeChat: (id: string) => void;
@@ -205,14 +205,14 @@ export function ChatWorkspaceProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   useEffect(() => {
-    if (!mounted || mode !== "local") return;
+    if (!mounted) return;
     saveLocalProjects(projects);
-  }, [projects, mounted, mode]);
+  }, [projects, mounted]);
 
   useEffect(() => {
-    if (!mounted || mode !== "local") return;
+    if (!mounted) return;
     saveLocalRecents(recents);
-  }, [recents, mounted, mode]);
+  }, [recents, mounted]);
 
   const createProject = useCallback(
     (name: string, description?: string, path?: string): Project => {
@@ -351,30 +351,40 @@ export function ChatWorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const addChat = useCallback(
-    (chat: Omit<RecentChat, "updatedAt">) => {
+    (chat: Omit<RecentChat, "updatedAt">, skipRemote = false) => {
       setRecents((prev) =>
         sortRecents([{ ...chat, updatedAt: Date.now() }, ...prev.filter((c) => c.id !== chat.id)]),
       );
-      if (mode === "remote") {
-        void fetch("/api/chat/conversations", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: chat.id,
-            title: chat.title,
-            project_id: chat.projectId ?? null,
-            last_message_preview: chat.title,
-          }),
-        }).catch(() => {
+      if (mode === "remote" && !skipRemote) {
+        // If it already exists in the recents list, let's PATCH it to update the title!
+        // Otherwise, if it's completely new, we can POST it to create it.
+        const exists = recents.some((c) => c.id === chat.id);
+        if (exists) {
+          void fetch("/api/chat/conversations", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: chat.id,
+              title: chat.title,
+              project_id: chat.projectId !== undefined ? chat.projectId : undefined,
+              last_message_preview: chat.title,
+            }),
+          }).then(() => refresh());
+        } else {
           void fetch("/api/chat/conversations", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: chat.id, title: chat.title, project_id: chat.projectId ?? null }),
+            body: JSON.stringify({
+              id: chat.id,
+              title: chat.title,
+              project_id: chat.projectId ?? null,
+              last_message_preview: chat.title,
+            }),
           }).then(() => refresh());
-        });
+        }
       }
     },
-    [mode, refresh],
+    [mode, recents, refresh],
   );
 
   const pinChat = useCallback(
@@ -452,7 +462,7 @@ export function ChatWorkspaceProvider({ children }: { children: ReactNode }) {
           title: payload.conversation.title,
           href: `/chat?conv=${id}`,
           projectId: input?.projectId ?? null,
-        });
+        }, true); // skip remote sync because it was just POSTed!
         await refresh();
         return id;
       }

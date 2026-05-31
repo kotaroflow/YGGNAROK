@@ -119,14 +119,6 @@ export function ChatClient() {
     });
   }, [convId, router, searchParams, createConversation]);
 
-  useEffect(() => {
-    if (!convId || mode !== "remote") return;
-    void fetch("/api/chat/conversations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: convId, title: "Nova conversa" }),
-    });
-  }, [convId, mode]);
 
   useEffect(() => {
     if (!convId) return;
