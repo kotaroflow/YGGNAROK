@@ -628,10 +628,10 @@ export function AgentNodeStudio() {
         }
       `}</style>
 
-      <section className="relative overflow-hidden rounded-lg border border-white/70 bg-white/70 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60 flex flex-col">
+      <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-[#0a0a0a] shadow-[0_0_80px_rgba(245,158,11,0.05)] flex flex-col">
         
         {/* Upper Grid toolbar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4 dark:border-white/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-brand/10 px-5 py-4 bg-surface/40">
           <div>
             <p className="text-sm font-medium text-brand flex items-center gap-1.5">
               <Zap size={14} className="text-brand animate-pulse" /> YGGNAROK Node Engine v3.0
@@ -639,10 +639,10 @@ export function AgentNodeStudio() {
             <h1 className="text-xl font-semibold">Orquestrador Neural Dinâmico</h1>
           </div>
           <div className="flex gap-2">
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-900 dark:text-stone-200" onClick={addNode}>
+            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-foreground shadow-sm hover:bg-surface-strong hover:text-brand transition" onClick={addNode}>
               <Plus size={14} /> Novo Node
             </button>
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-900 dark:text-stone-200">
+            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-foreground shadow-sm hover:bg-surface-strong hover:text-brand transition">
               <Save size={14} /> Salvar Fluxo
             </button>
           </div>
@@ -687,7 +687,7 @@ export function AgentNodeStudio() {
         </div>
 
         {/* Canvas area (n8n inspired grid styling) */}
-        <div className="relative h-[580px] min-w-[940px] overflow-auto bg-[linear-gradient(rgba(245,158,11,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.015)_1px,transparent_1px)] bg-[size:28px_28px] dark:bg-neutral-950 grid-bg-overlay flex-grow">
+        <div className="relative h-[580px] min-w-[940px] overflow-auto bg-[linear-gradient(rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:24px_24px] bg-[#0a0a0a] flex-grow">
           
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 980 580" aria-hidden="true">
             <defs>
@@ -732,9 +732,9 @@ export function AgentNodeStudio() {
               key={node.id}
               type="button"
               className={[
-                "absolute h-[100px] w-[168px] rounded-xl border p-3 text-left shadow-lg transition duration-300 backdrop-blur-sm bg-neutral-950/45 node-animation-pop hover:scale-[1.03] hover:border-brand/40",
+                "absolute h-[100px] w-[168px] rounded-xl border p-3 text-left shadow-lg transition-all duration-300 backdrop-blur-md bg-neutral-900/90 node-animation-pop hover:scale-[1.05] hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
                 node.color,
-                selected.id === node.id ? "ring-2 ring-brand/60 border-brand/50 shadow-[0_0_20px_rgba(245,158,11,0.1)]" : "",
+                selected.id === node.id ? "scale-[1.05] ring-2 ring-brand border-brand shadow-[0_0_30px_rgba(245,158,11,0.3)] bg-neutral-900/100 z-10" : "",
               ].join(" ")}
               style={{ left: node.x, top: node.y }}
               onClick={() => setSelectedId(node.id)}
@@ -767,7 +767,7 @@ export function AgentNodeStudio() {
       <aside className="space-y-4 flex flex-col justify-between h-full">
         
         {/* Editor panel */}
-        <div className="rounded-lg border border-white/70 bg-white/70 p-5 shadow-[0_24px_80px_rgba(99,85,74,0.10)] backdrop-blur dark:border-white/10 dark:bg-neutral-950/60 space-y-4">
+        <div className="rounded-2xl border border-line bg-surface/50 p-5 shadow-xl backdrop-blur-md space-y-4">
           <div className="flex items-center gap-3">
             <div className="grid size-9 place-items-center rounded-lg bg-slate-950 text-amber-300 dark:bg-amber-300 dark:text-neutral-950">
               <Brain size={16} />
