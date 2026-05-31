@@ -427,7 +427,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setProgressVal(100);
     showToast("Orquestra de edição finalizada!", "success");
   };
-
   const handleRejectVideo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectionError.trim()) return;
