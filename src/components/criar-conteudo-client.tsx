@@ -7,7 +7,8 @@ import {
   Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle, 
   Trash2, ShieldAlert, Cpu, HelpCircle, Video, Scissors,
   Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image, Check,
-  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library
+  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library,
+  ScrollText, Subtitles, Hash, Globe
 } from "lucide-react";
 import { inputClass } from "@/components/field";
 
@@ -187,6 +188,37 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [, setShowStyleCreator] = useState(false);
 
   const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
+
+  const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
+    const fileNamesMap = {
+      image: "referencia_estilo_moodboard.png",
+      video: "corte_exemplo_referencia.mp4",
+      audio: "efeito_sonoro_swoosh.mp3",
+      doc: "roteiro_planejado_vendas.pdf",
+    };
+    const nextAsset: ReferenceAsset = {
+      id: `asset_${Date.now()}`,
+      name: fileNamesMap[type],
+      type,
+      size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB",
+      status: "uploading",
+      progress: 0,
+    };
+    setReferenceAssets((prev) => [...prev, nextAsset]);
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += 25;
+      setReferenceAssets((prev) => prev.map((a) => (a.id === nextAsset.id ? { ...a, progress: prog } : a)));
+      if (prog >= 100) {
+        clearInterval(interval);
+        setReferenceAssets((prev) => prev.map((a) => (a.id === nextAsset.id ? { ...a, status: "completed" } : a)));
+      }
+    }, 400);
+  };
+
+  const handleRemoveAsset = (id: string) => {
+    setReferenceAssets(referenceAssets.filter((a) => a.id !== id));
+  };
 
   const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
   const [progressVal, setProgressVal] = useState(0);
@@ -381,6 +413,100 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     setVideoTimeline(prev => prev.map(c => c.id === id ? { ...c, script: nextText } : c));
   };
 
+  const runVideoEditingPipeline = async () => {
+    setVideoStatus("analyzing");
+    setProgressVal(15);
+    await new Promise(r => setTimeout(r, 1000));
+    setVideoStatus("projecting");
+    setProgressVal(40);
+    await new Promise(r => setTimeout(r, 1500));
+    setVideoStatus("council_review");
+    setProgressVal(75);
+    await new Promise(r => setTimeout(r, 2000));
+    setVideoStatus("completed");
+    setProgressVal(100);
+    showToast("Orquestra de edição finalizada!", "success");
+  };
+
+  const handleRejectVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectionError.trim()) return;
+
+    const errorFact = `[ERRO DE EDIÇÃO DE VÍDEO DETECTADO] Estilo: ${videoStyle}. Correção crítica exigida: ${rejectionError.trim()}`;
+    const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
+    const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
+    let memoriesList = [];
+    if (storedMems) {
+      memoriesList = JSON.parse(storedMems);
+    }
+    const newMem = {
+      id: `mem_video_error_${Date.now()}`,
+      category: "tecnico" as const,
+      fact: errorFact,
+      timestamp: "Absorbido via Feedback de Edição",
+      confidence: 100
+    };
+    localStorage.setItem(`yggnarok.${username}.ltm_memories`, JSON.stringify([newMem, ...memoriesList]));
+
+    setAbsorbedFeedback([rejectionError.trim(), ...absorbedFeedback]);
+    setVideoStatus("rejected");
+    setRejectionError("");
+    setProgressVal(0);
+    setCouncilMessages([]);
+  };
+
+  const triggerPlatformPublish = (platform: "4k" | "tiktok" | "reels" | "shorts") => {
+    setExportPlatform(platform);
+    setVideoStatus("exporting");
+    setExportStep(0);
+
+    const stepsMap = {
+      "4k": [
+        "Iniciando Renderização H.264 / ProRes a 60fps...",
+        "Calculando anti-aliasing vetorial e sobreposição neon...",
+        "Ajustando bitrate de exportação para 50 Mbps (Qualidade Máxima)...",
+        "✓ Sucesso! Vídeo salvo em ProRes 4K Ultra-HD sem compactação local!"
+      ],
+      tiktok: [
+        "Conectando com a API oficial do TikTok...",
+        "Ignorando compressão automática do servidor TikTok...",
+        "Carregando vídeo original ProRes via Chunk Uploading...",
+        "✓ Sucesso! Vídeo publicado no TikTok em Resolução Nativa Máxima!"
+      ],
+      reels: [
+        "Negociando codec HDR com a API do Instagram Graph...",
+        "Estabilizando taxa de quadros e cores Void & Amber em 4K...",
+        "Carregando arquivo brutamente em alta fidelidade...",
+        "✓ Sucesso! Reels publicado em Altíssima Qualidade no Instagram!"
+      ],
+      shorts: [
+        "Abrindo túnel de alta velocidade com o YouTube Creator API...",
+        "Processando áudio original sem compactação em WAV...",
+        "Transmitindo pacote de dados sem perdas...",
+        "✓ Sucesso! YouTube Short agendado em Ultra-HD original!"
+      ]
+    };
+
+    const steps = stepsMap[platform];
+    setExportLogs([steps[0]]);
+
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx++;
+      if (idx < steps.length) {
+        setExportStep(idx);
+        setExportLogs(prev => [...prev, steps[idx]]);
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setVideoStatus("idle");
+          setExportPlatform(null);
+          setExportLogs([]);
+        }, 3000);
+      }
+    }, 2000);
+  };
+
   return (
     <main className="min-h-screen text-foreground relative overflow-hidden bg-radial-gradient">
       
@@ -546,7 +672,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           <div className="flex items-center justify-between border-t border-line/40 px-4 py-3 bg-surface/30">
             <div className="flex items-center gap-1">
               <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
-                <Image size={13} alt="" />
+                <Image size={13} />
                 Anexar imagem
               </button>
               <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-muted hover:text-foreground hover:bg-surface-strong transition">
@@ -921,7 +1047,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                             <select 
                               className={`${inputClass} border-line bg-surface-strong text-xs font-semibold py-1`}
                               value={videoGenre}
-                              onChange={(e) => setVideoGenre(e.target.value)}
+                              onChange={(e) => setVideoGenre(e.target.value as any)}
                             >
                               <option value="viral">Trends &amp; Virais</option>
                               <option value="educational">Educativo / Tutorial</option>
@@ -1536,7 +1662,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         onClick={() => handleSimulateAssetUpload("image")}
                         className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5"
                       >
-                        <Image size={16} className="text-amber-400" alt="" />
+                        <Image size={16} className="text-amber-400" />
                         <span className="text-[9px] font-bold text-muted">Imagens (Mood)</span>
                       </button>
                       <button 

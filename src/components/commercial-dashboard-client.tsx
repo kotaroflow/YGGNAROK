@@ -11,7 +11,7 @@ import {
 // --- Types & Interfaces ---
 type TabId = "vendas" | "produtos" | "afiliados" | "links" | "campanhas" | "comissoes" | "oportunidades" | "relatorios";
 
-interface SaleItem { id: string; client: string; product: string; value: number; status: string; date: string; }
+interface SaleItem { id: string; client: string; email: string; product: string; value: number; method: string; status: string; date: string; }
 interface ProductItem { id: string; name: string; price: number; sales: number; status: string; }
 interface AffiliateItem { id: string; name: string; commission: number; clicks: number; sales: number; unpaid: number; }
 interface PayoutItem { id: string; value: number; date: string; method: string; status: string; }

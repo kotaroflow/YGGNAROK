@@ -578,7 +578,7 @@ export function EstudioVideoClient() {
                 <select 
                   className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
                   value={videoGenre}
-                  onChange={(e) => setVideoGenre(e.target.value)}
+                  onChange={(e) => setVideoGenre(e.target.value as any)}
                 >
                   <option value="viral">Trends &amp; Virais</option>
                   <option value="educational">Educativos / Tutoriais</option>
@@ -799,7 +799,7 @@ export function EstudioVideoClient() {
                 <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Adicionar Arquivos de Referência</span>
                 <div className="grid grid-cols-4 gap-2">
                   <button type="button" onClick={() => handleSimulateAssetUpload("image")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <Image size={16} className="text-amber-400" alt="" />
+                    <Image size={16} className="text-amber-400" />
                     <span className="text-[9px] font-bold text-muted">Imagem</span>
                   </button>
                   <button type="button" onClick={() => handleSimulateAssetUpload("video")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
