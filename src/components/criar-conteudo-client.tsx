@@ -572,7 +572,13 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
         </div>
 
-        {activeTab !== "videos" ? (
+        
+        {/* ── 12-Column Responsive Grid Layout ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          
+          {/* 1. Left Column (Top) - Creation Engine */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            {activeTab !== "videos" ? (
               <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
                     <div className="relative flex flex-col rounded-2xl border border-line/80 bg-surface-strong shadow-md transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 focus-within:shadow-lg">
                       <textarea
@@ -1677,7 +1683,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           onClick={() => setVideoStatus("idle")}
                           className="px-4 py-2 rounded-xl bg-emerald-500 text-neutral-950 text-xs font-bold hover:bg-emerald-600 transition"
                         >
-                          ✓ Aceitar Vídeo &amp; Salvar no Acervo
+                          ✓ Aceitar Vídeo & Salvar no Acervo
                         </button>
                         <button 
                           onClick={() => setVideoStatus("rejected")}
@@ -1714,7 +1720,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
                     <div className="flex justify-end">
                       <button className="flex items-center gap-1.5 rounded-xl bg-brand py-2 px-4 text-xs font-bold text-neutral-950 shadow-md transition hover:bg-brand-strong">
-                        <Wand2 size={12} /> Absorver Feedback &amp; Lançar Nova Versão
+                        <Wand2 size={12} /> Absorver Feedback & Lançar Nova Versão
                       </button>
                     </div>
                   </form>
@@ -1730,7 +1736,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       {absorbedFeedback.map((fb, idx) => (
                         <p key={idx} className="flex items-center gap-1.5">
                           <span className="text-brand font-bold">•</span>
-                           <span>Fato neural injetado na LTM: <em>&quot;Corrigir: {fb}&quot;</em></span>
+                           <span>Fato neural injetado na LTM: <em>"Corrigir: {fb}"</em></span>
                         </p>
                       ))}
                     </div>

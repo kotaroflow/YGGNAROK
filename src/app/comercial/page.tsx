@@ -6,7 +6,7 @@ export default async function ComercialPage({ searchParams }: { searchParams: Pr
 
   return (
     <AppShell>
-      <main className="min-h-screen text-foreground bg-neutral-950/20">
+      <main className="min-h-screen text-foreground">
         <CommercialDashboardClient initialTab={aba} />
       </main>
     </AppShell>

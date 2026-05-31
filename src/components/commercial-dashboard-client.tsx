@@ -91,7 +91,7 @@ export function CommercialDashboardClient({ initialTab = "vendas" }: { initialTa
       
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-neutral-950 border border-brand/40 text-foreground px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-alert-pop">
+        <div className="fixed top-6 right-6 z-50 bg-surface border border-brand/40 text-foreground px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-alert-pop">
           <div className="size-2 rounded-full bg-brand animate-ping" />
           <span className="text-xs font-bold">{toast.message}</span>
         </div>
@@ -263,7 +263,7 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, status, chip, icon: Icon }: MetricCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/70 p-5 hover:border-brand/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.05)] transition-all duration-300 flex flex-col justify-between min-h-[140px]">
+    <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface/70 p-5 hover:border-brand/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.05)] transition-all duration-300 flex flex-col justify-between min-h-[140px]">
       {/* Decorative Glow */}
       <div className="absolute -right-4 -top-4 size-20 rounded-full bg-brand/5 blur-xl group-hover:bg-brand/10 transition-all duration-300 pointer-events-none" />
 
@@ -271,7 +271,7 @@ function MetricCard({ title, value, status, chip, icon: Icon }: MetricCardProps)
         <div className="size-10 rounded-xl bg-surface/50 border border-line flex items-center justify-center text-brand">
           <Icon size={18} />
         </div>
-        <span className="rounded-full bg-white/[0.04] border border-white/5 px-2.5 py-1 text-[10px] font-bold text-muted select-none">
+        <span className="rounded-full bg-surface/40 border border-line px-2.5 py-1 text-[10px] font-bold text-muted select-none">
           {chip}
         </span>
       </div>
@@ -295,7 +295,7 @@ interface CommercialTabsProps {
 
 function CommercialTabs({ activeTab, onChange }: CommercialTabsProps) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-1.5 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 w-full shadow-inner">
+    <div className="bg-surface/20 border border-line rounded-2xl p-1.5 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 w-full shadow-inner">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -548,13 +548,13 @@ function ProdutosTabContent({ productsList, setProductsList, showToast }: Produt
             <p className="text-xs text-muted mt-1">Clique em &quot;Adicionar Produto&quot; para criar seu primeiro infoproduto.</p>
           </div>
         ) : productsList.map((product) => (
-          <div key={product.id} className="rounded-xl border border-line bg-neutral-900/40 p-5 space-y-4 hover:border-brand/20 transition-all flex flex-col justify-between">
+          <div key={product.id} className="rounded-xl border border-line bg-surface/40 p-5 space-y-4 hover:border-brand/20 transition-all flex flex-col justify-between">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-3">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold ${
                   product.status === "Ativo" 
                     ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" 
-                    : "bg-white/[0.04] border border-white/5 text-muted"
+                    : "bg-surface/40 border border-line text-muted"
                 }`}>
                   {product.status}
                 </span>
@@ -634,7 +634,7 @@ function AfiliadosTabContent({ affiliatesList, setAffiliatesList, showToast }: A
             <p className="text-xs text-muted mt-1">Os afiliados aparecerão aqui quando integrados às plataformas de vendas.</p>
           </div>
         ) : affiliatesList.map((af) => (
-          <div key={af.id} className="rounded-xl border border-line bg-neutral-900/30 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-white/10 transition">
+          <div key={af.id} className="rounded-xl border border-line bg-surface/30 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-line transition">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-foreground">{af.name}</p>
@@ -793,7 +793,7 @@ function LinksTabContent({ showToast }: { showToast: (message: string, type?: "s
 
           {generatedLink ? (
             <div className="space-y-3 animate-alert-pop">
-              <div className="rounded-xl border border-line bg-neutral-950 p-4 font-mono text-[10px] text-brand break-all select-all">
+              <div className="rounded-xl border border-line bg-surface-strong p-4 font-mono text-[10px] text-brand break-all select-all">
                 {generatedLink}
               </div>
 
@@ -910,24 +910,24 @@ function CampanhasTabContent({ setConversionRate, showToast }: CampanhasTabProps
         </div>
 
         {/* Results Screen */}
-        <div className="lg:col-span-2 rounded-xl border border-line bg-neutral-950/40 p-6 flex flex-col justify-between gap-6">
+        <div className="lg:col-span-2 rounded-xl border border-line bg-surface/40 p-6 flex flex-col justify-between gap-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/5 bg-neutral-950/50 p-4 space-y-1">
+            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
               <p className="text-[10px] text-muted uppercase tracking-wider">Custo por Clique (CPC)</p>
               <p className="text-xl font-bold font-mono">R$ {cpc.toFixed(2)}</p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-neutral-950/50 p-4 space-y-1">
+            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
               <p className="text-[10px] text-muted uppercase tracking-wider">Estimativa de Vendas</p>
               <p className="text-xl font-bold font-mono">{generatedSales} un</p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-neutral-950/50 p-4 space-y-1">
+            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
               <p className="text-[10px] text-muted uppercase tracking-wider">Receita Bruta Esperada</p>
               <p className="text-xl font-bold font-mono text-brand">R$ {estimatedRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-neutral-950/50 p-4 space-y-1">
+            <div className="rounded-xl border border-line bg-surface/50 p-4 space-y-1">
               <p className="text-[10px] text-muted uppercase tracking-wider">Lucro Líquido</p>
               <p className={`text-xl font-bold font-mono ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 R$ {netProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -935,7 +935,7 @@ function CampanhasTabContent({ setConversionRate, showToast }: CampanhasTabProps
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-neutral-950 p-5 flex items-center justify-between gap-4">
+          <div className="rounded-xl border border-line bg-surface-strong p-5 flex items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="text-xs font-bold text-muted uppercase tracking-wider">Retorno sobre Investimento (ROI)</p>
               <p className="text-xs text-muted leading-relaxed">Fórmula analítica idealizada para campanhas pagas.</p>
@@ -1020,7 +1020,7 @@ function ComissoesTabContent({
 
       {/* Balance display */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-neutral-950/70 p-5 flex flex-col justify-between gap-4">
+        <div className="rounded-xl border border-line bg-surface/70 p-5 flex flex-col justify-between gap-4">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Saldo Disponível para Saque</span>
             <p className="text-3xl font-black text-emerald-400 font-mono">
@@ -1166,7 +1166,7 @@ function OportunidadesTabContent({
             <p className="text-xs text-muted mt-1">As IAs analisarão seus checkouts e tráfego para sugerir oportunidades de aumento de faturamento.</p>
           </div>
         ) : opportunities.map((op) => (
-          <div key={op.id} className="rounded-xl border border-line bg-neutral-900/30 p-5 flex flex-col justify-between gap-4 hover:border-brand/20 transition-all">
+          <div key={op.id} className="rounded-xl border border-line bg-surface/30 p-5 flex flex-col justify-between gap-4 hover:border-brand/20 transition-all">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{op.id}</span>
@@ -1209,7 +1209,7 @@ function OportunidadesTabContent({
 // --- 4. Reports Empty State Component ---
 function ReportsEmptyState({ showToast }: { showToast: (message: string, type?: "success" | "warning" | "info") => void }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-neutral-950/40 p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start gap-6 backdrop-blur">
+    <div className="rounded-2xl border border-line bg-surface/40 p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start gap-6 backdrop-blur">
       <div className="size-16 rounded-2xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.08)]">
         <FileBarChart size={28} className="animate-pulse" />
       </div>
@@ -1265,7 +1265,7 @@ function IntegrationChecklist() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item, idx) => (
-          <div key={idx} className="rounded-xl border border-line bg-neutral-900/40 p-4 space-y-2 hover:border-white/10 transition">
+          <div key={idx} className="rounded-xl border border-line bg-surface/40 p-4 space-y-2 hover:border-line transition">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs font-semibold text-foreground">{item.label}</p>
               <span className="rounded-full bg-amber-500/10 border border-amber-500/20 text-brand text-[9px] font-bold px-2 py-0.5 select-none shrink-0">
@@ -1289,9 +1289,9 @@ interface PreviewCardProps {
 
 function ReportPreviewCard({ title, description, type }: PreviewCardProps) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-neutral-950/50 p-5 space-y-4 relative overflow-hidden group select-none hover:border-white/15 transition-all duration-300">
+    <div className="rounded-2xl border border-line bg-surface/50 p-5 space-y-4 relative overflow-hidden group select-none hover:border-line transition-all duration-300">
       {/* Locked Overlay */}
-      <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+      <div className="absolute inset-0 bg-surface/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
         <div className="bg-surface border border-line rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl">
           <Lock size={12} className="text-brand" />
           <span className="text-[10px] font-bold text-foreground">Conecte Integrações para Liberar</span>
