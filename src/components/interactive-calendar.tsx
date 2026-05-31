@@ -28,6 +28,10 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
+  const [schedulingDate, setSchedulingDate] = useState<Date | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftNote, setDraftNote] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -74,7 +78,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
         </div>
         <button
           type="button"
-          onClick={() => router.push("/criar-conteudo")}
+          onClick={() => setSchedulingDate(new Date())}
           className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-brand-strong"
         >
           <Plus size={16} />
@@ -128,8 +132,13 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
             return (
               <div
                 key={i}
-                className={`min-h-[110px] p-2 transition hover:bg-surface-strong/30 flex flex-col justify-between ${
-                  day === null ? "bg-surface-strong/10 opacity-30" : "bg-surface"
+                onClick={() => {
+                  if (day !== null) {
+                    setSchedulingDate(new Date(year, month, day));
+                  }
+                }}
+                className={`min-h-[110px] p-2 transition hover:bg-surface-strong/30 flex flex-col justify-between cursor-pointer ${
+                  day === null ? "bg-surface-strong/10 opacity-30 cursor-default" : "bg-surface"
                 }`}
               >
                 {day !== null ? (
@@ -157,7 +166,10 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => setSelectedItem(item)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedItem(item);
+                            }}
                             className={`w-full text-left truncate text-[10px] font-semibold border rounded px-1.5 py-0.5 transition hover:brightness-125 ${statusColor}`}
                           >
                             [{item.platform || "Multi"}] {item.title}
@@ -214,6 +226,99 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
               >
                 Fechar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft "Sticky Note" Modal (Void & Amber Style) */}
+      {schedulingDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-brand/40 bg-[#0a0a0a] shadow-[0_0_40px_-10px_rgba(245,158,11,0.15)] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+            {/* Top accent bar (Sticky Note aesthetic) */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-brand to-brand-strong" />
+            
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-brand flex items-center gap-2">
+                    <Plus size={18} />
+                    Novo Agendamento
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    <Clock size={12} className="inline mr-1" />
+                    Para: {schedulingDate.toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSchedulingDate(null);
+                    setDraftTitle("");
+                    setDraftNote("");
+                  }}
+                  className="rounded-lg p-1 text-muted hover:bg-surface-strong hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Título do conteúdo ou lembrete..."
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  className="w-full rounded-lg border border-line bg-surface p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
+                />
+                
+                <textarea
+                  rows={4}
+                  placeholder="Escreva a ideia, notas ou rascunho aqui..."
+                  value={draftNote}
+                  onChange={(e) => setDraftNote(e.target.value)}
+                  className="w-full resize-none rounded-lg border border-line bg-surface p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
+                />
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => router.push("/criar-conteudo")}
+                  className="text-xs font-semibold text-muted hover:text-brand transition underline decoration-dashed underline-offset-4"
+                >
+                  Abrir no Estúdio IA
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSchedulingDate(null);
+                      setDraftTitle("");
+                      setDraftNote("");
+                    }}
+                    className="rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:bg-surface-strong hover:text-foreground transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSaving(true);
+                      setTimeout(() => {
+                        setIsSaving(false);
+                        setSchedulingDate(null);
+                        setDraftTitle("");
+                        setDraftNote("");
+                      }, 600);
+                    }}
+                    disabled={isSaving || !draftTitle.trim()}
+                    className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-neutral-950 transition hover:bg-brand-strong disabled:opacity-50"
+                  >
+                    {isSaving ? "Salvando..." : "Salvar Post-it"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
