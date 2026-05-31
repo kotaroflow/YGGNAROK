@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
-import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef, useCallback, memo } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { signOut } from "@/server/actions/auth";
@@ -12,6 +12,9 @@ import type { RecentChat } from "@/lib/use-recent-chats";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
+
+const criacaoHrefs = ["/criar-conteudo", "/estudio-video", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
+const mercadoHrefs = ["/comercial", "/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
 
 const defaultExpandedGroups: Record<string, boolean> = {
   iriguchi: true,
@@ -50,7 +53,7 @@ function readSavedMobileOpen() {
 
 // ─── Recent Chat Item (Claude-style) ────────────────────────────────────────
 
-function RecentChatItem({
+const RecentChatItem = memo(function RecentChatItem({
   chat,
   onDelete,
   onRename,
@@ -225,11 +228,11 @@ function RecentChatItem({
       </div>
     </div>
   );
-}
+});
 
 // ─── Recent chats list ───────────────────────────────────────────────────────
 
-function RecentsTab() {
+const RecentsTab = memo(function RecentsTab() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeConv = searchParams.get("conv");
@@ -272,11 +275,11 @@ function RecentsTab() {
       ))}
     </>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ProjectsSection({ collapsed }: { collapsed: boolean }) {
+const ProjectsSection = memo(function ProjectsSection({ collapsed }: { collapsed: boolean }) {
   const { projects, mounted } = useChatWorkspace();
   const [expanded, setExpanded] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
@@ -383,7 +386,7 @@ function ProjectsSection({ collapsed }: { collapsed: boolean }) {
       )}
     </div>
   );
-}
+});
 
 import { useTheme } from "./theme-toggle";
 
@@ -573,16 +576,11 @@ export function Sidebar({
   // Auto-switch tab based on current pathname
   useEffect(() => {
     if (!isMounted) return;
-    const criacaoHrefs = ["/criar-conteudo", "/estudio-video", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
-    const mercadoHrefs = ["/comercial", "/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
-    const timer = setTimeout(() => {
-      if (criacaoHrefs.some(h => pathname.startsWith(h))) {
-        setActiveTabRaw("criacao");
-      } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
-        setActiveTabRaw("mercado");
-      }
-    }, 0);
-    return () => clearTimeout(timer);
+    if (criacaoHrefs.some(h => pathname.startsWith(h))) {
+      setActiveTabRaw("criacao");
+    } else if (mercadoHrefs.some(h => pathname.startsWith(h))) {
+      setActiveTabRaw("mercado");
+    }
   }, [pathname, isMounted]);
 
   const sidebar = (
@@ -593,7 +591,7 @@ export function Sidebar({
         width: collapsed ? "4.5rem" : `${sidebarWidth}px`, 
         transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s" 
       }}
-      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted shrink-0 rounded-xl"
+      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted shrink-0 rounded-xl select-none"
     >
       {/* Resizer Handle */}
       {!collapsed && (
@@ -634,7 +632,7 @@ export function Sidebar({
               <button
                 onClick={() => {
                   setActiveTab("chat");
-                  router.push("/");
+                  if (pathname !== "/" && pathname !== "/chat") router.push("/");
                 }}
                 className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${activeTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
@@ -683,25 +681,7 @@ export function Sidebar({
               {activeTab === "chat" ? "Recentes" : activeTab === "criacao" ? "Criação & IA" : "Comercial"}
             </p>
             <div className="space-y-0.5">
-              {activeTab === "chat" ? (
-              <Suspense fallback={<p className="px-3 py-2 text-[12px] text-stone-500">Carregando…</p>}>
-                <RecentsTab />
-              </Suspense>
-              ) : activeTab === "criacao" ? (
-                visibleGroups.filter(g => g.id === "sosaku-kobo").flatMap(g => g.items).map(item => (
-                  <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
-                    <item.icon size={14} className="shrink-0 text-muted" />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                ))
-              ) : activeTab === "mercado" ? (
-                visibleGroups.filter(g => g.id === "ura-ichiba").flatMap(g => g.items).map(item => (
-                  <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
-                    <item.icon size={14} className="shrink-0 text-muted" />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                ))
-              ) : null}
+              {tabItems}
             </div>
           </div>
         </>

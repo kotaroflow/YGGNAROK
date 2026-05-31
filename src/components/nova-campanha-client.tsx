@@ -40,7 +40,7 @@ export function NovaCampanhaClient() {
   };
 
   return (
-    <main className="min-h-screen text-foreground px-4 py-8 lg:px-8 bg-neutral-950">
+    <main className="min-h-screen text-foreground px-4 py-8 lg:px-8 relative">
       <div className="mx-auto w-full max-w-2xl">
         <BackButton />
 
@@ -57,7 +57,7 @@ export function NovaCampanhaClient() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-neutral-900/40 p-4 font-mono text-[10px] text-brand break-all select-all max-w-md mx-auto">
+            <div className="rounded-xl border border-line bg-surface-strong/40 p-4 font-mono text-[10px] text-brand break-all select-all max-w-md mx-auto">
               https://yggnarok.com/lnk?url=checkout&amp;utm_source={source}&amp;utm_medium={utmMedium}&amp;utm_campaign={utmCampaign}
             </div>
 
@@ -71,7 +71,7 @@ export function NovaCampanhaClient() {
             </button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden backdrop-blur flex flex-col transition hover:border-white/10">
+          <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden backdrop-blur flex flex-col transition hover:border-brand/30">
             {/* Decorative glows */}
             <div className="absolute -right-20 -top-20 size-40 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
 
