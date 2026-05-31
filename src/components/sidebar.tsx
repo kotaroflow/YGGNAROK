@@ -745,7 +745,7 @@ export function Sidebar({
                     <span>Meu Perfil</span>
                   </Link>
                   
-                  <Link href="/sistema" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
+                  <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover transition-colors">
                     <Settings size={14} className="text-muted" />
                     <span>Configurações do OS</span>
                   </Link>
