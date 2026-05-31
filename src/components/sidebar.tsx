@@ -730,8 +730,8 @@ export function Sidebar({
                     className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-[#ebd5aa]"
                     style={{ 
                       backgroundImage: 'url(/ygn-coin.png)', 
-                      backgroundPosition: 'left center', 
-                      backgroundSize: '200% 100%' 
+                      backgroundPosition: '15% 50%', 
+                      backgroundSize: '180%' 
                     }}
                   />
                   <span className="text-[13px] font-medium text-sidebar-text truncate max-w-[130px]">
@@ -743,8 +743,8 @@ export function Sidebar({
                     className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-[#ebd5aa] transition-transform hover:scale-105"
                     style={{ 
                       backgroundImage: 'url(/ygn-coin.png)', 
-                      backgroundPosition: 'right center', 
-                      backgroundSize: '200% 100%' 
+                      backgroundPosition: '85% 50%', 
+                      backgroundSize: '180%' 
                     }}
                   />
               )}
