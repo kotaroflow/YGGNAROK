@@ -457,10 +457,10 @@ export function AgentNodeStudio() {
         setNodes((current) => 
           current.map((n) => {
             // Realignment (perfect grid snapping + vertical alignment)
-            const updatedY = n.y;
+            let updatedY = n.y;
 
             if (n.id === "creator") {
-              updatedY = 90; // Snap
+              updatedY = 90;
               return {
                 ...n,
                 label: "Hefesto Pro",
@@ -471,7 +471,7 @@ export function AgentNodeStudio() {
               };
             }
             if (n.id === "strategy" || n.id === "cro_expert") {
-              updatedY = 310; // Snap
+              updatedY = 310;
               return {
                 ...n,
                 label: n.label + " Optimized",
