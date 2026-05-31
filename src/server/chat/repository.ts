@@ -44,12 +44,9 @@ type LooseClient = {
 
 async function client() {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase: supabase as unknown as LooseClient, userId: user.id };
+  return { supabase: supabase as unknown as LooseClient };
 }
+
 
 export async function listWorkspace(userId: string) {
   const ctx = await client();

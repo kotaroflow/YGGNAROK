@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowUp, StopCircle, Trash2, Bot, User } from "lucide-react";
+import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image, FileText, X } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
 import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel, getSectorFromPath } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
@@ -14,6 +14,25 @@ import {
   saveConversation,
   type ChatMessage,
 } from "@/lib/chat-storage";
+
+function cleanAssistantContent(content: string): string {
+  if (!content) return "";
+  // Strip lines starting with [FATO NEURAL DETECTADO: ...] or other bracketed memories
+  let cleaned = content.replace(/\[FATO NEURAL DETECTADO:\s*[\s\S]*?\]/gi, "");
+  cleaned = cleaned.replace(/\[MEMÓRIA DO CONTEXTO ANTERIOR[\s\S]*?\]/gi, "");
+  return cleaned.trim();
+}
+
+function parseMessageFiles(content: string) {
+  const fileRegex = /\[Arquivo Anexo:\s*([^\]]+)\s*\(([^)]+)\)\]/g;
+  const files: { name: string; type: string }[] = [];
+  let match;
+  while ((match = fileRegex.exec(content)) !== null) {
+    files.push({ name: match[1], type: match[2] });
+  }
+  const cleanContent = content.replace(fileRegex, "").trim();
+  return { files, cleanContent };
+}
 
 function uid() {
   return newConversationId();
@@ -40,18 +59,63 @@ export function ChatClient() {
     return Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
   });
 
+  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; type: string; url?: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleAttachClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const newFiles = Array.from(files).map(file => {
+      const isImage = file.type.startsWith("image/");
+      return {
+        id: Math.random().toString(36).substring(7),
+        name: file.name,
+        type: file.type,
+        url: isImage ? URL.createObjectURL(file) : undefined
+      };
+    });
+
+    setAttachedFiles(prev => [...prev, ...newFiles]);
+    e.target.value = "";
+  }
+
+  function removeAttachedFile(id: string) {
+    setAttachedFiles(prev => {
+      const target = prev.find(f => f.id === id);
+      if (target?.url) {
+        URL.revokeObjectURL(target.url);
+      }
+      return prev.filter(f => f.id !== id);
+    });
+  }
+
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialQuerySentRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isCreatingRef = useRef(false);
+
   useEffect(() => {
-    if (convId) return;
+    if (convId) {
+      isCreatingRef.current = false;
+      return;
+    }
+    if (isCreatingRef.current) return;
+    isCreatingRef.current = true;
+
     void createConversation({ title: "Nova conversa" }).then((id) => {
       const q = searchParams.get("q");
       const query = q ? `&q=${encodeURIComponent(q)}` : "";
       router.replace(`/chat?conv=${id}${query}`);
+    }).catch(() => {
+      isCreatingRef.current = false;
     });
   }, [convId, router, searchParams, createConversation]);
 
@@ -175,18 +239,23 @@ export function ChatClient() {
     // Rule 2: Code detection (Qwen 2.5 Coder 32B - Free)
     const isCodeRequest = 
       textForRouting.includes("```") || 
-      /\b(function|const|let|import|javascript|typescript|python|html|css|sql|api|nextjs|react|código|programar|programação|bug|erro|compilar)\b/.test(textForRouting);
+      /\b(function|const|let|import|javascript|typescript|python|html|css|sql|api|nextjs|react|código|programar|programação|bug|erro|compilar|site|página|layout|front-end|frontend|backend|componente|tela|estilizar|style|class|div|button|link|input|span|pages|route|db|database|supabase|vercel|deploy|build|npm|yarn|package|json|git|github|console|log|alert|window|document|href|target)\b/.test(textForRouting);
       
     // Rule 3: Business, Marketing & Strategic reasoning (Llama 3.3 70B - Free)
-    const isBusinessRequest = /\b(campanha|estratégia|marketing|copywriting|vendas|negócio|copy|redigir|vender|análise de mercado|plano de negócios|estratégico|lançamento|conversão)\b/.test(textForRouting);
+    const isBusinessRequest = /\b(campanha|estratégia|marketing|copywriting|vendas|negócio|copy|redigir|vender|análise de mercado|plano de negócios|estratégico|lançamento|conversão|monetização|precificação|produto|funil|lead|tráfego|anúncio|ads|seo)\b/.test(textForRouting);
 
     // Rule 4: Deep Logic, Mathematics & Science (DeepSeek R1 - Free Reasoning)
-    const isLogicRequest = /\b(calcule|equação|lógica|matemática|raciocínio|científico|algoritmo|fórmula|física|química|resolver problema)\b/.test(textForRouting);
+    const isLogicRequest = /\b(calcule|equação|lógica|matemática|raciocínio|científico|algoritmo|fórmula|física|química|resolver problema|complexo|matemático|filosofia|dedução|indução)\b/.test(textForRouting);
 
     // Rule 5: Greetings & basic messages (Llama 3.1 8B - Fast & Free)
     const isSimpleGreeting = 
       content.length < 15 || 
       /\b(oi|olá|ola|bom dia|boa tarde|boa noite|opa|valeu|obrigado|obrigada|hey|hello|hi|tudo bem|tudo bom)\b/.test(textForRouting);
+
+    // Rule 6: Specific detailed query
+    const isSpecificQuery = 
+      content.length > 50 || 
+      /\b(como|por que|porque|explique|diferença|quais|qual|passos|analise|comparação|vantagens|desvantagens|tutorial|passo a passo)\b/.test(textForRouting);
 
     const premiumModels = [
       "openai/gpt-4o",
@@ -211,6 +280,8 @@ export function ChatClient() {
         modelToUse = "qwen/qwen-2.5-coder-32b-instruct"; // Free & specialized
       } else if (isLogicRequest) {
         modelToUse = "google/gemini-2.0-flash-thinking-exp"; // Free reasoning
+      } else if (isSpecificQuery || isBusinessRequest) {
+        modelToUse = "meta-llama/llama-3.3-70b-instruct"; // Free market flagship for specific/business questions
       } else if (premiumModels.includes(selectedModel)) {
         // Respect thinking/creative custom choices if already Anthropic or Grok 3
         if (selectedModel.startsWith("anthropic/") || selectedModel === "x-ai/grok-3") {
@@ -225,6 +296,8 @@ export function ChatClient() {
       // Mercado & Vendas Sector: prioritize CRO, copy, sales campaigns, analytics
       if (isLogicRequest) {
         modelToUse = "deepseek/deepseek-r1"; // Free reasoning
+      } else if (isSpecificQuery || isBusinessRequest) {
+        modelToUse = "meta-llama/llama-3.3-70b-instruct"; // Free market flagship
       } else if (premiumModels.includes(selectedModel)) {
         if (selectedModel === "x-ai/grok-3" || selectedModel === "openai/gpt-4o" || selectedModel.startsWith("anthropic/claude-3-opus")) {
           modelToUse = selectedModel;
@@ -255,6 +328,10 @@ export function ChatClient() {
         modelToUse = "qwen/qwen-2.5-coder-32b-instruct";
       } else if (isLogicRequest) {
         modelToUse = "deepseek/deepseek-r1";
+      } else if (isBusinessRequest) {
+        modelToUse = "meta-llama/llama-3.3-70b-instruct";
+      } else if (isSpecificQuery) {
+        modelToUse = "meta-llama/llama-3.3-70b-instruct"; // Switch to high-capacity 70B for specific queries
       } else if (isSimpleGreeting) {
         modelToUse = "meta-llama/llama-3.2-3b-instruct"; // Ultra fast free
       } else if (premiumModels.includes(selectedModel)) {
@@ -303,6 +380,13 @@ export function ChatClient() {
     }
     // ------------------------------------------------------------
 
+    let finalContent = content;
+    if (attachedFiles.length > 0) {
+      const fileListStr = attachedFiles.map(f => `[Arquivo Anexo: ${f.name} (${f.type})]`).join("\n");
+      finalContent = `${fileListStr}\n\n${content}`;
+      setAttachedFiles([]);
+    }
+
     abortRef.current?.abort();
     const abort = new AbortController();
     abortRef.current = abort;
@@ -310,7 +394,7 @@ export function ChatClient() {
     setError(null);
     setStatus("streaming");
 
-    const userMessage: ChatMessage = { id: uid(), role: "user", content };
+    const userMessage: ChatMessage = { id: uid(), role: "user", content: finalContent };
     const assistantId = uid();
 
     setMessages((current) => [
@@ -402,6 +486,8 @@ export function ChatClient() {
       // fallback
     }
 
+    let accumulatedContent = "";
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -427,6 +513,7 @@ export function ChatClient() {
         if (!value) continue;
         const chunk = decoder.decode(value, { stream: true });
         if (!chunk) continue;
+        accumulatedContent += chunk;
         setMessages((current) =>
           current.map((m) =>
             m.id === assistantId ? { ...m, content: m.content + chunk } : m,
@@ -435,10 +522,27 @@ export function ChatClient() {
       }
 
       setStatus("idle");
+
+      // Save conversation immediately after streaming finishes successfully!
+      const finalMessages: ChatMessage[] = [
+        ...messages,
+        userMessage,
+        { id: assistantId, role: "assistant", content: accumulatedContent }
+      ];
+      void saveConversation(convId, finalMessages);
     } catch (err) {
       if (abort.signal.aborted) return;
       setStatus("error");
       setError(err instanceof Error ? err.message : "Falha desconhecida.");
+
+      if (accumulatedContent.length > 0) {
+        const finalMessages: ChatMessage[] = [
+          ...messages,
+          userMessage,
+          { id: assistantId, role: "assistant", content: accumulatedContent }
+        ];
+        void saveConversation(convId, finalMessages);
+      }
     }
   }
 
@@ -492,6 +596,39 @@ export function ChatClient() {
   const renderInputBox = (centered: boolean) => (
     <div className={`mx-auto w-full ${centered ? "max-w-2xl" : "max-w-3xl"}`}>
       <div className={`relative flex flex-col rounded-2xl border border-line shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15 ${centered ? "bg-surface-strong/50 backdrop-blur-md" : "bg-surface-strong"}`}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          multiple
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+        />
+
+        {attachedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-4 pb-2 pt-3 border-b border-line/10">
+            {attachedFiles.map((file) => (
+              <div key={file.id} className="relative flex items-center gap-2 rounded-xl border border-line bg-surface/80 px-2.5 py-1 text-xs text-foreground shadow-sm">
+                {file.type.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={file.url} alt={file.name} className="h-5 w-5 rounded object-cover" />
+                ) : (
+                  <FileText size={13} className="text-brand shrink-0" />
+                )}
+                <span className="max-w-[100px] truncate font-medium">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachedFile(file.id)}
+                  className="ml-1 text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  title="Remover arquivo"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <textarea
           ref={textareaRef}
           value={input}
@@ -510,6 +647,14 @@ export function ChatClient() {
                 saveSelectedModel(id);
               }}
             />
+            <button
+              type="button"
+              onClick={handleAttachClick}
+              className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-sidebar-hover hover:text-foreground cursor-pointer"
+              title="Anexar arquivos ou imagens"
+            >
+              <Paperclip size={15} />
+            </button>
             {spentCost > 0 && (
               <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg border border-line bg-surface/50 text-[11px] font-medium select-none shadow-sm transition-all duration-300">
                 {spentCost < 2.00 ? (
@@ -638,7 +783,30 @@ export function ChatClient() {
                     : "text-foreground pt-1.5"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{m.content}</p>
+                {m.role === "user" ? (() => {
+                  const { files, cleanContent } = parseMessageFiles(m.content);
+                  return (
+                    <>
+                      {files.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {files.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-2 rounded-lg border border-line bg-surface/50 px-2.5 py-1 text-xs text-foreground font-medium select-none shadow-sm">
+                              {file.type.startsWith("image/") ? (
+                                <Image size={13} className="text-brand shrink-0" />
+                              ) : (
+                                <FileText size={13} className="text-brand shrink-0" />
+                              )}
+                              <span className="max-w-[120px] truncate">{file.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="whitespace-pre-wrap">{cleanContent}</p>
+                    </>
+                  );
+                })() : (
+                  <p className="whitespace-pre-wrap">{cleanAssistantContent(m.content)}</p>
+                )}
               </div>
             </div>
           ))}
