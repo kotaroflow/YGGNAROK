@@ -583,6 +583,32 @@ export function Sidebar({
     }
   }, [pathname, isMounted]);
 
+  const tabItems = useMemo(() => {
+    if (activeTab === "criacao") {
+      return visibleGroups
+        .filter(g => g.id === "sosaku-kobo")
+        .flatMap(g => g.items)
+        .map(item => (
+          <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
+            <item.icon size={14} className="shrink-0 text-muted" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        ));
+    }
+    if (activeTab === "mercado") {
+      return visibleGroups
+        .filter(g => g.id === "ura-ichiba")
+        .flatMap(g => g.items)
+        .map(item => (
+          <Link key={item.href} href={item.href} className="flex min-h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition">
+            <item.icon size={14} className="shrink-0 text-muted" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        ));
+    }
+    return null;
+  }, [activeTab, visibleGroups]);
+
   const sidebar = (
     <aside
       ref={sidebarRef}
