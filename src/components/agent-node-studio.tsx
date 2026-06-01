@@ -149,12 +149,13 @@ export function AgentNodeStudio() {
     if (!draggingNodeId || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     
-    // Calculate new position based on pointer minus offset, adjusted for the 120% scale wrapper offset
-    let newX = e.clientX - rect.left - dragOffset.x - 80; // -80 offset from the wrapper size
-    let newY = e.clientY - rect.top - dragOffset.y - 40;  // -40 offset
+    // Calculate new position based on pointer minus offset
+    let newX = e.clientX - rect.left - dragOffset.x;
+    let newY = e.clientY - rect.top - dragOffset.y;
 
-    if (newX < -80) newX = -80;
-    if (newY < -40) newY = -40;
+    // Boundary constraints
+    if (newX < 0) newX = 0;
+    if (newY < 0) newY = 0;
 
     setNodes(prev => prev.map(node => 
       node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
@@ -758,39 +759,38 @@ export function AgentNodeStudio() {
         >
           {/* Inner 3D Container (Curved Globe Setup) */}
           <div 
-            className="relative w-[130%] h-[130%] transition-transform duration-200 ease-out"
+            className="relative w-full h-full transition-transform duration-200 ease-out"
             style={{ 
-              transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg) translateZ(-50px)`,
+              transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg)`,
               transformStyle: 'preserve-3d'
             }}
           >
-            {/* Background Miku Matrix with spherical mask effect */}
+            {/* The Globe Background Layer (Massive Sphere) */}
             <div 
-              className="absolute inset-0 bg-cover bg-no-repeat pointer-events-none"
+              className="absolute rounded-full pointer-events-none"
               style={{ 
+                width: '1800px',
+                height: '1800px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%) translateZ(-350px)',
                 backgroundImage: "url('/neural-bg.png')",
-                backgroundPosition: '50% 50%',
-                transform: 'translateZ(-400px) scale(1.4)', 
-                opacity: 0.6,
-                maskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)',
-                WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)'
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                opacity: 0.65,
+                // Inset shadow creates the 3D spherical volume (dark edges, brighter center)
+                boxShadow: 'inset 0 0 300px 200px rgba(0,0,0,0.95), inset 0 0 100px 50px rgba(0,0,0,0.8)'
               }}
             />
             
-            {/* Holographic Grid overlay (Inner spherical depth) */}
+            {/* Holographic Grid overlay */}
             <div 
-              className="absolute inset-0 pointer-events-none opacity-40 bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:32px_32px]"
-              style={{ 
-                transform: 'translateZ(-200px)',
-                maskImage: 'radial-gradient(circle at center, black 30%, transparent 100%)',
-                WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 100%)'
-              }}
+              className="absolute inset-0 pointer-events-none opacity-30 bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:32px_32px]"
+              style={{ transform: 'translateZ(-150px)' }}
             />
-          
-            {/* Vignette Escura para forçar o aspecto de "Tubo" (Inwards) */}
-            <div className="absolute inset-0 pointer-events-none rounded-[100%] shadow-[inset_0_0_150px_100px_rgba(0,0,0,0.95)] z-0" style={{ transform: 'translateZ(-150px)' }} />
 
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1100 700" aria-hidden="true" style={{ transform: 'translateZ(0px)' }}>
+            {/* SVG Edges without viewBox to guarantee pixel-perfect match with CSS coordinates */}
+            <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" style={{ transform: 'translateZ(0px)', overflow: 'visible' }}>
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
                 <path d="M0,0 L0,5 L8,2.5 z" className="fill-brand/60" />
@@ -801,11 +801,11 @@ export function AgentNodeStudio() {
               const to = nodeMap.get(edge.to);
               if (!from || !to) return null;
               
-              // Offsets applied on node render: left + 80, top + 40
-              const x1 = from.x + 80 + 168; // 168 is node width
-              const y1 = from.y + 40 + 50;  // 50 is half node height
-              const x2 = to.x + 80;
-              const y2 = to.y + 40 + 50;
+              // No additional container offset needed if we match the absolute layout properly
+              const x1 = from.x + 168; // 168 is node width
+              const y1 = from.y + 50;  // 50 is half node height
+              const x2 = to.x;
+              const y2 = to.y + 50;
               const mid = Math.max(48, Math.abs(x2 - x1) / 2);
  
               return (
@@ -839,8 +839,8 @@ export function AgentNodeStudio() {
                 draggingNodeId === node.id ? "cursor-grabbing scale-105" : "cursor-grab"
               ].join(" ")}
               style={{ 
-                left: node.x + 80, // Offset for 120% container sizing
-                top: node.y + 40,
+                left: node.x,
+                top: node.y,
                 transform: `translateZ(${draggingNodeId === node.id ? '60px' : (selected.id === node.id ? '40px' : '20px')})`,
                 transformStyle: 'preserve-3d',
                 touchAction: 'none'
