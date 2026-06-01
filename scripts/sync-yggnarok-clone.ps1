@@ -22,7 +22,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $AntigravityRoot = "C:\Users\Administrador\YGGNAROK"
-$CursorRoot = "C:\Users\Administrador\YGGNAROK-1"
+$CursorRoot = "C:\Users\Administrador\YGGNAROK-2"
+if (-not (Test-Path $CursorRoot)) {
+    $CursorRoot = "C:\Users\Administrador\YGGNAROK-1"
+}
 
 if (-not (Test-Path $AntigravityRoot)) {
     throw "Pasta nao encontrada: $AntigravityRoot"
