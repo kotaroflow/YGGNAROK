@@ -35,11 +35,16 @@ export default async function PainelPage() {
 
   return (
     <AppShell>
-      <main className="min-h-screen px-4 py-6 text-foreground lg:px-8">
-        <header className="mx-auto mb-8 flex w-full max-w-7xl flex-wrap items-end justify-between gap-4">
+      <main className="relative min-h-screen px-4 py-6 text-foreground lg:px-8">
+        
+        {/* Ambient Light Orbs for Void Mode Legibility */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
+        <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+
+        <header className="relative z-10 mx-auto mb-8 flex w-full max-w-7xl flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-brand">Operação</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">Painel operacional</h1>
+            <h1 className="mt-1 font-divine text-3xl sm:text-4xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">Painel Operacional</h1>
             <p className="mt-2 text-sm text-muted">
               Trabalhos, filas e fluxos do YGGNAROK.
             </p>
@@ -52,12 +57,12 @@ export default async function PainelPage() {
           </Link>
         </header>
 
-        <section className="mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-3">
+        <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-3">
           {stats.map((stat) => (
             <Link
               key={stat.label}
               href={stat.href}
-              className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm backdrop-blur transition hover:border-brand/30 hover:bg-surface-strong"
+              className="group flex items-center gap-4 rounded-xl border border-line/40 bg-surface/60 p-5 shadow-lg backdrop-blur-xl transition hover:border-brand/40 hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]"
             >
               <span className={`grid size-12 place-items-center rounded-xl border ${toneClasses[stat.tone]}`}>
                 <stat.icon size={22} />
@@ -161,7 +166,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-6 shadow-sm backdrop-blur">
+    <section className="relative z-10 rounded-2xl border border-line/40 bg-surface/60 p-6 shadow-xl backdrop-blur-xl transition hover:border-line/60">
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 className="text-base font-bold text-foreground">{title}</h2>
         <Link className="text-sm font-semibold text-brand hover:text-brand-strong" href={href}>
