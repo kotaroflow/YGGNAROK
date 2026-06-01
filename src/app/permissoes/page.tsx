@@ -1,7 +1,8 @@
 import { AdminListPage } from "@/components/admin-list";
 import { getRolesAndPermissions } from "@/server/data/dashboard";
 
-export default async function PermissoesPage() {
+export default async function PermissoesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const { permissions } = await getRolesAndPermissions();
 
   return (

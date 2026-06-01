@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { AuthFrame } from "@/components/auth-frame";
 import { getRandomAuthArt } from "@/lib/auth-art";
 import { signUp } from "@/server/actions/auth";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Criar Conta",
+  description: "Crie seu workspace YGGNAROK com segurança via Supabase Auth e RLS. Gerencie conteúdo, IA e vendas num só lugar.",
+};
 
 export default async function CadastroPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;

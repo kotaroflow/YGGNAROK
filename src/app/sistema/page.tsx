@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AdminListPage } from "@/components/admin-list";
 import { getDashboardCounts } from "@/server/data/dashboard";
 
-export default async function SistemaPage() {
+export default async function SistemaPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const counts = await getDashboardCounts();
 
   return (

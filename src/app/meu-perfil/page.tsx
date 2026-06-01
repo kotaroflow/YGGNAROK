@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentPermissionContext } from "@/server/permissions/context";
 import { MeuPerfilClient } from "./client";
 
-export default async function MeuPerfilPage() {
+export default async function MeuPerfilPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   let user = null;
   try {
     const supabase = await createSupabaseServerClient();

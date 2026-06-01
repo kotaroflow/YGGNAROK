@@ -5,7 +5,8 @@ import { operationalTags } from "@/lib/tags";
 import { createProfile } from "@/server/actions/profiles";
 import { getProfiles } from "@/server/data/dashboard";
 
-export default async function PerfisPage() {
+export default async function PerfisPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const profiles = await getProfiles();
 
   return (

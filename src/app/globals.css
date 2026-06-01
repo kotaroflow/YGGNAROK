@@ -18,21 +18,23 @@
   --surface: rgba(255, 255, 255, 0.95);
   --surface-strong: #FFFFFF;
   --line: rgba(0, 0, 0, 0.08);
-  --muted: #525252;
-  --brand: #B45309; /* âmbar queimado no light */
+  --muted: #404040;
+  --brand: #B45309;
   --brand-strong: #92400e;
   
   /* YGGNAROK Thematic Typography */
-  --font-divine: 'Cinzel', serif; /* Divine/Ancient style for Brand */
-  --font-heading: 'Playfair Display', serif; /* Elegant High-class style */
-  --font-body: 'Inter', sans-serif; /* Modern, Clean and Readable */
-  --font-mono: 'JetBrains Mono', monospace; /* Technical/System style */
+  --font-divine: 'Cinzel', serif;
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
   
   /* Void & Amber - Sidebar Tokens */
   --sidebar-bg: #F5F5F5;
   --sidebar-hover: #EBEBEB;
   --sidebar-active-bg: rgba(180, 83, 9, 0.08);
   --sidebar-active-text: #B45309;
+  --sidebar-text: #262626;
+  --sidebar-text-muted: #737373;
 }
 
 .dark {
@@ -50,6 +52,8 @@
   --sidebar-hover: #1F1B16;
   --sidebar-active-bg: rgba(245, 158, 11, 0.18);
   --sidebar-active-text: #F59E0B;
+  --sidebar-text: #E5E5E5;
+  --sidebar-text-muted: #A3A3A3;
 }
 
 @theme inline {
@@ -60,8 +64,8 @@
   --color-sidebar: var(--sidebar-bg);
   --color-sidebar-hover: var(--sidebar-hover);
   --color-sidebar-active: var(--sidebar-active-bg);
-  --color-sidebar-text: var(--sidebar-active-text);
-  --color-sidebar-text-muted: var(--muted);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);

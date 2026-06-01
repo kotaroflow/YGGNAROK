@@ -1,7 +1,8 @@
 import { AdminListPage } from "@/components/admin-list";
 import { getHealthLogs, getJobs } from "@/server/data/dashboard";
 
-export default async function WorkersPage() {
+export default async function WorkersPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const [logs, jobs] = await Promise.all([getHealthLogs(), getJobs()]);
   const pending = jobs.filter((job) => job.status === "pending").length;
   const processing = jobs.filter((job) => job.status === "processing").length;

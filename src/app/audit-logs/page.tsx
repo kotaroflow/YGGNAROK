@@ -1,7 +1,8 @@
 import { AdminListPage } from "@/components/admin-list";
 import { getAuditLogs } from "@/server/data/dashboard";
 
-export default async function AuditLogsPage() {
+export default async function AuditLogsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const logs = await getAuditLogs();
 
   return (

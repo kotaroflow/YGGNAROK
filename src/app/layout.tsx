@@ -14,8 +14,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YGGNAROK / YGN V1",
-  description: "Sistema limpo para perfis, conteudo, vendas, biblioteca, postagem manual, jobs e logs.",
+  title: {
+    default: "YGGNAROK — Plataforma de Criação, IA e Vendas",
+    template: "%s | YGGNAROK",
+  },
+  description: "YGGNAROK: workspace all-in-one para criadores automatizarem conteúdo, vendas, comissões e biblioteca com IA. Gerencie perfis, jobs e postagens num só lugar.",
+  keywords: ["YGGNAROK", "criação de conteúdo", "IA", "vendas", "comissões", "biblioteca", "postagem", "workspace criador"],
+  authors: [{ name: "YGGNAROK" }],
+  openGraph: {
+    title: "YGGNAROK — Plataforma de Criação, IA e Vendas",
+    description: "Workspace all-in-one para criadores automatizarem conteúdo, vendas e comissões com IA.",
+    url: "https://yggnarok.com",
+    siteName: "YGGNAROK",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YGGNAROK — Plataforma de Criação, IA e Vendas",
+    description: "Workspace all-in-one para criadores automatizarem conteúdo, vendas e comissões com IA.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

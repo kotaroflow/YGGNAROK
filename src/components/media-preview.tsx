@@ -9,7 +9,7 @@ export function MediaPreview({
   label: string;
 }) {
   if (!url) {
-    return <div className="grid aspect-video place-items-center rounded-lg border border-white/70 bg-white/45 text-xs text-slate-400 shadow-sm dark:border-white/10 dark:bg-neutral-950/35 dark:text-stone-500">Sem URL</div>;
+    return <div className="grid aspect-video place-items-center rounded-lg border border-white/70 bg-white/45 text-xs text-slate-500 shadow-sm dark:border-white/10 dark:bg-neutral-950/35 dark:text-stone-400">Sem URL</div>;
   }
 
   if (mimeType?.startsWith("image/")) {
@@ -24,5 +24,5 @@ export function MediaPreview({
     return <audio className="w-full" src={url} controls />;
   }
 
-  return <div className="grid aspect-video place-items-center rounded-lg border border-white/70 bg-white/45 text-xs text-slate-400 shadow-sm dark:border-white/10 dark:bg-neutral-950/35 dark:text-stone-500">Arquivo</div>;
+  return <div className="grid aspect-video place-items-center rounded-lg border border-white/70 bg-white/45 text-xs text-slate-500 shadow-sm dark:border-white/10 dark:bg-neutral-950/35 dark:text-stone-400">Arquivo</div>;
 }

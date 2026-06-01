@@ -6,8 +6,9 @@ import { JsonPreview } from "@/components/admin-list";
 import { JobsRealtime } from "@/components/jobs-realtime";
 import { getAgentRunsByJobId, getJobById } from "@/server/data/dashboard";
 
-export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function JobDetailPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const { id } = await params;
+  await searchParams;
   const [job, runs] = await Promise.all([getJobById(id), getAgentRunsByJobId(id)]);
 
   if (!job) {

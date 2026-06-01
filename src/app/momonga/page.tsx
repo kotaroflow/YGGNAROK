@@ -262,7 +262,8 @@ function readOrchestration(result: unknown) {
     : {};
 }
 
-export default async function MomongaPage() {
+export default async function MomongaPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando painel Momonga...</div>}>
       <MomongaContent />

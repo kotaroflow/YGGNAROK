@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { AuthFrame } from "@/components/auth-frame";
 import { getRandomAuthArt } from "@/lib/auth-art";
 import { signIn } from "@/server/actions/auth";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Entrar",
+  description: "Acesse o YGGNAROK — gerencie perfis, trabalhos de IA, biblioteca e fila de postagem num workspace premium.",
+};
 
 export default async function LoginPage({
   searchParams,

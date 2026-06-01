@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 
-export default function RelatoriosComerciaisPage() {
+export default async function RelatoriosComerciaisPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   return (
     <AppShell>
       <main className="min-h-screen px-4 py-6 lg:px-8">

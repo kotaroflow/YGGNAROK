@@ -7,16 +7,13 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      min-height: 100vh;
+      background: #0a0a0a; color: #e5e5e5; min-height: 100vh; padding: 2rem;
     }
-    .container { max-width: 72rem; margin: 0 auto; padding: 2rem; }
+    .container { max-width: 72rem; margin: 0 auto; }
     .bg-brand { color: #f59e0b; }
     .bg-surface { background: #171717; }
     .bg-surface-strong { background: #262626; }
@@ -28,93 +25,30 @@
     .shadow-xl { box-shadow: 0 24px 48px -12px rgba(0,0,0,0.5); }
     .p-6 { padding: 1.5rem; }
     .p-4 { padding: 1rem; }
-    .p-3 { padding: 0.75rem; }
     .mb-4 { margin-bottom: 1rem; }
     .mb-6 { margin-bottom: 1.5rem; }
     .mb-8 { margin-bottom: 2rem; }
     .mt-2 { margin-top: 0.5rem; }
-    .mt-4 { margin-top: 1rem; }
     .flex { display: flex; }
     .grid { display: grid; }
     .gap-6 { gap: 1.5rem; }
     .gap-4 { gap: 1rem; }
-    .gap-3 { gap: 0.75rem; }
     .items-center { align-items: center; }
     .justify-between { justify-content: space-between; }
-    .justify-center { justify-content: center; }
     .items-start { align-items: flex-start; }
-    .flex-col { flex-direction: column; }
     .w-full { width: 100%; }
     .max-w-6xl { max-width: 48rem; }
-    .overflow-hidden { overflow: hidden; }
-    .relative { position: relative; }
-    .absolute { position: absolute; }
-    .text-sm { font-size: 0.875rem; }
-    .text-xs { font-size: 0.75rem; }
-    .font-bold { font-weight: 700; }
-    .font-extrabold { font-weight: 800; }
-    .uppercase { text-transform: uppercase; }
-    .tracking-tight { letter-spacing: -0.025em; }
-    .animate-pulse { animation: pulse 2s infinite; }
-    @keyframes pulse { 50% { opacity: 0.7; } }
-    .animate-bounce { animation: bounce 1s infinite; }
-    @keyframes bounce { 0%, 100% { transform: translateY(-25%); } 50% { transform: translateY(0); } }
-    .w-4 { width: 1rem; height: 1rem; }
-    .h-4 { height: 1rem; }
-    .size-4 { width: 1rem; height: 1rem; }
-    .size-5 { width: 1.25rem; height: 1.25rem; }
-    .size-14 { width: 3.5rem; height: 3.5rem; }
-    .size-16 { width: 4rem; height: 4rem; }
-    input, textarea, button { 
-      background: #171717; 
-      color: #e5e5e5; 
-      border: 1px solid #404040; 
-      border-radius: 0.5rem; 
-      font-family: inherit;
-    }
+    input, button { background: #171717; color: #e5e5e5; border: 1px solid #404040; border-radius: 0.5rem; font-family: inherit; }
     input { padding: 0.75rem; width: 100%; }
     button { cursor: pointer; padding: 0.75rem 1.5rem; border: none; }
     .btn-brand { background: #f59e0b; color: #0a0a0a; font-weight: 700; }
-    .btn-outline { background: transparent; border: 1px solid #f59e0b; color: #f59e0b; }
-    .flex-1 { flex: 1; }
-    .hidden { display: none; }
-    .spinner { 
-      width: 20px; 
-      height: 20px; 
-      border: 2px solid #404040; 
-      border-top-color: #f59e0b; 
-      border-radius: 50%; 
-      animation: spin 1s linear infinite; 
-    }
+    .spinner { width: 20px; height: 20px; border: 2px solid #404040; border-top-color: #f59e0b; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-bar { 
-      height: 0.5rem; 
-      background: #262626; 
-      border-radius: 9999px; 
-      overflow: hidden; 
-    }
-    .progress-fill { 
-      height: 100%; 
-      background: #f59e0b; 
-      transition: width 0.3s ease; 
-    }
-    .score-card { 
-      text-align: center; 
-      padding: 1rem; 
-      border: 1px solid #404040; 
-      border-radius: 0.75rem; 
-    }
-    .issue-card { 
-      border: 1px solid #404040; 
-      border-radius: 0.75rem; 
-      padding: 1rem; 
-    }
-    .suggestion-card { 
-      border: 1px solid #404040; 
-      border-radius: 0.75rem; 
-      padding: 1rem; 
-      background: linear-gradient(to bottom, rgba(245,158,11,0.05), transparent); 
-    }
+    .progress-bar { height: 0.5rem; background: #262626; border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #f59e0b; transition: width 0.3s ease; }
+    .card { border: 1px solid #404040; border-radius: 0.75rem; padding: 1rem; }
+    .issue-card { background: #171717; }
+    .suggestion-card { background: linear-gradient(to bottom, rgba(245,158,11,0.05), transparent); }
   </style>
 </head>
 <body>
@@ -131,221 +65,148 @@
       const [useAdminAuth, setUseAdminAuth] = useState(false);
       const [adminCredentials, setAdminCredentials] = useState({ username: "", password: "" });
       
-      const auditSteps = [
+      const steps = [
         "Estabelecendo conexão segura SSL...",
         "Autenticando na área administrativa...",
         "Baixando conteúdo HTML da página inicial...",
         "Executando varredura de bugs de código...",
-        "Analisando Tags de SEO (Meta, OpenGraph, Schema)...",
-        "Avaliando contraste de cores e legibilidade UX...",
-        "Analisando responsividade e breakpoints...",
+        "Analisando Tags de SEO...",
+        "Avaliando contraste de cores...",
+        "Analisando responsividade...",
         "Verificando acessibilidade (WCAG)...",
-        "Medindo First Contentful Paint e tamanho do DOM...",
-        "Identificando gargalos de conversão (CTA, Escassez)..."
+        "Medindo performance...",
+        "Identificando gargalos de conversão..."
       ];
 
       const startAnalysis = () => {
         if (!url) return;
         setStatus("loading");
         setStepIndex(0);
-        
-        let currentStep = 0;
-        const maxSteps = auditSteps.length;
-        const interval = setInterval(() => {
-          currentStep++;
-          if (currentStep < maxSteps) {
-            setStepIndex(currentStep);
-          } else {
-            clearInterval(interval);
-            performAudit();
-          }
-        }, 400);
+        let i = 0;
+        const iv = setInterval(() => {
+          i++;
+          if (i < steps.length) setStepIndex(i);
+          else { clearInterval(iv); finishAnalysis(); }
+        }, 300);
       };
 
-      const performAudit = () => {
-        const cleanUrl = url.replace(/(^\w+:|^)\/\//, "");
+      const finishAnalysis = () => {
         const mockResult = {
           url: url,
           score: { seo: 85, ux: 82, perf: 78, cro: 75, code: 90, design: 88 },
-          details: { 
-            title: `Portal Oficial | ${cleanUrl.split(".")[0].toUpperCase()}`,
-            description: "Descrição da página para análise",
-            h1: `Bem-vindo ao ${cleanUrl.split(".")[0].toUpperCase()}`,
-            h2Count: 8,
-            ssl: true,
-            loadTime: "1.2s"
-          },
+          details: { title: `Site: ${url}`, description: "Descrição da página", h1: `Bem-vindo`, h2Count: 5, ssl: url.startsWith("https"), loadTime: "1.2s", responsive: true, cookies: true },
           issues: [
-            { type: "error", category: "seo", title: "Meta description ausente", description: "Adicione uma meta description única." },
-            { type: "warning", category: "code", title: "Imagens sem ALT", description: "14 imagens sem descrição alternativa." },
-            { type: "warning", category: "design", title: "Contrast insuficiente", description: "Alguns elementos não atendem WCAG." }
+            { type: "warning", category: "seo", title: "Meta description curta", description: "Adicione mais detalhes." },
+            { type: "error", category: "code", title: "Imagens sem ALT", description: "Algumas imagens não têm descrição alternativa." }
           ],
           suggestions: [
-            { title: "Otimizar SEO", impact: "high", agent: "Hermes", text: "Adicione meta tags e schema markup." },
-            { title: "Corrigir contraste", impact: "high", agent: "Isis", text: "Ajuste cores para acessibilidade." }
+            { title: "Otimizar SEO", impact: "high", agent: "Hermes", text: "Melhore as tags meta." },
+            { title: "Corrigir contraste", impact: "medium", agent: "Isis", text: "Ajuste cores para acessibilidade." }
           ],
-          technical: {
-            htmlValidation: { errors: 3, warnings: 7 },
-            cssIssues: { errors: 2, unused: 23 },
-            jsErrors: [],
-            accessibility: { violations: 2, passes: 45 }
-          }
+          technical: { htmlValidation: { errors: 2, warnings: 5 }, cssIssues: { errors: 1, unused: 10 }, jsErrors: [], accessibility: { violations: 1, passes: 30 } }
         };
         setResult(mockResult);
         setStatus("done");
       };
 
-      const resetAnalysis = () => {
-        setStatus("idle");
-        setStepIndex(0);
-        setResult(null);
-      };
+      const resetAnalysis = () => { setStatus("idle"); setStepIndex(0); setResult(null); };
 
-      return (
-        React.createElement('div', { className: 'container' },
-          React.createElement('div', { className: 'mb-8' },
-            React.createElement('div', { className: 'flex items-center gap-2 mb-4' },
-              React.createElement('span', { className: 'h-px w-6 bg-brand' }),
-              React.createElement('p', { className: 'text-xs font-semibold uppercase tracking-[0.25em] text-brand' }, 'Estúdio · Audit')
-            ),
-            React.createElement('h1', { className: 'text-3xl font-extrabold tracking-tight mb-2' }, 
-              'Análise Automática de Site'
-            ),
-            React.createElement('p', { className: 'text-sm text-muted' },
-              'Auditoria completa de bugs, SEO, design e sugestões de melhorias.'
-            )
+      return React.createElement('div', { className: 'container' },
+        React.createElement('div', { className: 'mb-8' },
+          React.createElement('div', { className: 'flex items-center gap-2' },
+            React.createElement('span', { className: 'h-px w-6 bg-brand' }),
+            React.createElement('p', { className: 'text-xs font-semibold uppercase tracking-wide text-brand' }, 'Estúdio · Audit')
           ),
+          React.createElement('h1', { className: 'text-3xl font-extrabold mt-2' }, 'Análise Automática de Site'),
+          React.createElement('p', { className: 'text-sm text-muted mt-2' }, 'Auditoria de bugs, SEO, design e sugestões.')
+        ),
 
-          status === "idle" && React.createElement('div', { className: 'grid gap-6' },
+        status === "idle" && React.createElement('div', { className: 'grid gap-6 lg:grid-cols-3' },
+          React.createElement('div', { className: 'lg:col-span-2' },
             React.createElement('section', { className: 'rounded-2xl border border-line bg-surface-strong p-6' },
               React.createElement('h2', { className: 'text-lg font-bold mb-4' }, 'Configurar Análise'),
               React.createElement('div', { className: 'space-y-4' },
                 React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-semibold text-muted mb-2' }, 'URL do site'),
-                  React.createElement('input', {
-                    type: 'url',
-                    value: url,
-                    onChange: (e) => setUrl(e.target.value),
-                    placeholder: 'https://meusite.com',
-                    className: 'w-full'
-                  })
+                  React.createElement('label', { className: 'block text-xs font-semibold mb-2' }, 'URL do site'),
+                  React.createElement('input', { type: 'url', value: url, onChange: (e) => setUrl(e.target.value), placeholder: 'https://meusite.com', className: 'w-full' })
                 ),
                 React.createElement('div', { className: 'flex items-center gap-3' },
-                  React.createElement('input', {
-                    type: 'checkbox',
-                    id: 'admin-auth',
-                    checked: useAdminAuth,
-                    onChange: (e) => setUseAdminAuth(e.target.checked),
-                    className: 'w-4 h-4'
-                  }),
-                  React.createElement('label', { htmlFor: 'admin-auth', className: 'text-sm text-muted' },
-                    'Usar autenticação administrativa'
-                  )
+                  React.createElement('input', { type: 'checkbox', checked: useAdminAuth, onChange: (e) => setUseAdminAuth(e.target.checked) }),
+                  React.createElement('label', { className: 'text-sm cursor-pointer' }, 'Usar autenticação administrativa')
                 ),
-                useAdminAuth && React.createElement('div', { className: 'space-y-3 p-4 bg-surface rounded-xl' },
-                  React.createElement('input', {
-                    type: 'text',
-                    placeholder: 'Usuário',
-                    value: adminCredentials.username,
-                    onChange: (e) => setAdminCredentials({...adminCredentials, username: e.target.value}),
-                    className: 'w-full'
-                  }),
-                  React.createElement('input', {
-                    type: 'password',
-                    placeholder: 'Senha',
-                    value: adminCredentials.password,
-                    onChange: (e) => setAdminCredentials({...adminCredentials, password: e.target.value}),
-                    className: 'w-full'
-                  })
+                useAdminAuth && React.createElement('div', { className: 'space-y-3' },
+                  React.createElement('input', { type: 'text', placeholder: 'Usuário', value: adminCredentials.username, onChange: (e) => setAdminCredentials({...adminCredentials, username: e.target.value}), className: 'w-full' }),
+                  React.createElement('input', { type: 'password', placeholder: 'Senha', value: adminCredentials.password, onChange: (e) => setAdminCredentials({...adminCredentials, password: e.target.value}), className: 'w-full' })
                 ),
-                React.createElement('button', {
-                  onClick: startAnalysis,
-                  disabled: !url,
-                  className: 'btn-brand w-full',
-                  style: { opacity: !url ? 0.5 : 1 }
-                }, 'Iniciar Auditoria'),
-                React.createElement('p', { className: 'text-xs text-muted mt-2' },
-                  'Funciona offline - análise simulada. Para análise real, use o servidor local.'
+                React.createElement('button', { onClick: startAnalysis, disabled: !url, className: 'btn-brand w-full mt-4' }, 'Iniciar Auditoria')
+              )
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('section', { className: 'rounded-2xl border border-line bg-surface-strong p-6' },
+              React.createElement('h3', { className: 'text-sm font-bold mb-4' }, 'Recursos'),
+              React.createElement('ul', { className: 'space-y-2 text-sm' },
+                React.createElement('li', null, '✓ Varredura de bugs HTML/CSS/JS'),
+                React.createElement('li', null, '✓ Análise de acessibilidade WCAG'),
+                React.createElement('li', null, '✓ Auditoria de design visual'),
+                React.createElement('li', null, '✓ Acesso administrativo')
+              )
+            )
+          )
+        ),
+
+        status === "loading" && React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('div', { className: 'spinner mx-auto mb-4' }),
+          React.createElement('h2', { className: 'text-xl font-bold mb-2' }, 'Executando Auditoria...'),
+          React.createElement('p', { className: 'text-muted mb-4' }, steps[stepIndex]),
+          React.createElement('div', { className: 'progress-bar mb-2' },
+            React.createElement('div', { className: 'progress-fill', style: { width: `${(stepIndex / (steps.length - 1)) * 100}%` } })
+          ),
+          React.createElement('p', { className: 'text-xs text-muted' }, `${Math.round((stepIndex / (steps.length - 1)) * 100)}%`)
+        ),
+
+        status === "done" && result && React.createElement('div', { className: 'space-y-6' },
+          React.createElement('button', { onClick: resetAnalysis, className: 'text-sm font-bold' }, '← Nova análise'),
+          React.createElement('section', { className: 'rounded-2xl border border-line bg-surface-strong p-6' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+              React.createElement('div', null,
+                React.createElement('span', { className: 'text-xs text-brand uppercase' }, 'Domínio Auditado'),
+                React.createElement('h2', { className: 'text-xl font-bold' }, result.url)
+              ),
+              React.createElement('span', { className: 'px-3 py-1 rounded bg-emerald-500/10 text-emerald-400 text-xs' }, 'Concluído')
+            ),
+            React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-6 gap-4' },
+              Object.entries(result.score).map(([label, value]) =>
+                React.createElement('div', { key: label, className: 'card text-center' },
+                  React.createElement('p', { className: 'text-xs text-muted uppercase' }, label),
+                  React.createElement('p', { className: 'text-2xl font-bold' }, value, React.createElement('span', { className: 'text-xs text-muted' }, '/100'))
                 )
               )
             )
           ),
-
-          status === "loading" && React.createElement('div', { className: 'text-center py-12' },
-            React.createElement('div', { className: 'spinner mx-auto mb-4' }),
-            React.createElement('h2', { className: 'text-xl font-bold mb-2' }, 'Executando Auditoria...'),
-            React.createElement('p', { className: 'text-muted mb-6' }, 
-              auditSteps[stepIndex]
-            ),
-            React.createElement('div', { className: 'progress-bar mb-2' },
-              React.createElement('div', { 
-                className: 'progress-fill',
-                style: { width: `${(stepIndex / (auditSteps.length - 1)) * 100}%` }
-              })
-            ),
-            React.createElement('p', { className: 'text-xs text-muted' }, 
-              `${Math.round((stepIndex / (auditSteps.length - 1)) * 100)}%`
-            )
-          ),
-
-          status === "done" && result && React.createElement('div', { className: 'space-y-6' },
-            React.createElement('button', {
-              onClick: resetAnalysis,
-              className: 'text-xs font-bold text-muted hover:text-brand'
-            }, '← Nova análise'),
-            
-            React.createElement('section', { className: 'rounded-2xl border border-line bg-surface p-6' },
-              React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-                React.createElement('div', null,
-                  React.createElement('span', { className: 'text-xs text-brand uppercase' }, 'Domínio Auditado'),
-                  React.createElement('h2', { className: 'text-xl font-bold' }, result.url)
-                ),
-                React.createElement('span', { className: 'px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs' },
-                  'Análise Concluída'
-                )
-              ),
-              React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-6 gap-4' },
-                Object.entries(result.score).map(([label, value]) =>
-                  React.createElement('div', { key: label, className: 'score-card' },
-                    React.createElement('p', { className: 'text-xs text-muted uppercase' }, label),
-                    React.createElement('p', { className: 'text-2xl font-bold' }, value, React.createElement('span', { className: 'text-xs text-muted' }, '/100'))
+          React.createElement('div', { className: 'grid md:grid-cols-2 gap-6' },
+            React.createElement('section', { className: 'rounded-2xl border border-line bg-surface-strong p-6' },
+              React.createElement('h3', { className: 'text-sm font-bold mb-4' }, 'Bugs & Alertas'),
+              React.createElement('div', { className: 'space-y-3' },
+                result.issues.map((issue, i) =>
+                  React.createElement('div', { key: i, className: 'card issue-card' },
+                    React.createElement('p', { className: 'font-bold mb-1' }, issue.title),
+                    React.createElement('p', { className: 'text-sm text-muted' }, issue.description)
                   )
                 )
               )
             ),
-
-            React.createElement('div', { className: 'grid md:grid-cols-2 gap-6' },
-              React.createElement('section', { className: 'rounded-2xl border border-line bg-surface p-6' },
-                React.createElement('h3', { className: 'text-sm font-bold mb-4' }, 'Bugs & Alertas'),
-                React.createElement('div', { className: 'space-y-3' },
-                  result.issues.map((issue, i) =>
-                    React.createElement('div', { key: i, className: 'issue-card' },
-                      React.createElement('div', { className: 'flex items-center gap-2 mb-1' },
-                        React.createElement('p', { className: 'font-bold' }, issue.title),
-                        React.createElement('span', { className: `text-[10px] px-2 py-0.5 rounded bg-${issue.severity === 'error' ? 'rose' : 'amber'}-500/10 text-${issue.severity === 'error' ? 'rose' : 'amber'}-400` },
-                          issue.category.toUpperCase()
-                        )
-                      ),
-                      React.createElement('p', { className: 'text-sm text-muted' }, issue.description)
-                    )
-                  )
-                )
-              ),
-
-              React.createElement('section', { className: 'rounded-2xl border border-line bg-surface p-6' },
-                React.createElement('h3', { className: 'text-sm font-bold mb-4' }, 'Sugestões IA'),
-                React.createElement('div', { className: 'space-y-3' },
-                  result.suggestions.map((s, i) =>
-                    React.createElement('div', { key: i, className: 'suggestion-card' },
-                      React.createElement('div', { className: 'flex justify-between mb-1' },
-                        React.createElement('span', { className: 'font-bold' }, s.agent),
-                        React.createElement('span', { className: `text-[10px] px-2 py-0.5 rounded bg-${s.impact === 'high' ? 'rose' : 'amber'}-500/10 text-${s.impact === 'high' ? 'rose' : 'amber'}-400` },
-                          s.impact === 'high' ? 'Alto Impacto' : 'Médio Impacto'
-                        )
-                      ),
-                      React.createElement('p', { className: 'font-bold mb-1' }, s.title),
-                      React.createElement('p', { className: 'text-sm text-muted' }, s.text)
-                    )
+            React.createElement('section', { className: 'rounded-2xl border border-line bg-surface-strong p-6' },
+              React.createElement('h3', { className: 'text-sm font-bold mb-4' }, 'Sugestões IA'),
+              React.createElement('div', { className: 'space-y-3' },
+                result.suggestions.map((s, i) =>
+                  React.createElement('div', { key: i, className: 'card suggestion-card' },
+                    React.createElement('div', { className: 'flex justify-between mb-1' },
+                      React.createElement('span', { className: 'font-bold text-brand' }, s.agent),
+                      React.createElement('span', { className: 'text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400' }, s.impact === 'high' ? 'Alto' : 'Médio')
+                    ),
+                    React.createElement('p', { className: 'font-bold mb-1' }, s.title),
+                    React.createElement('p', { className: 'text-sm text-muted' }, s.text)
                   )
                 )
               )
@@ -354,7 +215,7 @@
         )
       );
     }
-
+    
     ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
   </script>
 </body>

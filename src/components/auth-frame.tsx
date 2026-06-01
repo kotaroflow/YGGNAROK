@@ -84,16 +84,16 @@ export function AuthFrame({
             <label className="mt-8 block text-sm font-medium text-slate-700 dark:text-stone-200">
               E-mail
               <span className="relative mt-2 block">
-                <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input name="email" type="email" required placeholder="name@email.com" className="h-12 w-full rounded-2xl border border-slate-200 bg-white/80 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-amber-300 focus:ring-4 focus:ring-amber-200/40 dark:border-white/10 dark:bg-neutral-900/70 dark:text-stone-100 dark:focus:ring-amber-900/20" />
+                <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input name="email" type="email" required placeholder="name@email.com" className="h-12 w-full rounded-2xl border border-slate-200 bg-white/80 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-amber-300 focus:ring-4 focus:ring-amber-200/40 dark:border-white/10 dark:bg-neutral-900/70 dark:text-stone-100 dark:focus:ring-amber-900/20" />
               </span>
             </label>
 
             <label className="mt-5 block text-sm font-medium text-slate-700 dark:text-stone-200">
               Senha
               <span className="relative mt-2 block">
-                <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input name="password" type="password" required minLength={8} placeholder="********" className="h-12 w-full rounded-2xl border border-slate-200 bg-white/80 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-amber-300 focus:ring-4 focus:ring-amber-200/40 dark:border-white/10 dark:bg-neutral-900/70 dark:text-stone-100 dark:focus:ring-amber-900/20" />
+                <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input name="password" type="password" required minLength={8} placeholder="********" className="h-12 w-full rounded-2xl border border-slate-200 bg-white/80 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-amber-300 focus:ring-4 focus:ring-amber-200/40 dark:border-white/10 dark:bg-neutral-900/70 dark:text-stone-100 dark:focus:ring-amber-900/20" />
               </span>
             </label>
 
@@ -109,7 +109,7 @@ export function AuthFrame({
               <ArrowRight size={17} />
             </button>
 
-            <p className="mt-6 text-center text-sm text-slate-500 dark:text-stone-300">
+            <p className="mt-6 text-center text-sm text-slate-600 dark:text-stone-300">
               {footerLabel} <Link className="font-medium text-amber-700 dark:text-amber-300" href={footerHref}>{footerAction}</Link>
             </p>
           </form>

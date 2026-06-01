@@ -5,7 +5,8 @@ import { JobsRealtime } from "@/components/jobs-realtime";
 import { createAiJob } from "@/server/actions/jobs";
 import { getJobs, getProfiles } from "@/server/data/dashboard";
 
-export default async function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const [profiles, jobs] = await Promise.all([getProfiles(), getJobs()]);
 
   return (

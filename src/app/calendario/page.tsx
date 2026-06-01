@@ -2,7 +2,10 @@ import { AppShell } from "@/components/app-shell";
 import { InteractiveCalendar } from "@/components/interactive-calendar";
 import { getContentItems } from "@/server/data/dashboard";
 
-export default async function CalendarioPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const contents = await getContentItems();
 
   // Map backend structure to the frontend structure

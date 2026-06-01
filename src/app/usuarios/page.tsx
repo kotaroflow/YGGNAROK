@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 
-export default function UsuariosPage() {
+export default async function UsuariosPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   return (
     <AppShell>
       <main className="min-h-screen px-4 py-6 lg:px-8">

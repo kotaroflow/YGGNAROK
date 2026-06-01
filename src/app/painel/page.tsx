@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BriefcaseBusiness, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { tagRows, v1Workflows } from "@/features/dashboard/v1-data";
 import { getDashboardOverview } from "@/server/data/dashboard";
 
-export default async function PainelPage() {
+export const metadata: Metadata = {
+  title: "Painel",
+  description: "Visão geral do YGGNAROK: perfis ativos, jobs de IA, biblioteca e métricas de vendas num dashboard integrado.",
+};
+export default async function PainelPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const overview = await getDashboardOverview();
   const visibleJobs = overview.jobs.slice(0, 5);
 

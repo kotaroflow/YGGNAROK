@@ -1,8 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { findNavigationItem } from "@/lib/navigation";
 
-export default async function ModuleFallbackPage({ params }: { params: Promise<{ slug: string[] }> }) {
+export default async function ModuleFallbackPage({ params, searchParams }: { params: Promise<{ slug: string[] }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const { slug } = await params;
+  await searchParams;
   const pathname = `/${slug.join("/")}`;
   const active = findNavigationItem(pathname);
 

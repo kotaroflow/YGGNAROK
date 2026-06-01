@@ -1,7 +1,8 @@
 import { AdminListPage } from "@/components/admin-list";
 import { getRolesAndPermissions } from "@/server/data/dashboard";
 
-export default async function CargosPage() {
+export default async function CargosPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams;
   const { roles } = await getRolesAndPermissions();
 
   return (

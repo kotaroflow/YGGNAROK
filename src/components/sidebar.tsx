@@ -246,11 +246,15 @@ const RecentsTab = memo(function RecentsTab() {
   }
 
   if (!mounted) {
-    return <p className="px-3 py-2 text-[12px] text-stone-500">Carregando…</p>;
+    return <p className="px-3 py-2 text-[12px] text-sidebar-text-muted">Carregando…</p>;
   }
 
-  if (!chats.length) {
-    return <p className="px-3 py-2 text-[12px] text-stone-500">Nenhum chat recente.</p>;
+  if (!mounted) {
+    return null;
+  }
+
+  if (chats.length === 0) {
+    return <p className="px-3 py-2 text-[12px] text-sidebar-text-muted">Nenhum chat recente.</p>;
   }
 
   const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
