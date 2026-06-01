@@ -840,48 +840,48 @@ export function ChatClient() {
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto animate-[pulse_20s_infinite]">
         <div className="w-full max-w-2xl text-center space-y-8 my-auto">
           {/* Header */}
-          <div>
+          <div className="transition-all duration-700 ease-out">
             <h2
-              className="bg-gradient-to-r from-foreground to-muted bg-clip-text text-2xl font-extrabold tracking-tighter text-transparent transition-all duration-300 sm:text-4xl"
-              style={{ opacity: fading ? 0.3 : 1, transform: fading ? "translateY(4px)" : "translateY(0)" }}
+              className="bg-gradient-to-br from-foreground via-foreground to-muted bg-clip-text text-2xl font-black tracking-tight text-transparent transition-all duration-700 sm:text-4xl inline-block"
+              style={{ 
+                opacity: fading ? 0 : 1, 
+                transform: fading ? "translateY(8px) scale(0.98)" : "translateY(0) scale(1)",
+                filter: fading ? "blur(4px)" : "blur(0)"
+              }}
             >
               {phrases[phraseIndex]}
             </h2>
-            <p className="text-xs text-muted mt-2 font-medium">Selecione uma sugestão operacional ou digite sua instrução abaixo.</p>
+            <p className="text-xs text-muted mt-2 font-medium tracking-wide">Selecione uma sugestão operacional ou digite sua instrução abaixo.</p>
           </div>
           
-          {/* Exemplos de uso Cards Grid */}
+          {/* Exemplos de uso Cards Grid - Field.io Motion Poetics */}
           <div className="text-left space-y-3">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-widest pl-1">Exemplos de uso</span>
+            <span className="text-[10px] font-bold text-muted/80 uppercase tracking-widest pl-1 select-none">Exemplos de uso</span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {[
                 {
                   title: "Criar um roteiro",
                   desc: "Estruture roteiros de alta retenção para YouTube e Reels.",
                   prompt: "Escreva um roteiro completo de alta conversão sobre: ",
-                  icon: Video,
-                  color: "border-brand/20 hover:border-brand/60 bg-brand/5 hover:bg-brand/10 text-brand"
+                  icon: Video
                 },
                 {
                   title: "Analisar código",
                   desc: "Revise algoritmos, otimize consultas SQL e cace bugs.",
                   prompt: "Analise o seguinte trecho de código em busca de erros e otimizações:\n\n```\n\n```",
-                  icon: Code,
-                  color: "border-purple-500/20 hover:border-purple-500/60 bg-purple-500/5 hover:bg-purple-500/10 text-purple-500"
+                  icon: Code
                 },
                 {
                   title: "Gerar ideias criativas",
                   desc: "Faça brainstorm de negócios, marketing e novas campanhas.",
                   prompt: "Faça um brainstorm estratégico com 5 ideias inovadoras para: ",
-                  icon: Lightbulb,
-                  color: "border-amber-500/20 hover:border-amber-500/60 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500"
+                  icon: Lightbulb
                 },
                 {
                   title: "Responder perguntas",
                   desc: "Esclareça dúvidas complexas e sintetize relatórios técnicos.",
                   prompt: "Explique de forma didática e aprofundada como funciona: ",
-                  icon: HelpCircle,
-                  color: "border-sky-500/20 hover:border-sky-500/60 bg-sky-500/5 hover:bg-sky-500/10 text-sky-500"
+                  icon: HelpCircle
                 }
               ].map((card, idx) => {
                 const CardIcon = card.icon;
@@ -893,14 +893,17 @@ export function ChatClient() {
                       setInput(card.prompt);
                       textareaRef.current?.focus();
                     }}
-                    className={`group flex items-start gap-3 rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${card.color}`}
+                    className="group relative overflow-hidden flex items-start gap-4 rounded-2xl border border-line/40 bg-surface/40 backdrop-blur-md p-4 text-left transition-all duration-500 hover:-translate-y-1 cursor-pointer hover:border-brand/40 hover:shadow-[0_10px_40px_-10px_rgba(245,158,11,0.2)] hover:bg-brand/[0.02]"
                   >
-                    <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface border border-line/25 shadow-sm group-hover:scale-110 transition duration-300">
-                      <CardIcon size={16} />
+                    {/* Hover Amber Glow Background Layer */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/0 to-brand/10 opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100 pointer-events-none" />
+                    
+                    <div className="relative z-10 grid size-10 shrink-0 place-items-center rounded-xl bg-surface-strong border border-line/30 shadow-sm transition-all duration-500 ease-out group-hover:bg-brand/15 group-hover:border-brand/40 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.25)] group-hover:scale-110">
+                      <CardIcon size={16} className="text-muted transition-colors duration-500 group-hover:text-brand" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-xs font-bold text-foreground group-hover:text-brand transition duration-200">{card.title}</h3>
-                      <p className="text-[11px] text-muted leading-relaxed font-medium">{card.desc}</p>
+                    <div className="relative z-10 space-y-1.5 pt-0.5">
+                      <h3 className="text-xs font-extrabold text-foreground transition duration-500">{card.title}</h3>
+                      <p className="text-[11px] text-muted leading-relaxed font-medium transition duration-500 group-hover:text-foreground/85">{card.desc}</p>
                     </div>
                   </button>
                 );
