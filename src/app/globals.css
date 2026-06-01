@@ -3,19 +3,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #181510;
-  --surface: rgba(255, 255, 255, 0.78);
-  --surface-strong: rgba(255, 255, 255, 0.92);
-  --line: rgba(120, 113, 108, 0.18);
-  --muted: #746d65;
+  --background: #FAFAFA;
+  --foreground: #171717;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-strong: #FFFFFF;
+  --line: rgba(0, 0, 0, 0.08);
+  --muted: #525252;
   --brand: #B45309; /* âmbar queimado no light */
   --brand-strong: #92400e;
   
   /* Void & Amber - Sidebar Tokens */
-  --sidebar-bg: #FAF5E8;
-  --sidebar-hover: #F0E8D5;
-  --sidebar-active-bg: rgba(180, 83, 9, 0.1);
+  --sidebar-bg: #F5F5F5;
+  --sidebar-hover: #EBEBEB;
+  --sidebar-active-bg: rgba(180, 83, 9, 0.08);
   --sidebar-active-text: #B45309;
 }
 
@@ -66,9 +66,9 @@ body::before {
   z-index: -1;
   content: "";
   background:
-    radial-gradient(circle at 16% 12%, color-mix(in srgb, var(--brand) 18%, transparent) 0%, transparent 28%),
-    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.15) 0%, transparent 32%),
-    linear-gradient(135deg, #f7f0ff 0%, #fbf8f2 44%, #eefaff 100%);
+    radial-gradient(circle at 16% 12%, rgba(245, 158, 11, 0.03) 0%, transparent 25%),
+    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.03) 0%, transparent 30%),
+    linear-gradient(135deg, #fdfdfd 0%, #f9f9f9 44%, #fcfcfc 100%);
 }
 
 .dark body::before {
