@@ -756,30 +756,41 @@ export function AgentNodeStudio() {
           onPointerLeave={handlePointerUp}
           onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }} // Prevent Windows auto-scroll
         >
-          {/* Inner 3D Container */}
+          {/* Inner 3D Container (Curved Globe Setup) */}
           <div 
-            className="relative w-[120%] h-[120%] transition-transform duration-200 ease-out"
+            className="relative w-[130%] h-[130%] transition-transform duration-200 ease-out"
             style={{ 
               transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg) translateZ(-50px)`,
               transformStyle: 'preserve-3d'
             }}
           >
-            {/* Background Miku Matrix */}
+            {/* Background Miku Matrix with spherical mask effect */}
             <div 
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none"
+              className="absolute inset-0 bg-cover bg-no-repeat pointer-events-none"
               style={{ 
-                backgroundImage: "url('/neural-bg.png')", 
-                transform: 'translateZ(-300px) scale(1.3)' 
+                backgroundImage: "url('/neural-bg.png')",
+                backgroundPosition: '50% 50%',
+                transform: 'translateZ(-400px) scale(1.4)', 
+                opacity: 0.6,
+                maskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)',
+                WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)'
               }}
             />
             
-            {/* Holographic Grid overlay */}
+            {/* Holographic Grid overlay (Inner spherical depth) */}
             <div 
               className="absolute inset-0 pointer-events-none opacity-40 bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:32px_32px]"
-              style={{ transform: 'translateZ(-150px)' }}
+              style={{ 
+                transform: 'translateZ(-200px)',
+                maskImage: 'radial-gradient(circle at center, black 30%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 100%)'
+              }}
             />
           
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 980 580" aria-hidden="true" style={{ transform: 'translateZ(0px)' }}>
+            {/* Vignette Escura para forçar o aspecto de "Tubo" (Inwards) */}
+            <div className="absolute inset-0 pointer-events-none rounded-[100%] shadow-[inset_0_0_150px_100px_rgba(0,0,0,0.95)] z-0" style={{ transform: 'translateZ(-150px)' }} />
+
+            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1100 700" aria-hidden="true" style={{ transform: 'translateZ(0px)' }}>
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
                 <path d="M0,0 L0,5 L8,2.5 z" className="fill-brand/60" />
@@ -790,10 +801,11 @@ export function AgentNodeStudio() {
               const to = nodeMap.get(edge.to);
               if (!from || !to) return null;
               
-              const x1 = from.x + 168;
-              const y1 = from.y + 50;
-              const x2 = to.x;
-              const y2 = to.y + 50;
+              // Offsets applied on node render: left + 80, top + 40
+              const x1 = from.x + 80 + 168; // 168 is node width
+              const y1 = from.y + 40 + 50;  // 50 is half node height
+              const x2 = to.x + 80;
+              const y2 = to.y + 40 + 50;
               const mid = Math.max(48, Math.abs(x2 - x1) / 2);
  
               return (
