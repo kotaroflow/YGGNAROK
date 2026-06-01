@@ -724,7 +724,6 @@ export function Sidebar({
       {(() => {
         const email = user?.email ?? "visitante@yggnarok.com";
         const emailName = email.split("@")[0];
-        const userInitial = emailName.charAt(0).toUpperCase();
         const isOwner = user?.roles.includes("owner");
         const planTag = isOwner ? "Admin" : "Free";
 
@@ -734,11 +733,9 @@ export function Sidebar({
               {!collapsed ? (
                 <div className="flex items-center gap-2">
                   <div 
-                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-black"
+                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black bg-center bg-no-repeat bg-contain"
                     style={{ 
                       backgroundImage: 'url(/ygn-coin.png)', 
-                      backgroundPosition: '4.5% 50%', 
-                      backgroundSize: '220%' 
                     }}
                   />
                   <span className="text-[13px] font-medium text-sidebar-text truncate max-w-[130px]">
@@ -747,19 +744,17 @@ export function Sidebar({
                 </div>
               ) : (
                 <div 
-                  className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-black transition-transform hover:scale-105"
+                  className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black bg-center bg-no-repeat bg-contain transition-transform hover:scale-105"
                   style={{ 
                     backgroundImage: 'url(/ygn-coin.png)', 
-                    backgroundPosition: '95.5% 50%', 
-                    backgroundSize: '220%' 
                   }}
                 />
               )}
               
               {/* Profile Menu Popover - opens to the RIGHT with a gorgeous zoom-in spring micro-animation */}
-              <div className="absolute bottom-0 left-full ml-3.5 z-50 w-64 origin-bottom-left rounded-xl border border-line bg-neutral-900/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
+              <div className="absolute bottom-0 left-full ml-3.5 z-50 w-64 origin-bottom-left rounded-xl border border-line bg-surface-strong/95 backdrop-blur-xl shadow-xl p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
                 {/* Stylized System Status Header instead of raw email address */}
-                <div className="px-3 py-2.5 mb-2 rounded-lg bg-neutral-950/60 border border-line/20 flex items-center gap-2.5 select-none">
+                <div className="px-3 py-2.5 mb-2 rounded-lg bg-surface/50 border border-line/50 flex items-center gap-2.5 select-none">
                   <div className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand/75 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
@@ -771,21 +766,21 @@ export function Sidebar({
                 </div>
                 
                 <div className="space-y-0.5">
-                  <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-surface hover:text-brand transition-all duration-200 group/item">
                     <Globe size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Meu Perfil</span>
                   </Link>
                   
-                  <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-surface hover:text-brand transition-all duration-200 group/item">
                     <Settings size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Configurações do OS</span>
                   </Link>
                   
-                  <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-surface hover:text-brand transition-all duration-200 group/item">
                     <Library size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Biblioteca de Prompts</span>
                   </Link>
-
+ 
                   <ThemeToggleInline />
                 </div>
                 
@@ -807,11 +802,11 @@ export function Sidebar({
                     <span>Limpar Cache do OS</span>
                   </button>
                 </div>
-
+ 
                 <div className="my-1.5 border-t border-line/10"></div>
                 
                 <form action={signOut}>
-                  <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-surface hover:text-brand transition-all duration-200 group/item">
                     <LogOut size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Sair</span>
                   </button>

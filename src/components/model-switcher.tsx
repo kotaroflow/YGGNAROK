@@ -129,42 +129,45 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 rounded-full border transition-all duration-500 ease-out ${
+        className={`flex items-center gap-2 rounded-full border transition-all duration-500 ease-out ${
           compact
             ? "px-3 py-1.5 text-[12px]"
-            : "px-3 py-2 text-[13px]"
+            : "px-3.5 py-2 text-[13px]"
         } ${
           open
-            ? "border-brand/40 bg-brand/8 text-brand"
-            : "border-line bg-surface/80 text-foreground hover:border-brand/30 hover:bg-brand/5 shadow-sm"
+            ? "border-brand bg-brand/10 text-brand shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+            : "border-line bg-surface/85 text-foreground hover:border-brand/40 hover:bg-brand/[0.03] shadow-sm"
         }`}
         style={{
           background: open 
             ? undefined 
-            : `linear-gradient(to right, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.1) ${pct * 100}%, transparent ${pct * 100}%, transparent 100%)`
+            : `linear-gradient(to right, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.08) ${pct * 100}%, transparent ${pct * 100}%, transparent 100%)`
         }}
       >
-        <span className="font-mono text-[9px] uppercase tracking-wider text-brand font-bold bg-brand/10 px-1.5 py-0.5 rounded border border-brand/20 shrink-0">
+        <span className="font-mono text-[9.5px] uppercase tracking-wider text-brand font-extrabold bg-brand/10 dark:bg-brand/15 px-2 py-0.5 rounded border border-brand/25 shrink-0">
           {SECTOR_LABELS[sector].split(" & ")[0]}
         </span>
-        <span className="font-medium truncate max-w-[120px] sm:max-w-none">{shortName}</span>
-        <div className="h-1 w-8 rounded-full bg-line/30 overflow-hidden shrink-0">
+        <span className="font-semibold truncate max-w-[120px] sm:max-w-none">{shortName}</span>
+        
+        {/* Spent-Tokens Capsule Pill */}
+        <div className="h-2 w-9 rounded-full bg-line/25 overflow-hidden shrink-0 border border-line/10 relative" title={`Uso de Limite Diário: ${Math.round(pct * 100)}%`}>
           <div
-            className="h-full rounded-full bg-brand transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-brand to-brand-strong transition-all duration-700 ease-out"
             style={{ width: `${Math.min(pct * 100, 100)}%` }}
           />
         </div>
+        
         <ChevronDown
-          size={11}
-          className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          size={12}
+          className={`text-muted transition-transform duration-300 ${open ? "rotate-180 text-brand" : ""}`}
         />
       </button>
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2.5 z-50 w-[355px] rounded-xl border border-line/60 bg-neutral-900/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2.5 z-50 w-[355px] rounded-xl border border-line bg-surface-strong/95 backdrop-blur-xl shadow-xl overflow-hidden">
           {/* Header & Sector Context */}
-          <div className="border-b border-line px-4.5 py-3.5 bg-neutral-950/40">
+          <div className="border-b border-line px-4.5 py-3.5 bg-surface/50">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles size={11} className="text-brand animate-pulse" /> Setor Ativo
@@ -175,14 +178,14 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
             </div>
 
             {/* Premium Selector Tabs */}
-            <div className="mt-3 flex gap-1 rounded-lg bg-neutral-950 dark:bg-neutral-900/80 p-1 border border-line/20">
+            <div className="mt-3 flex gap-1 rounded-lg bg-surface p-1 border border-line">
               <button
                 type="button"
                 onClick={() => setFilter("recommended")}
                 className={`flex-grow rounded-md py-1.5 text-center text-[11px] font-bold transition duration-300 ${
                   filter === "recommended"
                     ? "bg-brand text-neutral-950 shadow-md transform scale-[1.02]"
-                    : "text-muted hover:text-foreground hover:bg-neutral-800/40"
+                    : "text-muted hover:text-foreground hover:bg-surface-strong"
                 }`}
               >
                 Recomendados ({recommendedCount})
@@ -193,7 +196,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
                 className={`flex-grow rounded-md py-1.5 text-center text-[11px] font-bold transition duration-300 ${
                   filter === "all"
                     ? "bg-brand text-neutral-950 shadow-md transform scale-[1.02]"
-                    : "text-muted hover:text-foreground hover:bg-neutral-800/40"
+                    : "text-muted hover:text-foreground hover:bg-surface-strong"
                 }`}
               >
                 Todos ({AI_MODELS.length})
@@ -210,7 +213,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
             ) : (
               groups.map(({ provider, models }) => (
                 <div key={provider}>
-                  <div className="sticky top-0 bg-neutral-900/95 dark:bg-neutral-950/95 px-4.5 py-1.5 backdrop-blur-md border-b border-line/25 z-10 flex items-center justify-between">
+                  <div className="sticky top-0 bg-surface-strong/95 px-4.5 py-1.5 backdrop-blur-md border-b border-line z-10 flex items-center justify-between">
                     <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand/85">
                       {provider}
                     </span>
@@ -226,9 +229,9 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
                           key={m.id}
                           type="button"
                           onClick={() => select(m.id)}
-                          className={`flex w-full items-start gap-3.5 px-4.5 py-3.5 text-left transition-all duration-200 hover:bg-neutral-900 dark:hover:bg-neutral-900/60 ${
+                          className={`flex w-full items-start gap-3.5 px-4.5 py-3.5 text-left transition-all duration-200 hover:bg-surface ${
                             isSelected 
-                              ? "bg-brand/[0.04] dark:bg-brand/[0.03] border-l-2 border-brand" 
+                              ? "bg-brand/[0.04] border-l-2 border-brand" 
                               : "border-l-2 border-transparent"
                           }`}
                         >

@@ -770,6 +770,11 @@ export function ChatClient() {
             <p className="text-xs text-muted mt-2 font-medium">Selecione uma sugestão operacional ou digite sua instrução abaixo.</p>
           </div>
           
+          {/* Input Box in the middle of screen */}
+          <div className="pt-2">
+            {renderInputBox(true)}
+          </div>
+          
           {/* Exemplos de uso Cards Grid */}
           <div className="text-left space-y-3">
             <span className="text-[10px] font-bold text-muted uppercase tracking-widest pl-1">Exemplos de uso</span>
@@ -826,11 +831,6 @@ export function ChatClient() {
                 );
               })}
             </div>
-          </div>
-
-          {/* Input Box in the middle of screen */}
-          <div className="pt-2">
-            {renderInputBox(true)}
           </div>
         </div>
       </div>

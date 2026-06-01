@@ -77,14 +77,14 @@ const CHANNELS = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  rascunho:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
-  na_fila:     { label: "Na fila",      color: "text-amber-400",   bg: "bg-amber-950/20 border-amber-500/20" },
-  processando: { label: "Processando",  color: "text-sky-400",     bg: "bg-sky-950/20 border-sky-500/20" },
-  em_revisao:  { label: "Em revisão",   color: "text-orange-400",  bg: "bg-orange-950/20 border-orange-500/20" },
-  pronto:      { label: "Pronto",       color: "text-emerald-400", bg: "bg-emerald-950/20 border-emerald-500/20" },
-  erro:        { label: "Erro",         color: "text-rose-400",    bg: "bg-rose-950/20 border-rose-500/20" },
-  idea:        { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
-  Pendente:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
+  rascunho:    { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
+  na_fila:     { label: "Na fila",      color: "text-brand",   bg: "bg-amber-500/10 border-amber-500/20" },
+  processando: { label: "Processando",  color: "text-sky-500",     bg: "bg-sky-500/10 border-sky-500/20" },
+  em_revisao:  { label: "Em revisão",   color: "text-orange-500",  bg: "bg-orange-500/10 border-orange-500/20" },
+  pronto:      { label: "Pronto",       color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  erro:        { label: "Erro",         color: "text-rose-500",    bg: "bg-rose-500/10 border-rose-500/20" },
+  idea:        { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
+  Pendente:    { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
 };
 
 const ETAPA_CONFIG: Record<string, { label: string; icon: typeof Lightbulb }> = {
@@ -902,18 +902,18 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Formato</label>
-                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 border border-line rounded-lg">
+                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface border border-line rounded-lg">
                           <button 
                             type="button" 
                             onClick={() => setVideoAspect("916")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
+                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-foreground"}`}
                           >
                             9:16
                           </button>
                           <button 
                             type="button" 
                             onClick={() => setVideoAspect("169")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
+                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-foreground"}`}
                           >
                             16:9
                           </button>
@@ -921,7 +921,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Duração</label>
-                        <div className="py-2 bg-black/40 border border-line rounded-lg text-xs font-bold text-center text-rose-400 font-mono">
+                        <div className="py-2 bg-surface border border-line rounded-lg text-xs font-bold text-center text-rose-400 font-mono">
                           {activePreset.duration}
                         </div>
                       </div>
@@ -929,7 +929,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </div>
 
                   {/* Right side styling logs */}
-                  <div className="rounded-xl border border-line bg-black/20 p-4 flex flex-col justify-between">
+                  <div className="rounded-xl border border-line bg-surface/50 p-4 flex flex-col justify-between">
                     <div>
                       <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest block mb-1">Diretivas do Preset</span>
                       <p className="text-[10px] text-muted leading-relaxed font-semibold">{activePreset.baseDirectives}</p>
@@ -947,19 +947,19 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <div className="sm:col-span-4 flex flex-col items-center justify-start border-r border-line/10 pr-4">
                     <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider block mb-3">Simulação 4K HDR</span>
                     
-                    <div className={`relative border border-white/10 bg-black rounded-xl flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
+                    <div className={`relative border border-line bg-surface-strong rounded-xl flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
                       videoAspect === "916" ? "h-[190px] w-[110px]" : "h-[110px] w-[190px]"
                     }`}>
                       {videoStatus === "rendering" || videoStatus === "analyzing" ? (
-                        <div className="absolute inset-0 bg-neutral-950/80 flex flex-col items-center justify-center gap-2 z-20">
+                        <div className="absolute inset-0 bg-surface-strong/80 flex flex-col items-center justify-center gap-2 z-20">
                           <Loader2 size={20} className="text-rose-400 animate-spin" />
                           <span className="text-[8px] text-rose-300 font-mono tracking-widest">RENDER...</span>
                         </div>
                       ) : null}
                       
-                      <div className="absolute inset-0 border border-dashed border-white/5 grid grid-cols-3 grid-rows-3 pointer-events-none" />
+                      <div className="absolute inset-0 border border-dashed border-line/40 grid grid-cols-3 grid-rows-3 pointer-events-none" />
                       <Video className="text-rose-500/20 size-7" />
-                      <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-white/40 truncate">
+                      <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-foreground/45 truncate">
                         {videoScriptTitle}
                       </div>
                     </div>
@@ -969,14 +969,14 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Cortes Estruturados</span>
                       
-                      <div className="flex border border-line bg-black/40 rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar">
+                      <div className="flex border border-line bg-surface rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar">
                         {videoTimeline.map((clip, idx) => (
                           <div 
                             key={clip.id} 
-                            className="flex-grow min-w-[100px] rounded-lg border border-line/60 bg-neutral-950/50 p-2.5 text-center relative"
+                            className="flex-grow min-w-[100px] rounded-lg border border-line bg-surface-strong/50 p-2.5 text-center relative"
                           >
                             <span className="text-[7px] font-black uppercase text-rose-400 block tracking-widest">{clip.type}</span>
-                            <span className="text-xs font-black text-white block mt-0.5">{clip.dur}</span>
+                            <span className="text-xs font-black text-foreground block mt-0.5">{clip.dur}</span>
                             <span className="text-[8px] text-muted block truncate mt-1">Corte #{idx+1}</span>
                           </div>
                         ))}
@@ -987,12 +987,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     {(videoStatus === "council_review" || videoStatus === "completed") && (
                       <div className="space-y-2">
                         <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Ata do Conselho de IA</span>
-                        <div className="space-y-2 bg-black/40 rounded-xl p-3 border border-line max-h-[140px] overflow-y-auto custom-scrollbar">
+                        <div className="space-y-2 bg-surface rounded-xl p-3 border border-line max-h-[140px] overflow-y-auto custom-scrollbar">
                           {councilMessages.map((msg, idx) => (
                             <div key={idx} className="text-[10px] leading-normal flex items-start gap-2 border-b border-line/5 pb-1.5 last:border-0 last:pb-0">
-                              <span className="size-5 rounded-full bg-neutral-800 border border-line/30 grid place-items-center text-xs shrink-0">{msg.avatar}</span>
+                              <span className="size-5 rounded-full bg-surface border border-line/30 grid place-items-center text-xs shrink-0">{msg.avatar}</span>
                               <div className="flex-grow">
-                                <span className="font-extrabold text-neutral-200 block">{msg.agent}</span>
+                                <span className="font-extrabold text-foreground block">{msg.agent}</span>
                                 <p className="text-muted mt-0.5">{msg.message}</p>
                               </div>
                               <span className={`text-[8px] font-extrabold uppercase shrink-0 px-1.5 py-0.5 rounded ${msg.status === "approved" ? "text-emerald-400 bg-emerald-500/5 border border-emerald-500/10" : "text-amber-400 bg-amber-500/5 animate-pulse"}`}>

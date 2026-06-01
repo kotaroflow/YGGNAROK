@@ -194,9 +194,18 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
           <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-semibold text-brand uppercase">
-                  {selectedItem.status}
-                </span>
+                {(() => {
+                  const st = selectedItem.status;
+                  const stColor = 
+                    st === "idea" ? "bg-slate-500/10 text-slate-400 border border-slate-500/20" :
+                    st === "published" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
+                    "bg-brand/10 text-brand border border-brand/20";
+                  return (
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${stColor}`}>
+                      {st === "idea" ? "Ideia" : st === "published" ? "Publicado" : "Pendente"}
+                    </span>
+                  );
+                })()}
                 <h3 className="mt-2 text-lg font-bold text-foreground">{selectedItem.title}</h3>
               </div>
               <button
@@ -237,7 +246,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
       {/* Draft "Sticky Note" Modal (Void & Amber Style) */}
       {schedulingDate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-brand/40 bg-[#0a0a0a] shadow-[0_0_40px_-10px_rgba(245,158,11,0.15)] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+          <div className="w-full max-w-md rounded-xl border border-line bg-surface shadow-xl animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
             {/* Top accent bar (Sticky Note aesthetic) */}
             <div className="h-1.5 w-full bg-gradient-to-r from-brand to-brand-strong" />
             
@@ -272,7 +281,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
                   placeholder="Título do conteúdo ou lembrete..."
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
-                  className="w-full rounded-lg border border-line bg-surface p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-line bg-surface-strong p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
                 />
                 
                 <textarea
@@ -280,7 +289,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
                   placeholder="Escreva a ideia, notas ou rascunho aqui..."
                   value={draftNote}
                   onChange={(e) => setDraftNote(e.target.value)}
-                  className="w-full resize-none rounded-lg border border-line bg-surface p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
+                  className="w-full resize-none rounded-lg border border-line bg-surface-strong p-3 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/30"
                 />
               </div>
 

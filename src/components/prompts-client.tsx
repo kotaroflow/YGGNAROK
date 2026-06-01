@@ -103,7 +103,7 @@ export function PromptsClient() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between mb-8 pb-6 border-b border-neutral-900">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between mb-8 pb-6 border-b border-line">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} />
           <input
@@ -111,7 +111,7 @@ export function PromptsClient() {
             placeholder="Buscar prompts especialistas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-xl border border-neutral-850 bg-neutral-900/50 text-sm text-foreground placeholder:text-muted outline-none transition focus:border-brand/40 focus:ring-1 focus:ring-brand/20"
+            className="w-full h-11 pl-10 pr-4 rounded-xl border border-line bg-surface-strong/30 text-sm text-foreground placeholder:text-muted outline-none transition focus:border-brand/40 focus:ring-1 focus:ring-brand/20"
           />
         </div>
         
@@ -120,10 +120,10 @@ export function PromptsClient() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 selectedCategory === cat
-                  ? "bg-brand text-neutral-950 font-semibold"
-                  : "bg-neutral-900 border border-neutral-850 text-muted hover:border-neutral-700 hover:text-foreground"
+                  ? "bg-brand text-neutral-950 shadow-md"
+                  : "bg-surface border border-line text-muted hover:border-brand/40 hover:text-foreground"
               }`}
             >
               {cat}
@@ -134,7 +134,7 @@ export function PromptsClient() {
 
       {/* Prompts Grid */}
       {filteredPrompts.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-neutral-900 rounded-2xl bg-neutral-900/10">
+        <div className="text-center py-16 border border-dashed border-line rounded-2xl bg-surface/10">
           <p className="text-sm text-muted">Nenhum prompt encontrado para os filtros selecionados.</p>
         </div>
       ) : (
@@ -144,35 +144,35 @@ export function PromptsClient() {
             return (
               <div
                 key={prompt.id}
-                className="group relative flex flex-col rounded-2xl border border-neutral-850 bg-neutral-900/30 p-5 transition-all duration-300 hover:border-brand/20 hover:bg-neutral-900/50 hover:shadow-[0_4px_20px_-4px_rgba(245,158,11,0.03)]"
+                className="group relative flex flex-col rounded-2xl border border-line bg-surface/30 p-5 transition-all duration-300 hover:border-brand/35 hover:bg-surface/50 hover:shadow-md"
               >
                 {/* Icon & Category */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="grid size-9 place-items-center rounded-xl bg-brand/10 text-brand">
                     <IconComponent size={18} />
                   </div>
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-muted bg-neutral-900 px-2 py-0.5 rounded border border-neutral-850">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-muted bg-surface px-2 py-0.5 rounded border border-line">
                     {prompt.category}
                   </span>
                 </div>
 
                 {/* Title & Desc */}
-                <h3 className="text-base font-semibold text-foreground mb-1 group-hover:text-brand transition-colors">
+                <h3 className="text-sm font-bold text-foreground mb-1 group-hover:text-brand transition-colors">
                   {prompt.title}
                 </h3>
-                <p className="text-xs text-muted leading-relaxed flex-1 mb-5">
+                <p className="text-xs text-muted leading-relaxed flex-1 mb-5 font-medium">
                   {prompt.description}
                 </p>
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2 mt-auto pt-4 border-t border-neutral-900">
+                <div className="flex items-center gap-2 mt-auto pt-4 border-t border-line">
                   <button
                     type="button"
                     onClick={() => handleCopy(prompt.id, prompt.promptText)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-medium transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-bold transition-all ${
                       copiedId === prompt.id
                         ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-500"
-                        : "bg-neutral-900 border border-neutral-850 hover:border-neutral-700 hover:text-foreground"
+                        : "bg-surface border border-line hover:border-brand/40 hover:text-foreground"
                     }`}
                   >
                     {copiedId === prompt.id ? (
@@ -190,7 +190,7 @@ export function PromptsClient() {
 
                   <a
                     href={`/chat?q=${encodeURIComponent("Use este prompt especialista: " + prompt.promptText + "\n\nOlá! Como posso te ajudar hoje?")}`}
-                    className="flex items-center justify-center size-9 rounded-lg bg-brand text-neutral-950 hover:bg-brand-strong transition-colors"
+                    className="flex items-center justify-center size-9 rounded-lg bg-brand text-neutral-950 hover:bg-brand-strong transition-colors shadow-sm"
                     title="Iniciar chat com este prompt"
                   >
                     <ExternalLink size={14} />

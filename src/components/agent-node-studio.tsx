@@ -628,10 +628,10 @@ export function AgentNodeStudio() {
         }
       `}</style>
 
-      <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-[#0a0a0a] shadow-[0_0_80px_rgba(245,158,11,0.05)] flex flex-col">
+      <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/30 shadow-sm flex flex-col">
         
         {/* Upper Grid toolbar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-brand/10 px-5 py-4 bg-surface/40">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-line px-5 py-4 bg-surface/40">
           <div>
             <p className="text-sm font-medium text-brand flex items-center gap-1.5">
               <Zap size={14} className="text-brand animate-pulse" /> YGGNAROK Node Engine v3.0
@@ -647,7 +647,7 @@ export function AgentNodeStudio() {
             </button>
           </div>
         </div>
-
+ 
         {/* AI Automatic Staggered Construction input */}
         <div className="bg-surface/10 border-b border-line px-5 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <form onSubmit={handleAutoBuildFlow} className="flex gap-2 flex-grow max-w-xl">
@@ -672,7 +672,7 @@ export function AgentNodeStudio() {
               Sintetizar
             </button>
           </form>
-
+ 
           {/* Quick Flow Logs / Status */}
           {generationLogs.length > 0 ? (
             <div className="text-[10px] font-mono text-muted bg-surface/50 border border-line px-3 py-1.5 rounded-lg flex items-center gap-1.5 max-w-xs truncate">
@@ -685,14 +685,14 @@ export function AgentNodeStudio() {
             </div>
           )}
         </div>
-
+ 
         {/* Canvas area (n8n inspired grid styling) */}
-        <div className="relative h-[580px] min-w-[940px] overflow-auto bg-[linear-gradient(rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:24px_24px] bg-[#0a0a0a] flex-grow">
+        <div className="relative h-[580px] min-w-[940px] overflow-auto bg-[linear-gradient(rgba(245,158,11,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.03)_1px,transparent_1px)] bg-[size:24px_24px] bg-background flex-grow">
           
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 980 580" aria-hidden="true">
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-                <path d="M0,0 L0,5 L8,2.5 z" className="fill-neutral-700 dark:fill-neutral-500" />
+                <path d="M0,0 L0,5 L8,2.5 z" className="fill-brand/60" />
               </marker>
             </defs>
             {edges.map((edge) => {
@@ -705,13 +705,13 @@ export function AgentNodeStudio() {
               const x2 = to.x;
               const y2 = to.y + 50;
               const mid = Math.max(48, Math.abs(x2 - x1) / 2);
-
+ 
               return (
                 <g key={`${edge.from}-${edge.to}`} className="transition duration-500">
                   {/* Base visual wire */}
                   <path
                     d={`M ${x1} ${y1} C ${x1 + mid} ${y1}, ${x2 - mid} ${y2}, ${x2} ${y2}`}
-                    className="fill-none stroke-neutral-300 dark:stroke-neutral-800/80 transition duration-500"
+                    className="fill-none stroke-line transition duration-500"
                     strokeWidth="3.5"
                   />
                   {/* n8n Glowing Data Packet Overlay Animation */}
@@ -721,25 +721,25 @@ export function AgentNodeStudio() {
                     strokeWidth="2"
                     markerEnd="url(#arrow)"
                   />
-                  <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 8} className="fill-neutral-500 text-[9px] font-mono dark:fill-neutral-400">{edge.label}</text>
+                  <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 8} className="fill-brand/70 text-[10px] font-bold font-mono">{edge.label}</text>
                 </g>
               );
             })}
           </svg>
-
+ 
           {nodes.map((node) => (
             <button
               key={node.id}
               type="button"
               className={[
-                "absolute h-[100px] w-[168px] rounded-xl border p-3 text-left shadow-lg transition-all duration-300 backdrop-blur-md bg-neutral-900/90 node-animation-pop hover:scale-[1.05] hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
+                "absolute h-[100px] w-[168px] rounded-xl border border-line p-3 text-left shadow-lg transition-all duration-300 backdrop-blur-md bg-surface-strong/90 node-animation-pop hover:scale-[1.03] hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
                 node.color,
-                selected.id === node.id ? "scale-[1.05] ring-2 ring-brand border-brand shadow-[0_0_30px_rgba(245,158,11,0.3)] bg-neutral-900/100 z-10" : "",
+                selected.id === node.id ? "scale-[1.03] ring-1 ring-brand border-brand shadow-[0_0_25px_rgba(245,158,11,0.25)] bg-surface-strong z-10" : "",
               ].join(" ")}
               style={{ left: node.x, top: node.y }}
               onClick={() => setSelectedId(node.id)}
             >
-              {/* Top Node Info */}
+              {/* Bottom Node Info */}
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CircleDot size={12} className={node.status === "warning" ? "text-amber-500 animate-pulse" : "text-emerald-500"} />
@@ -762,14 +762,14 @@ export function AgentNodeStudio() {
           ))}
         </div>
       </section>
-
+ 
       {/* RIGHT SIDEBAR: SPLIT EDITOR + HEIMDALL NEURAL OPTIMIZER */}
       <aside className="space-y-4 flex flex-col justify-between h-full">
         
         {/* Editor panel */}
         <div className="rounded-2xl border border-line bg-surface/50 p-5 shadow-xl backdrop-blur-md space-y-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-lg bg-slate-950 text-amber-300 dark:bg-amber-300 dark:text-neutral-950">
+            <div className="grid size-9 place-items-center rounded-lg bg-brand text-neutral-950">
               <Brain size={16} />
             </div>
             <div className="min-w-0">
@@ -884,8 +884,8 @@ export function AgentNodeStudio() {
 
       {/* STUNNING WEB SANDBOX PIPELINE SIMULATOR MODAL */}
       {showSandbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-md">
-          <div className="relative w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl border border-brand/20 bg-neutral-950 shadow-[0_0_50px_rgba(245,158,11,0.1)] text-foreground overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="relative w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl border border-line bg-surface-strong shadow-xl text-foreground overflow-hidden">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-line px-6 py-4">

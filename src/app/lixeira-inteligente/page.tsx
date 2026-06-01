@@ -1,12 +1,12 @@
 import { AppShell } from "@/components/app-shell";
 import { getDeletedLibraryItems } from "@/server/data/dashboard";
-import { restoreLibraryItem, deleteLibraryItemPermanently } from "@/server/actions/content";
-import { Trash2, RefreshCw, AlertTriangle, FileText } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { TrashListClient } from "@/components/trash-list-client";
 
 const MOCK_NOW = Date.now();
 const MOCK_FALLBACKS = [
-  { id: "mock-1", title: "Roteiro Antigo - Vendas Exponenciais", type: "Roteiro", body: "Roteiro focado em gerar escassez imediata...", deleted_at: new Date(MOCK_NOW - 86400000 * 2).toISOString() },
-  { id: "mock-2", title: "Pauta de Conteúdo: Inteligência Artificial no Cotidiano", type: "Ideia", body: "Uma pauta abordando como a IA otimiza tarefas diárias...", deleted_at: new Date(MOCK_NOW - 86400000 * 5).toISOString() },
+  { id: "mock-1", title: "Roteiro Antigo - Vendas Exponenciais", type: "Roteiro", body: "Roteiro focado em gerar escassez imediata com gatilhos de copy do YGGNAROK.", deleted_at: new Date(MOCK_NOW - 86400000 * 2).toISOString() },
+  { id: "mock-2", title: "Pauta de Conteúdo: Inteligência Artificial no Cotidiano", type: "Ideia", body: "Uma pauta abordando como a IA otimiza tarefas diárias e maximiza escala nos negócios.", deleted_at: new Date(MOCK_NOW - 86400000 * 5).toISOString() },
 ];
 
 export default async function LixeiraInteligentePage() {
@@ -57,105 +57,7 @@ export default async function LixeiraInteligentePage() {
           </div>
 
           {/* Content list */}
-          <div className="space-y-3">
-            {displayItems.map((item) => (
-              <div
-                key={item.id}
-                className="group relative overflow-hidden rounded-2xl border border-line bg-surface/40 p-5 shadow-sm backdrop-blur transition duration-300 hover:border-brand/20 hover:bg-surface-strong/30"
-              >
-                {item.isMock && (
-                  <span className="absolute top-2 right-2 rounded bg-surface px-1.5 py-0.5 text-[8px] font-bold text-muted uppercase tracking-widest border border-line">
-                    Demonstração
-                  </span>
-                )}
-                
-                <div className="flex items-start gap-4">
-                  <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-strong text-muted group-hover:bg-brand/10 group-hover:text-brand transition duration-300">
-                    <FileText size={20} />
-                  </div>
-                  
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-foreground truncate group-hover:text-brand transition duration-300">
-                        {item.title}
-                      </h3>
-                      <span className="inline-flex rounded-md border border-line bg-surface-strong/50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted font-mono">
-                        {item.type}
-                      </span>
-                    </div>
-                    
-                    <p className="mt-2 text-xs text-muted leading-relaxed line-clamp-2">
-                      {item.body || "Sem descrição disponível."}
-                    </p>
-                    
-                    <p className="mt-3 text-[10px] text-muted">
-                      Descartado em {new Date(item.deleted_at).toLocaleDateString("pt-BR")} às {new Date(item.deleted_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-
-                  {/* Actions (Forms using server actions) */}
-                  <div className="flex shrink-0 gap-2 items-center">
-                    {item.isMock ? (
-                      <>
-                        <button
-                          type="button"
-                          className="flex size-9 place-items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:border-brand/40 hover:text-brand"
-                          title="Restaurar (Demo)"
-                        >
-                          <RefreshCw size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="flex size-9 place-items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:border-red-500/40 hover:text-red-500"
-                          title="Excluir Permanentemente (Demo)"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <form action={async () => {
-                          "use server";
-                          await restoreLibraryItem(item.id);
-                        }}>
-                          <button
-                            type="submit"
-                            className="flex size-9 place-items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:border-brand/40 hover:text-brand"
-                            title="Restaurar para a Biblioteca"
-                          >
-                            <RefreshCw size={14} />
-                          </button>
-                        </form>
-                        
-                        <form action={async () => {
-                          "use server";
-                          await deleteLibraryItemPermanently(item.id);
-                        }}>
-                          <button
-                            type="submit"
-                            className="flex size-9 place-items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:border-red-500/40 hover:text-red-500"
-                            title="Excluir Definitivamente"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </form>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {displayItems.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-line rounded-2xl bg-surface/10">
-                <div className="grid size-16 place-items-center rounded-2xl bg-brand/5 text-brand mb-4">
-                  <Trash2 size={28} />
-                </div>
-                <h3 className="text-sm font-bold text-foreground">A lixeira está vazia</h3>
-                <p className="mt-1 text-xs text-muted">Nenhum item descartado recentemente.</p>
-              </div>
-            )}
-          </div>
+          <TrashListClient items={displayItems} />
         </div>
       </main>
     </AppShell>

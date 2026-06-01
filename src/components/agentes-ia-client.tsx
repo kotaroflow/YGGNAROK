@@ -103,7 +103,11 @@ export function AgentesIaClient() {
       </div>
 
       {/* Content Render with Security Protection Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-surface/10 p-6 shadow-xl backdrop-blur-md min-h-[400px] flex flex-col justify-center">
+      <div className={
+        activeTab === "studio" && isKotaro 
+          ? "w-full" 
+          : "relative overflow-hidden rounded-2xl border border-line bg-surface/10 p-6 shadow-xl backdrop-blur-md min-h-[400px] flex flex-col justify-center"
+      }>
         {activeTab === "studio" ? (
           isKotaro ? (
             <AgentNodeStudio />
