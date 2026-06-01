@@ -122,21 +122,65 @@ export function AgentNodeStudio() {
   const selected = nodes.find((node) => node.id === selectedId) ?? nodes[0];
   const nodeMap = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
 
-  // === 3D Parallax State ===
+  // === 3D Parallax & Drag State ===
   const [canvasRotation, setCanvasRotation] = useState({ x: 20, y: -10 });
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const handleCanvasMouseMove = (e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    // 3D Rotation via Middle Mouse Button (buttons === 4)
+    if (e.buttons === 4 && canvasRef.current) {
+      e.preventDefault();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // Softer rotation (Max 8 degrees instead of 15)
+      const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 8;
+      const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 8;
+      
+      setCanvasRotation({ x: rotateX + 15, y: rotateY });
+      return;
+    }
+
+    // Node Dragging Logic
+    if (!draggingNodeId || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
     
-    // Max rotation of 15 degrees
-    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
-    const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 15;
+    // Calculate new position based on pointer minus offset, adjusted for the 120% scale wrapper offset
+    let newX = e.clientX - rect.left - dragOffset.x - 80; // -80 offset from the wrapper size
+    let newY = e.clientY - rect.top - dragOffset.y - 40;  // -40 offset
+
+    if (newX < -80) newX = -80;
+    if (newY < -40) newY = -40;
+
+    setNodes(prev => prev.map(node => 
+      node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
+    ));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
+    if (e.button === 1) return; // Ignore middle click for dragging
+    e.preventDefault();
+    const nodeElement = e.currentTarget as HTMLDivElement;
+    const rect = nodeElement.getBoundingClientRect();
     
-    setCanvasRotation({ x: rotateX + 15, y: rotateY });
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    setDraggingNodeId(nodeId);
+    setSelectedId(nodeId);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (draggingNodeId) {
+      setDraggingNodeId(null);
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   };
 
   // Sandbox states
@@ -703,12 +747,14 @@ export function AgentNodeStudio() {
           )}
         </div>
  
-        {/* Canvas area (3D Globo/Matrix Parallax) */}
         <div 
           ref={canvasRef}
           className="relative h-[580px] overflow-hidden bg-black flex-grow flex items-center justify-center cursor-crosshair"
           style={{ perspective: '1200px' }}
-          onMouseMove={handleCanvasMouseMove}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }} // Prevent Windows auto-scroll
         >
           {/* Inner 3D Container */}
           <div 
@@ -772,21 +818,22 @@ export function AgentNodeStudio() {
           </svg>
  
           {nodes.map((node) => (
-            <button
+            <div
               key={node.id}
-              type="button"
               className={[
-                "absolute h-[100px] w-[168px] rounded-xl border border-line p-3 text-left shadow-lg transition-all duration-300 backdrop-blur-md bg-surface-strong/90 node-animation-pop hover:scale-[1.03] hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
+                "absolute h-[100px] w-[168px] rounded-xl border border-line p-3 text-left shadow-lg transition-colors duration-300 backdrop-blur-md bg-surface-strong/90 node-animation-pop hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
                 node.color,
-                selected.id === node.id ? "scale-[1.03] ring-1 ring-brand border-brand shadow-[0_0_25px_rgba(245,158,11,0.25)] bg-surface-strong z-10" : "",
+                selected.id === node.id ? "ring-1 ring-brand border-brand shadow-[0_0_25px_rgba(245,158,11,0.25)] bg-surface-strong z-20" : "z-10",
+                draggingNodeId === node.id ? "cursor-grabbing scale-105" : "cursor-grab"
               ].join(" ")}
               style={{ 
                 left: node.x + 80, // Offset for 120% container sizing
                 top: node.y + 40,
-                transform: `translateZ(${selected.id === node.id ? '50px' : '20px'})`,
-                transformStyle: 'preserve-3d'
+                transform: `translateZ(${draggingNodeId === node.id ? '60px' : (selected.id === node.id ? '40px' : '20px')})`,
+                transformStyle: 'preserve-3d',
+                touchAction: 'none'
               }}
-              onClick={() => setSelectedId(node.id)}
+              onPointerDown={(e) => handlePointerDown(e, node.id)}
             >
               {/* Bottom Node Info */}
               <div className="flex items-center justify-between gap-1">
@@ -807,7 +854,7 @@ export function AgentNodeStudio() {
               
               <p className="mt-1.5 truncate text-[10px] font-bold opacity-75">{node.role}</p>
               <p className="mt-0.5 line-clamp-2 text-[9px] leading-relaxed opacity-60 text-muted-foreground">{node.instructions}</p>
-            </button>
+            </div>
           ))}
           
           {/* End 3D Container */}
