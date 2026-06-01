@@ -658,7 +658,7 @@ export function ChatClient() {
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const handleKeyDownCallback = useEffect(() => {}, []);
 
   function stop() {
@@ -838,7 +838,12 @@ export function ChatClient() {
   if (isEmpty) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto animate-[pulse_20s_infinite]">
-        <div className="w-full max-w-2xl text-center space-y-8 my-auto">
+        
+        {/* Ambient Light Orbs for Void Mode Legibility */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
+        <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+
+        <div className="relative z-10 w-full max-w-2xl text-center space-y-8 my-auto">
           {/* Header */}
           <div className="transition-all duration-700 ease-out">
             <h2
@@ -922,7 +927,11 @@ export function ChatClient() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center justify-between px-4 py-3">
+      {/* Ambient Light Orbs for Void Mode Legibility */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
+      <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+
+      <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3">
         <div>
           <h1 className="text-sm font-semibold text-foreground">YGGNAROK Assistente</h1>
         </div>
@@ -937,7 +946,7 @@ export function ChatClient() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-40 pt-2">
+      <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-40 pt-2">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           {visibleMessages.map((m) => (
             <div
