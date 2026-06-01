@@ -160,10 +160,24 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     { id: "council", type: "agent", title: "Conselho I.A", x: 300, y: 176, content: "> Mapeando ganchos...\n> Otimizando SEO", agent: "Odin" },
     { id: "output", type: "output", title: "Saída Neural", x: 600, y: 300, content: "Aguardando disparo..." }
   ]);
+  const [canvasEdges, setCanvasEdges] = useState([
+    { id: "e1", source: "raw-input", target: "council" },
+    { id: "e2", source: "council", target: "output" }
+  ]);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
+    // If we are in connecting mode and click a node, try to connect them
+    if (connectingFromId && connectingFromId !== nodeId) {
+      setCanvasEdges(prev => [...prev, { id: `e-${Date.now()}`, source: connectingFromId, target: nodeId }]);
+      setConnectingFromId(null);
+      e.stopPropagation();
+      return;
+    }
+    
+    // Normal drag
     e.preventDefault();
     const nodeElement = e.currentTarget as HTMLDivElement;
     const rect = nodeElement.getBoundingClientRect();
@@ -183,7 +197,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     let newX = e.clientX - rect.left - dragOffset.x;
     let newY = e.clientY - rect.top - dragOffset.y;
 
-    // Boundaries check
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
     if (newX > rect.width - 200) newX = rect.width - 200;
@@ -199,6 +212,25 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
       setDraggingNodeId(null);
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
+  };
+
+  const addCanvasNode = (type: string) => {
+    const newNode = {
+      id: `node-${Date.now()}`,
+      type,
+      title: type === "agent" ? "Novo Agente" : type === "input" ? "Nova Fonte" : "Ação n8n",
+      x: 150 + Math.random() * 100,
+      y: 150 + Math.random() * 100,
+      content: "Novo bloco inserido...",
+      agent: type === "agent" ? "Mimir" : undefined
+    };
+    setCanvasNodes(prev => [...prev, newNode]);
+  };
+
+  const deleteCanvasNode = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCanvasNodes(prev => prev.filter(n => n.id !== id));
+    setCanvasEdges(prev => prev.filter(e => e.source !== id && e.target !== id));
   };
   // ==========================================
   
@@ -852,31 +884,45 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         </>
                       ) : (
                         <div 
-                          className="relative w-full h-[528px] bg-black/60 overflow-hidden cursor-crosshair" 
+                          className={`relative w-full h-[528px] bg-black/60 overflow-hidden ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`} 
                           style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(245,158,11,0.15) 1px, transparent 0)', backgroundSize: '32px 32px' }}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
                           onPointerLeave={handlePointerUp}
+                          onClick={() => connectingFromId && setConnectingFromId(null)}
                         >
-                           {/* Linhas de conexão dinâmicas (Futuro: Calcular curva Bezier real) */}
+                           {/* Linhas de conexão dinâmicas calculadas via Edges */}
                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
-                             {canvasNodes.length >= 2 && (
-                               <path 
-                                 d={`M ${canvasNodes[0].x + 240} ${canvasNodes[0].y + 40} C ${canvasNodes[0].x + 300} ${canvasNodes[0].y + 40}, ${canvasNodes[1].x - 60} ${canvasNodes[1].y + 40}, ${canvasNodes[1].x} ${canvasNodes[1].y + 40}`} 
-                                 fill="none" stroke="rgba(245,158,11,0.3)" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" 
-                               />
-                             )}
-                             {canvasNodes.length >= 3 && (
-                               <path 
-                                 d={`M ${canvasNodes[1].x + 260} ${canvasNodes[1].y + 40} C ${canvasNodes[1].x + 320} ${canvasNodes[1].y + 40}, ${canvasNodes[2].x - 60} ${canvasNodes[2].y + 40}, ${canvasNodes[2].x} ${canvasNodes[2].y + 40}`} 
-                                 fill="none" stroke="rgba(16,185,129,0.3)" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" 
-                               />
-                             )}
+                             {canvasEdges.map(edge => {
+                               const sourceNode = canvasNodes.find(n => n.id === edge.source);
+                               const targetNode = canvasNodes.find(n => n.id === edge.target);
+                               if (!sourceNode || !targetNode) return null;
+                               
+                               // Calculate port positions (Right of source, Left of target)
+                               const startX = sourceNode.x + 260; // width of node is 260
+                               const startY = sourceNode.y + 40;  // approx center Y of node header
+                               const endX = targetNode.x;
+                               const endY = targetNode.y + 40;
+                               
+                               const controlX1 = startX + (endX - startX) / 2;
+                               const controlX2 = startX + (endX - startX) / 2;
+
+                               return (
+                                 <path 
+                                   key={edge.id}
+                                   d={`M ${startX} ${startY} C ${controlX1} ${startY}, ${controlX2} ${endY}, ${endX} ${endY}`} 
+                                   fill="none" 
+                                   stroke={targetNode.type === "output" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"} 
+                                   strokeWidth="2" 
+                                   strokeDasharray="5,5" 
+                                   className="animate-pulse" 
+                                 />
+                               );
+                             })}
                            </svg>
                            
                            {/* Renderização Dinâmica dos Nós */}
                            {canvasNodes.map(node => {
-                             // Cores Baseadas no Tipo
                              let borderColor = "border-line/30";
                              let hoverColor = "hover:border-brand/40";
                              let bgColor = "bg-surface/80";
@@ -903,13 +949,13 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                                <div 
                                  key={node.id}
                                  onPointerDown={(e) => handlePointerDown(e, node.id)}
-                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-xl border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors z-10 select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 z-50 ring-2 ring-brand/50" : "cursor-grab"}`}
-                                 style={{ 
-                                   left: `${node.x}px`, 
-                                   top: `${node.y}px`,
-                                   touchAction: 'none' 
-                                 }}
+                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-xl border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors z-10 select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 z-50 ring-2 ring-brand/50" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
+                                 style={{ left: `${node.x}px`, top: `${node.y}px`, touchAction: 'none' }}
                                >
+                                 <button onClick={(e) => deleteCanvasNode(node.id, e)} className="absolute -top-2 -right-2 grid size-5 place-items-center bg-black border border-line rounded-full text-muted hover:text-red-400 hover:border-red-500 transition-colors z-20">
+                                   <X size={10} />
+                                 </button>
+
                                  <div className={`flex items-center justify-between mb-2 pb-2 border-b ${node.type === "agent" ? "border-brand/20" : node.type === "output" ? "border-emerald-500/20" : "border-line/10"}`}>
                                    <div className="flex items-center gap-2">
                                      <TitleIcon size={12} className={`${iconColor} ${node.type === "agent" ? "animate-spin-slow" : ""}`} />
@@ -920,17 +966,48 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                                    )}
                                  </div>
                                  <p className={`text-xs font-medium leading-relaxed ${node.type === "agent" ? "text-brand/80 font-mono text-[10px]" : node.type === "output" ? "text-emerald-300/60 font-mono text-[10px]" : "text-muted line-clamp-3"}`}>
-                                   {node.type === "input" ? (manualIdea || "O Canvas aguarda o início do seu briefing. Escreva algo no modo texto ou cole arquivos aqui.") : node.content}
+                                   {node.type === "input" && !node.content ? (manualIdea || "O Canvas aguarda o início do seu briefing. Escreva algo no modo texto ou cole arquivos aqui.") : node.content}
                                  </p>
                                  
-                                 {/* Fake Connection Ports */}
-                                 <div className={`absolute top-1/2 -left-1.5 w-3 h-3 rounded-full border-2 border-black ${node.type === "input" ? "hidden" : "bg-brand/50"} -translate-y-1/2`} />
-                                 <div className={`absolute top-1/2 -right-1.5 w-3 h-3 rounded-full border-2 border-black ${node.type === "output" ? "hidden" : "bg-brand/50"} -translate-y-1/2`} />
+                                 {/* Connection Ports */}
+                                 <div className={`absolute top-1/2 -left-1.5 w-3 h-3 rounded-full border-2 border-black bg-surface-strong -translate-y-1/2`} />
+                                 <button 
+                                   onPointerDown={(e) => { e.stopPropagation(); setConnectingFromId(node.id); }}
+                                   className={`absolute top-1/2 -right-1.5 w-4 h-4 rounded-full border-2 border-black bg-brand hover:scale-125 transition-transform cursor-crosshair -translate-y-1/2 grid place-items-center group/port`}
+                                   title="Arrastar conexão"
+                                 >
+                                   <Plus size={8} className="text-black opacity-0 group-hover/port:opacity-100" />
+                                 </button>
                                </div>
                              );
                            })}
                            
-                           {/* Controles de Canvas */}
+                           {/* Connecting Mode Helper Text */}
+                           {connectingFromId && (
+                             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl animate-pulse z-50">
+                               Clique em outro Nó para conectar
+                             </div>
+                           )}
+                           
+                           {/* Floating Action Toolbar */}
+                           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 bg-black/60 backdrop-blur-md border border-line/40 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-20">
+                             <button onClick={() => addCanvasNode("input")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 transition-colors group">
+                               <FileText size={14} className="text-muted group-hover:text-white" />
+                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-white tracking-widest">Fonte</span>
+                             </button>
+                             <div className="w-[1px] h-6 bg-line/30 mx-1" />
+                             <button onClick={() => addCanvasNode("agent")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-brand/10 transition-colors group">
+                               <Cpu size={14} className="text-muted group-hover:text-brand" />
+                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-brand tracking-widest">Agente</span>
+                             </button>
+                             <div className="w-[1px] h-6 bg-line/30 mx-1" />
+                             <button onClick={() => addCanvasNode("output")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors group">
+                               <Zap size={14} className="text-muted group-hover:text-emerald-400" />
+                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-emerald-400 tracking-widest">n8n</span>
+                             </button>
+                           </div>
+
+                           {/* Controles de Zoom */}
                            <div className="absolute bottom-4 right-4 flex gap-1 z-20">
                              <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomIn size={12} /></button>
                              <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomOut size={12} /></button>
