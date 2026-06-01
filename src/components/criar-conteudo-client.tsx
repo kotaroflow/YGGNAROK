@@ -564,9 +564,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         }
       `}</style>
 
-      {/* Exquisite Top Gradient Orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-amber-600/5 blur-[100px] rounded-full pointer-events-none" />
+      {/* Exquisite Top Gradient Orbs (Illuminated for Legibility) */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none" />
 
       <div className="mx-auto max-w-[1440px] px-6 pt-8">
         
@@ -601,11 +601,15 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             <p className="text-xs text-muted mt-2 max-w-xl font-medium">Configure pautas, defina parâmetros de ingestão e acelere sua produção de mídias de alta retenção.</p>
           </div>
 
-          {/* Centralized Workspace Navigation Tray Replaced by Slash Command Tip */}
-          <div className="flex items-center gap-2 bg-brand/5 border border-brand/20 px-4 py-2.5 rounded-xl backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-            <Zap size={14} className="text-brand animate-pulse" />
-            <span className="text-[11px] font-black text-brand uppercase tracking-widest">Use comandos "/" para interagir</span>
-          </div>
+          {/* Slash Command Button (Menos Destaque, Clicável) */}
+          <button 
+            type="button"
+            onClick={() => showToast("Comandos '/' estarão disponíveis em breve!")}
+            className="flex items-center gap-2 bg-black/10 hover:bg-black/30 border border-line/20 hover:border-line/40 px-3 py-1.5 rounded-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-white"
+          >
+            <Zap size={12} className="text-brand/50" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Comandos "/"</span>
+          </button>
         </div>
 
         {/* ── 3-Column Symmetrical Studio Grid Workspace ── */}
@@ -616,7 +620,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             
             {activeTab !== "videos" ? (
               /* console de criação de conteúdo */
-              <section className="glowing-panel rounded-2xl border-2 border-line bg-surface/30 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-300 focus-within:border-brand/40 focus-within:shadow-[0_0_60px_-15px_rgba(234,179,8,0.2)]">
+              <section className="rounded-2xl border border-line/40 bg-surface/60 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-300 focus-within:border-brand/30">
                 
                 {/* Panel Header */}
                 <div className="flex items-center justify-between border-b border-line/10 pb-4">
@@ -684,7 +688,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   {/* Briefing Field Imersivo */}
                   <div className="relative">
                     <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Conteúdo / Briefing Principal</label>
-                    <div className="relative rounded-xl border-2 border-line bg-black/20 dark:bg-black/50 focus-within:border-brand/60 transition-all duration-500 shadow-inner">
+                    <div className="relative rounded-xl border border-line/40 bg-black/10 dark:bg-black/20 focus-within:border-brand/40 transition-all duration-500 shadow-inner">
                       <textarea
                         ref={briefingRef}
                         value={manualIdea}
@@ -1159,8 +1163,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           {/* COLUMN 3: Sintonia Fina & Odin Supervisor (Right - 4 Cols) */}
           <div className="lg:col-span-4 space-y-6">
             
-            {/* Painel de Controle de Temperatura Isolado (Premium) */}
-            <section className="glowing-panel rounded-2xl border-2 border-line/30 bg-surface/40 p-6 shadow-2xl backdrop-blur-xl space-y-6 hover:border-brand/40 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)]">
+            {/* Painel de Controle de Temperatura Isolado (Premium mas sutil) */}
+            <section className="rounded-2xl border border-line/10 bg-surface/40 p-6 backdrop-blur-xl space-y-6 transition-all duration-500 hover:border-line/30">
               <div className="flex items-center gap-2.5 pb-4 border-b border-line/10">
                 <div className="grid size-8 place-items-center rounded bg-brand/10 border border-brand/20 shadow-inner">
                   <Sliders size={14} className="text-brand" />
