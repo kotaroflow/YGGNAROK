@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AlertTriangle, Brain, CirclePause, CirclePlay, Power, ShieldCheck, Workflow } from "lucide-react";
 import { AdminListPage, JsonPreview } from "@/components/admin-list";
 import { getMomongaCouncilOverview } from "@/server/data/dashboard";
@@ -16,7 +17,7 @@ import {
   releaseKillSwitch,
 } from "@/server/actions/momonga";
 
-export default async function MomongaPage() {
+async function MomongaContent() {
   const overview = await getMomongaCouncilOverview();
   const killSwitchActive = overview.automations.some((automation) => automation.key === "kill_switch" && automation.status === "active");
 
@@ -257,6 +258,14 @@ function readOrchestration(result: unknown) {
   const output = result && typeof result === "object" && !Array.isArray(result) ? result as Record<string, unknown> : {};
   const metadata = output.metadata && typeof output.metadata === "object" && !Array.isArray(output.metadata) ? output.metadata as Record<string, unknown> : {};
   return metadata.ai_orchestration && typeof metadata.ai_orchestration === "object" && !Array.isArray(metadata.ai_orchestration)
-    ? metadata.ai_orchestration as Record<string, unknown>
+    ?     metadata.ai_orchestration as Record<string, unknown>
     : {};
+}
+
+export default async function MomongaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando painel Momonga...</div>}>
+      <MomongaContent />
+    </Suspense>
+  );
 }
