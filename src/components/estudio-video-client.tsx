@@ -1,13 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Film, Play, AlertTriangle,
-  Cpu, Video, Scissors,
-  Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image,
-  Wand2, CheckCircle, Brain
+  Film, Play, AlertTriangle, CheckCircle, RefreshCw, Plus, X, FileText, Image, Video,
+  Wand2, Brain, Radio, Music, Scissors, Star, Cpu, Award, Heart, MessageSquare,
+  Layers, Type, Waves, Zap, ChevronRight, Search, Clock, Send, Download,
+  Undo2, Redo2, Copy, Trash2, Split, ZoomIn, ZoomOut, Settings, HelpCircle,
+  Maximize2, Minimize2, SkipBack, SkipForward, Volume2, Subtitles, Palette,
+  Filter, Sliders, Hash, Globe, BookOpen
 } from "lucide-react";
-import { Field, inputClass, textareaClass } from "@/components/field";
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TYPES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+type Platform = "tiktok" | "youtube" | "shorts" | "instagram" | "kwai" | "twitter" | "facebook";
+type InstaMode = "reels" | "feed";
+type FbMode = "reels" | "feed";
+
+type PlatformConfig = {
+  label: string;
+  icon: typeof Film;
+  ratio: string;
+  ratioClass: string;
+  resolution: string;
+  idealDuration: string;
+  maxDuration: string;
+  fps: string;
+  timelineScale: "seconds" | "minutes";
+  aiHints: string[];
+};
 
 type ReferenceAsset = {
   id: string;
@@ -18,916 +40,866 @@ type ReferenceAsset = {
   progress: number;
 };
 
+type TimelineClip = {
+  id: string;
+  title: string;
+  dur: string;
+  seconds: number;
+  type: "Hook" | "Content" | "Visual" | "CTA" | "Intro";
+  thumbnail?: string;
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PLATFORM CONFIG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const PLATFORMS: PlatformConfig[] = [
+  { label: "TikTok", icon: MessageSquare, ratio: "9:16", ratioClass: "aspect-[9/16]", resolution: "1080×1920", idealDuration: "15–30s", maxDuration: "60s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Hook forte nos primeiros 2.5s", "Impacto visual imediato", "Retenção acelerada", "Pacing rápido com cortes densos", "Legendas destacadas", "Loop no final"] },
+  { label: "YouTube", icon: Film, ratio: "16:9", ratioClass: "aspect-video", resolution: "1920×1080", idealDuration: "5–12 min", maxDuration: "30 min+", fps: "30/60 FPS", timelineScale: "minutes", aiHints: ["Título SEO otimizado", "Miniatura atraente", "Introdução com gancho", "Curva de retenção", "Capítulos sugeridos", "Pacing e ritmo", "Descrição detalhada", "End screen + CTA"] },
+  { label: "Shorts", icon: Play, ratio: "9:16", ratioClass: "aspect-[9/16]", resolution: "1080×1920", idealDuration: "15–60s", maxDuration: "60s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Hook direto", "Retenção máxima", "Título curto", "Loop contínuo", "Legenda resumida", "Descoberta no Shorts"] },
+  { label: "Instagram", icon: Heart, ratio: "9:16", ratioClass: "aspect-[9/16]", resolution: "1080×1920", idealDuration: "15–60s", maxDuration: "90s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Polimento visual", "Legenda envolvente", "Hashtags estratégicas", "CTA claro", "Tom da marca", "Potencial de compartilhamento"] },
+  { label: "Kwai", icon: Zap, ratio: "9:16", ratioClass: "aspect-[9/16]", resolution: "1080×1920", idealDuration: "15–30s", maxDuration: "60s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Contexto imediato", "Clareza visual simples", "Retenção direta", "Comportamento popular de vídeo curto"] },
+  { label: "X / Twitter", icon: Hash, ratio: "16:9", ratioClass: "aspect-video", resolution: "1920×1080", idealDuration: "30–120s", maxDuration: "140s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Compressão de mensagem", "Texto de gancho forte", "Compartilhável", "Verificação de controvérsia/risco", "Legenda curta"] },
+  { label: "Facebook", icon: Globe, ratio: "9:16", ratioClass: "aspect-[9/16]", resolution: "1080×1920", idealDuration: "15–60s", maxDuration: "120s", fps: "30 FPS", timelineScale: "seconds", aiHints: ["Clareza", "Adequação ao público", "Legenda envolvente", "Potencial de engajamento", "Compartilhável"] },
+];
+
+const PLATFORM_MAP: Record<Platform, PlatformConfig> = {
+  tiktok: PLATFORMS[0], youtube: PLATFORMS[1], shorts: PLATFORMS[2],
+  instagram: PLATFORMS[3], kwai: PLATFORMS[4], twitter: PLATFORMS[5], facebook: PLATFORMS[6],
+};
+
 type VideoStylePreset = {
-  name: string;
-  duration: string;
-  trendingMusic: string[];
-  trendingTransitions: string[];
-  mostSearched: string[];
-  baseDirectives: string;
-  isCustom?: boolean;
+  name: string; duration: string; trendingMusic: string[];
+  trendingTransitions: string[]; mostSearched: string[]; baseDirectives: string; isCustom?: boolean;
 };
 
 const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
   tiktok: {
-    name: "Estilo TikTok & Reels (Retenção Acelerada)",
-    duration: "15s - 60s (Alta Frequência)",
+    name: "Estilo TikTok & Reels (Retenção Acelerada)", duration: "15s - 60s (Alta Frequência)",
     trendingMusic: ["'Void Echoes' (Lofi Synthwave)", "'Amber Pulse' (Techno Melodic)", "'Kotaro Vibe' (Acoustic Trap)"],
     trendingTransitions: ["Zoom Rápido a cada 1.5s", "Legendas de Destaque Neon Central", "Efeitos Sonoros 'Swoosh'"],
     mostSearched: ["Engenharia de Prompt Inteligente", "IAs Gratuitas sem Limites", "Automação no Navegador"],
     baseDirectives: "Ritmo frenético, hook de impacto nos primeiros 2.5 segundos, zero pausas respiratórias, paleta Void & Amber vibrante com legendas de duas palavras por frame."
   },
   youtube: {
-    name: "Estilo Vlogging / Explicativo no YouTube",
-    duration: "5m - 12m (Engajamento Profundo)",
+    name: "Estilo Vlogging / Explicativo no YouTube", duration: "5m - 12m (Engajamento Profundo)",
     trendingMusic: ["'Cyber Coffee' (Chill Beats)", "'Infinite Drift' (Ambient Synth)"],
     trendingTransitions: ["Cortes Secos Estruturados", "B-Rolls de Softwares Neon", "Zoom Lento de Ponto de Ênfase"],
     mostSearched: ["Como criar agente de autoaprendizado", "Supabase vs LocalStorage no NextJS", "Estúdio de Nodes Neon"],
     baseDirectives: "Pacing conversacional premium, transição explicativa visual a cada 10s, introdução estruturada do problema, tela limpa com cards informativos sobrepostos."
   },
   cinematic: {
-    name: "Estilo Documentário & Mini-Histórias",
-    duration: "2m - 5m (Imersão Dramática)",
+    name: "Estilo Documentário & Mini-Histórias", duration: "2m - 5m (Imersão Dramática)",
     trendingMusic: ["'Odyssey Orchestral' (Dramático)", "'Deep Void' (Soundscape Cinematográfico)"],
     trendingTransitions: ["Fade to Black Suave", "Sobreposição de Texturas de Luz", "Sound Design Sub-grave"],
     mostSearched: ["Evolução de Sistemas AI", "Privacidade Digital Multi-tenant", "História do YGGNAROK"],
-    baseDirectives: "Foco estético em mistério, gradação de cores âmbar escuras, pausas dramáticas com trilha subindo de volume, voz grave e firme com frases curtas de alta reflexão."
+    baseDirectives: "Foco estético em mistério, gradação de cores âmbar escuras, pausas dramáticas com trilha subindo de volume."
   },
   sales: {
-    name: "VSL de Vendas de Alta Conversão",
-    duration: "3m - 8m (Persuasão & Neuro-copy)",
+    name: "VSL de Vendas de Alta Conversão", duration: "3m - 8m (Persuasão & Neuro-copy)",
     trendingMusic: ["'Ascension' (Trilha de Tensão Crescente)", "'Resolution' (Trilha Heroica de Fechamento)"],
     trendingTransitions: ["Quebras de Padrão Agressivas", "Lettering Amber Piscante", "Efeito de Máquina de Escrever"],
     mostSearched: ["Como economizar R$15.000 em APIs", "Melhores agentes para vendas automática", "Roteamento inteligente de modelos"],
-    baseDirectives: "Copy focada na dor imediata, quebra de objeção a cada 4 frames, música de suspense crescendo até a revelação da oferta, CTA claro de urgência no fim."
+    baseDirectives: "Copy focada na dor imediata, quebra de objeção a cada 4 frames, música de suspense crescendo até a revelação da oferta."
   }
 };
 
+const TIMELINE_CLIPS: TimelineClip[] = [
+  { id: "clip_1", title: "Hook de Abertura", dur: "3s", seconds: 3, type: "Hook" },
+  { id: "clip_2", title: "Apresentação do Problema", dur: "12s", seconds: 12, type: "Intro" },
+  { id: "clip_3", title: "Demonstração YGGNAROK", dur: "15s", seconds: 15, type: "Visual" },
+  { id: "clip_4", title: "CTA Final", dur: "10s", seconds: 10, type: "CTA" },
+];
+
+const YOUTUBE_TIMELINE_CLIPS: TimelineClip[] = [
+  { id: "yt_1", title: "Intro & Hook", dur: "30s", seconds: 30, type: "Hook" },
+  { id: "yt_2", title: "Contexto do Problema", dur: "1m30s", seconds: 90, type: "Intro" },
+  { id: "yt_3", title: "Demonstração Principal", dur: "3m", seconds: 180, type: "Visual" },
+  { id: "yt_4", title: "Casos de Uso", dur: "2m", seconds: 120, type: "Content" },
+  { id: "yt_5", title: "Encerramento & CTA", dur: "45s", seconds: 45, type: "CTA" },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export function EstudioVideoClient() {
-  const [toast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  // ── Platform State ──
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform>("tiktok");
+  const [instaMode, setInstaMode] = useState<InstaMode>("reels");
+  const [fbMode, setFbMode] = useState<FbMode>("reels");
+  const platform = PLATFORM_MAP[selectedPlatform];
+
+  // ── Export Popover State ──
+  const [showExportPopover, setShowExportPopover] = useState(false);
+  const exportBtnRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // ── Top Zone State ──
+  const [referenceLink, setReferenceLink] = useState("");
+  const [ideaDescription, setIdeaDescription] = useState("");
+  const [aiAnalysisRunning, setAiAnalysisRunning] = useState(false);
+  const [aiAnalysisResults, setAiAnalysisResults] = useState<string[]>([]);
+
+  // ── Editor State (preserved from original) ──
+  const [videoStyle, setVideoStyle] = useState<string>("tiktok");
+  const [allPresets, setAllPresets] = useState<Record<string, VideoStylePreset>>(DEFAULT_PRESETS);
+  const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
   const [showStyleCreator, setShowStyleCreator] = useState(false);
-  
-  // Custom Style Form inputs
   const [customStyleName, setCustomStyleName] = useState("");
   const [customStyleDuration, setCustomStyleDuration] = useState("");
   const [customStyleMusic, setCustomStyleMusic] = useState("");
   const [customStyleTransitions, setCustomStyleTransitions] = useState("");
   const [customStyleDirectives, setCustomStyleDirectives] = useState("");
 
-  // Style Preset
-  const [videoStyle, setVideoStyle] = useState<string>("tiktok");
-  const [allPresets, setAllPresets] = useState<Record<string, VideoStylePreset>>(DEFAULT_PRESETS);
-
-  // Ingestion
-  const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
-  const [referenceLink, setReferenceLink] = useState("");
-  const [editingInstructions, setEditingInstructions] = useState("");
-  const [videoAspect, setVideoAspect] = useState<"916" | "169">("916");
-
-  // Odin neural states
-
-
-  // Video timeline states
   const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
   const [progressVal, setProgressVal] = useState(0);
-  const [exportPlatform, setExportPlatform] = useState<"4k" | "tiktok" | "reels" | "shorts" | null>(null);
   const [exportLogs, setExportLogs] = useState<string[]>([]);
   const [, setExportStep] = useState(0);
-
   const [rejectionError, setRejectionError] = useState("");
   const [absorbedFeedback, setAbsorbedFeedback] = useState<string[]>([]);
-  const [councilMessages, setCouncilMessages] = useState<{agent: string, avatar: string, message: string, status: "thinking" | "approved"}[]>([]);
-
-  const [videoScriptTitle] = useState("Como Economizar 100% de APIs com YGGNAROK");
-  const [videoTimeline] = useState([
-    { id: "clip_1", title: "Hook de Vídeo (3s)", dur: "3s", script: "Você sabia que está jogando dinheiro fora usando IAs pagas para coisas simples?", type: "Hook" },
-    { id: "clip_2", title: "Apresentação (12s)", dur: "12s", script: "Apresento o YGGNAROK OS, seu centro de controle neural. Ele seleciona e direciona o modelo gratuito ideal para cada tarefa automaticamente.", type: "Content" },
-    { id: "clip_3", title: "Demonstração (15s)", dur: "15s", script: "[Mostrar tela do canvas visual n8n neon pulsando e os dados fluindo em tempo real pelo navegador]", type: "Visual" },
-    { id: "clip_4", title: "CTA Final (10s)", dur: "10s", script: "Pare de ter surpresas na fatura de IA. Clique no link abaixo e inicie sua orquestra gratuita agora mesmo!", type: "CTA" },
-  ]);
-
-  const [rawFiles, setRawFiles] = useState<string[]>([
-    "arquivo_bruto_intro_kotaro.mp4",
-    "b-roll_canvas_nodes.mov"
-  ]);
+  const [councilMessages, setCouncilMessages] = useState<{agent: string; avatar: string; message: string; status: "thinking" | "approved"}[]>([]);
+  const [rawFiles, setRawFiles] = useState<string[]>(["arquivo_bruto_intro.mp4", "b-roll_canvas_nodes.mov"]);
   const [newFileName, setNewFileName] = useState("");
+  const [editingInstructions, setEditingInstructions] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [trendRadarLogs, setTrendRadarLogs] = useState<string[]>(["Gancho mais retentivo: Zoom Rápido no segundo 1.8.", "Batida Recomendada: Synthwave Melodic (124BPM)."]);
+  const [, setIsScanningTrends] = useState(false);
 
-  const [videoGenre, setVideoGenre] = useState<"viral" | "educational" | "comedy" | "documentary" | "serious" | "sales">("viral");
-  const [adaptationMode, setAdaptationMode] = useState<"liquid" | "fixed">("liquid");
-  const [isScanningTrends, setIsScanningTrends] = useState(false);
-  const [trendRadarLogs, setTrendRadarLogs] = useState<string[]>([
-    "Gancho mais retentivo: Zoom Rápido no segundo 1.8.",
-    "Batida Recomendada: Synthwave Melodic (124BPM).",
-    "Estética do Algoritmo: Lettering Void & Amber piscante com ironia."
-  ]);
-
-
+  const timelineClips = selectedPlatform === "youtube" ? YOUTUBE_TIMELINE_CLIPS : TIMELINE_CLIPS;
+  const isYouTube = selectedPlatform === "youtube";
+  const isVertical = platform.ratio === "9:16";
   const activePreset = allPresets[videoStyle] || DEFAULT_PRESETS["tiktok"];
 
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
 
-  const handleAddRawFile = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFileName.trim()) return;
-    setRawFiles([...rawFiles, newFileName.trim()]);
-    setNewFileName("");
-  };
-
-  const handleRemoveRawFile = (index: number) => {
-    setRawFiles(rawFiles.filter((_, i) => i !== index));
-  };
-
-  const handleCreateCustomStyle = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customStyleName.trim() || !customStyleDirectives.trim()) return;
-
-    const styleKey = `custom_${Date.now()}`;
-    const newPreset: VideoStylePreset = {
-      name: `✨ ${customStyleName.trim()} (Estilo Único)`,
-      duration: customStyleDuration.trim() || "Configuração Livre",
-      trendingMusic: customStyleMusic ? customStyleMusic.split(",").map(m => m.trim()) : ["Músicas Customizadas"],
-      trendingTransitions: customStyleTransitions ? customStyleTransitions.split(",").map(t => t.trim()) : ["Transições livres"],
-      mostSearched: ["Configurações customizadas do Kotaro"],
-      baseDirectives: customStyleDirectives.trim(),
-      isCustom: true
-    };
-
-    setAllPresets(prev => ({ ...prev, [styleKey]: newPreset }));
-    setVideoStyle(styleKey);
-    setShowStyleCreator(false);
-    
-    setCustomStyleName("");
-    setCustomStyleDuration("");
-    setCustomStyleMusic("");
-    setCustomStyleTransitions("");
-    setCustomStyleDirectives("");
-  };
-
-  const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
-    const fileNamesMap = {
-      image: "referencia_estilo_moodboard.png",
-      video: "corte_exemplo_referencia.mp4",
-      audio: "efeito_sonoro_swoosh.mp3",
-      doc: "roteiro_planejado_vendas.pdf"
-    };
-
-    const nextAsset: ReferenceAsset = {
-      id: `asset_${Date.now()}`,
-      name: fileNamesMap[type],
-      type,
-      size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB",
-      status: "uploading",
-      progress: 0
-    };
-
-    setReferenceAssets(prev => [...prev, nextAsset]);
-
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 25;
-      setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, progress: prog } : a));
-
-      if (prog >= 100) {
-        clearInterval(interval);
-        setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, status: "completed" } : a));
+  // ── Export Popover click-outside + Escape ──
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+          exportBtnRef.current && !exportBtnRef.current.contains(e.target as Node)) {
+        setShowExportPopover(false);
       }
-    }, 400);
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowExportPopover(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  // ── AI Analysis Runner ──
+  const runAiAnalysis = () => {
+    setAiAnalysisRunning(true);
+    setAiAnalysisResults([]);
+    const hints = platform.aiHints;
+    let idx = 0;
+    const interval = setInterval(() => {
+      if (idx < hints.length) {
+        setAiAnalysisResults(prev => [...prev, `✓ ${hints[idx]}`]);
+        idx++;
+      } else {
+        clearInterval(interval);
+        setAiAnalysisRunning(false);
+      }
+    }, 600);
   };
 
-  const handleRemoveAsset = (id: string) => {
-    setReferenceAssets(referenceAssets.filter(a => a.id !== id));
-  };
-
+  // ── Video Pipeline (preserved) ──
   const runVideoEditingPipeline = () => {
     if (videoStatus !== "idle" && videoStatus !== "rejected") return;
-
     setProgressVal(10);
     setVideoStatus("analyzing");
-
     setTimeout(() => {
       setProgressVal(35);
       setVideoStatus("projecting");
-      
       setTimeout(() => {
         setProgressVal(60);
         setVideoStatus("council_review");
-        
-        setCouncilMessages([
-          { agent: "Isis (Edição & Pacing)", avatar: "✨", message: "Analisando cortes brutos... Proponho zoom digital rápido a cada 1.4 segundos para manter o ritmo hipnótico e prender a atenção do Kotaro.", status: "thinking" }
-        ]);
-
+        setCouncilMessages([{ agent: "Isis (Edição & Pacing)", avatar: "✨", message: `Analisando cortes brutos para formato ${platform.label}... Proponho ritmo otimizado para ${platform.ratio}.`, status: "thinking" }]);
         setTimeout(() => {
-          setCouncilMessages(prev => [
-            ...prev.map(c => ({ ...c, status: "approved" as const })),
-            { agent: "Morax (Ganchos de Venda)", avatar: "🔥", message: "O hook inicial de 3s está excelente. Injetando quebra de padrão visual no frame 1 com tela Amber escura e som swoosh para retenção máxima de leads.", status: "thinking" }
-          ]);
+          setCouncilMessages(prev => [...prev.map(c => ({ ...c, status: "approved" as const })), { agent: "Morax (Ganchos)", avatar: "🔥", message: `Hook inicial otimizado para retenção em ${platform.label}.`, status: "thinking" }]);
         }, 1500);
-
         setTimeout(() => {
-          setCouncilMessages(prev => [
-            ...prev.map(c => c.agent.includes("Morax") ? { ...c, status: "approved" as const } : c),
-            { agent: "Hefesto (Tipografia & Estilo)", avatar: "🦾", message: "Fatos neurais carregados da LTM do Kotaro. Legenda em destaque duplo amarelo/branco aprovada. A tipografia será 'Inter' ultra-bold.", status: "thinking" }
-          ]);
+          setCouncilMessages(prev => [...prev.map(c => c.agent.includes("Morax") ? { ...c, status: "approved" as const } : c), { agent: "Hefesto (Tipografia)", avatar: "🦾", message: "Legendas e sobreposição aprovadas. Tipografia 'Inter' ultra-bold.", status: "thinking" }]);
         }, 3000);
-
         setTimeout(() => {
           setCouncilMessages(prev => prev.map(c => ({ ...c, status: "approved" as const })));
           setProgressVal(80);
           setVideoStatus("rendering");
-
-          setTimeout(() => {
-            setProgressVal(100);
-            setVideoStatus("completed");
-          }, 2000);
-
+          setTimeout(() => { setProgressVal(100); setVideoStatus("completed"); }, 2000);
         }, 4500);
-
       }, 2500);
-
     }, 2000);
   };
+
+  // ── Helpers (preserved) ──
+  const handleCreateCustomStyle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customStyleName.trim() || !customStyleDirectives.trim()) return;
+    const styleKey = `custom_${Date.now()}`;
+    setAllPresets(prev => ({ ...prev, [styleKey]: { name: `✨ ${customStyleName.trim()} (Estilo Único)`, duration: customStyleDuration.trim() || "Configuração Livre", trendingMusic: customStyleMusic ? customStyleMusic.split(",").map(m => m.trim()) : ["Músicas Customizadas"], trendingTransitions: customStyleTransitions ? customStyleTransitions.split(",").map(t => t.trim()) : ["Transições livres"], mostSearched: ["Configurações customizadas"], baseDirectives: customStyleDirectives.trim(), isCustom: true } }));
+    setVideoStyle(styleKey);
+    setShowStyleCreator(false);
+    setCustomStyleName(""); setCustomStyleDuration(""); setCustomStyleMusic(""); setCustomStyleTransitions(""); setCustomStyleDirectives("");
+  };
+
+  const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
+    const fileNamesMap = { image: "referencia_estilo_moodboard.png", video: "corte_exemplo_referencia.mp4", audio: "efeito_sonoro_swoosh.mp3", doc: "roteiro_planejado_vendas.pdf" };
+    const nextAsset: ReferenceAsset = { id: `asset_${Date.now()}`, name: fileNamesMap[type], type, size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB", status: "uploading", progress: 0 };
+    setReferenceAssets(prev => [...prev, nextAsset]);
+    let prog = 0;
+    const interval = setInterval(() => { prog += 25; setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, progress: prog } : a)); if (prog >= 100) { clearInterval(interval); setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, status: "completed" } : a)); } }, 400);
+  };
+
+  const handleRemoveAsset = (id: string) => setReferenceAssets(referenceAssets.filter(a => a.id !== id));
+  const handleRemoveRawFile = (index: number) => setRawFiles(rawFiles.filter((_, i) => i !== index));
 
   const handleRejectVideo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectionError.trim()) return;
-
     const errorFact = `[ERRO DE EDIÇÃO DE VÍDEO DETECTADO] Estilo: ${videoStyle}. Correção crítica exigida: ${rejectionError.trim()}`;
     const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
     const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
-    let memoriesList = [];
-    if (storedMems) {
-      memoriesList = JSON.parse(storedMems);
-    }
-    const newMem = {
-      id: `mem_video_error_${Date.now()}`,
-      category: "tecnico" as const,
-      fact: errorFact,
-      timestamp: "Absorbido via Feedback de Edição",
-      confidence: 100
-    };
-    localStorage.setItem(`yggnarok.${username}.ltm_memories`, JSON.stringify([newMem, ...memoriesList]));
-
+    let memoriesList: { id: string; category: string; fact: string; timestamp: string; confidence: number }[] = [];
+    if (storedMems) memoriesList = JSON.parse(storedMems);
+    localStorage.setItem(`yggnarok.${username}.ltm_memories`, JSON.stringify([{ id: `mem_video_error_${Date.now()}`, category: "tecnico", fact: errorFact, timestamp: "Absorbido via Feedback de Edição", confidence: 100 }, ...memoriesList]));
     setAbsorbedFeedback([rejectionError.trim(), ...absorbedFeedback]);
-    setVideoStatus("rejected");
-    setRejectionError("");
-    setProgressVal(0);
-    setCouncilMessages([]);
+    setVideoStatus("rejected"); setRejectionError(""); setProgressVal(0); setCouncilMessages([]);
   };
 
-  const triggerPlatformPublish = (platform: "4k" | "tiktok" | "reels" | "shorts") => {
-    setExportPlatform(platform);
+  // ── Export popover content per platform ──
+  const exportInfo = () => {
+    switch (selectedPlatform) {
+      case "tiktok":
+        return { lines: ["✓ TikTok · 9:16 vertical", "✓ Resolução: 1080×1920", `✓ Duração ideal: ${platform.idealDuration}`, `✓ Máx recomendado: ${platform.maxDuration}`, `✓ FPS: ${platform.fps}`] };
+      case "youtube":
+        return { lines: ["✓ YouTube · 16:9 horizontal", "✓ Resolução: 1920×1080", "✓ Duração: conforme projeto", "✓ FPS: 30/60 FPS disponível", "⚠ Lembrete: miniatura", "⚠ Lembrete: título + descrição"] };
+      case "shorts":
+        return { lines: ["✓ YouTube Shorts · 9:16 vertical", "✓ Resolução: 1080×1920", `✓ Duração ideal: ${platform.idealDuration}`, "✓ FPS: 30 FPS"] };
+      case "instagram":
+        return instaMode === "reels"
+          ? { lines: ["✓ Instagram Reels · 9:16 vertical", "✓ Resolução: 1080×1920", "✓ Duração: 15–60s", "✓ FPS: 30 FPS", "⚠ Lembrete: legenda otimizada"] }
+          : { lines: ["✓ Instagram Feed", "✓ Formato: 1:1 ou 4:5", "✓ Composição visual refinada", "⚠ Lembrete: hashtags + CTA"] };
+      case "kwai":
+        return { lines: ["✓ Kwai · 9:16 vertical", "✓ Resolução: 1080×1920", "✓ Otimizado para vídeos curtos", "✓ FPS: 30 FPS"] };
+      case "twitter":
+        return { lines: [`✓ X / Twitter · formato configurável`, "✓ Duração: curta", "⚠ Lembrete: legenda + contexto"] };
+      case "facebook":
+        return fbMode === "reels"
+          ? { lines: ["✓ Facebook Reels · 9:16 vertical", "✓ Resolução: 1080×1920", "✓ FPS: 30 FPS"] }
+          : { lines: ["✓ Facebook Feed · 16:9 horizontal", "✓ Resolução: 1920×1080", "⚠ Lembrete: legenda + engajamento"] };
+    }
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportPopover(false);
+    const exportSteps = ["Preparando arquivo para exportação...", "Otimizando codec e resolução...", "✓ Pronto para exportar!"];
     setVideoStatus("exporting");
+    setExportLogs([exportSteps[0]]);
     setExportStep(0);
-
-    const stepsMap = {
-      "4k": [
-        "Iniciando Renderização H.264 / ProRes a 60fps...",
-        "Calculando anti-aliasing vetorial e sobreposição neon...",
-        "Ajustando bitrate de exportação para 50 Mbps (Qualidade Máxima)...",
-        "✓ Sucesso! Vídeo salvo em ProRes 4K Ultra-HD sem compactação local!"
-      ],
-      tiktok: [
-        "Conectando com a API oficial do TikTok...",
-        "Ignorando compressão automática do servidor TikTok...",
-        "Carregando vídeo original ProRes via Chunk Uploading...",
-        "✓ Sucesso! Vídeo publicado no TikTok em Resolução Nativa Máxima!"
-      ],
-      reels: [
-        "Negociando codec HDR com a API do Instagram Graph...",
-        "Estabilizando taxa de quadros e cores Void & Amber em 4K...",
-        "Carregando arquivo brutamente em alta fidelidade...",
-        "✓ Sucesso! Reels publicado em Altíssima Qualidade no Instagram!"
-      ],
-      shorts: [
-        "Abrindo túnel de alta velocidade com o YouTube Creator API...",
-        "Processando áudio original sem compactação em WAV...",
-        "Transmitindo pacote de dados sem perdas...",
-        "✓ Sucesso! YouTube Short agendado em Ultra-HD original!"
-      ]
-    };
-
-    const steps = stepsMap[platform];
-    setExportLogs([steps[0]]);
-
     let idx = 0;
     const interval = setInterval(() => {
       idx++;
-      if (idx < steps.length) {
+      if (idx < exportSteps.length) {
         setExportStep(idx);
-        setExportLogs(prev => [...prev, steps[idx]]);
+        setExportLogs(prev => [...prev, exportSteps[idx]]);
       } else {
         clearInterval(interval);
-        setTimeout(() => {
-          setVideoStatus("idle");
-          setExportPlatform(null);
-          setExportLogs([]);
-        }, 3000);
+        setTimeout(() => { setVideoStatus("idle"); setExportLogs([]); }, 2500);
       }
-    }, 2000);
+    }, 1200);
   };
 
-  const runActiveTrendScan = () => {
-    setIsScanningTrends(true);
-    const mockLogs = [
-      "🌐 Conectando radar YGGNAROK ao feed global de tendências...",
-      "📈 Mapeando 14 padrões virais emergentes (Humor, Documentário)...",
-      "⚡ Sintonizando transições dinâmicas baseadas em retenção mobile...",
-      "🔥 Consciência de Gênero atualizada! Pesos sintonizados no Qwen-VL e Gemini!"
-    ];
+  const timelineTotalSeconds = timelineClips.reduce((sum, c) => sum + c.seconds, 0);
 
-    let idx = 0;
-    setTrendRadarLogs([mockLogs[0]]);
-
-    const interval = setInterval(() => {
-      idx++;
-      if (idx < mockLogs.length) {
-        setTrendRadarLogs(prev => [...prev, mockLogs[idx]]);
-      } else {
-        clearInterval(interval);
-        setIsScanningTrends(false);
-      }
-    }, 1000);
-  };
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // RENDER
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   return (
-    <main className="min-h-screen text-foreground relative overflow-hidden bg-radial-gradient">
+    <main className="min-h-screen text-foreground relative bg-background select-none">
       <style>{`
-        @keyframes floatAlert {
-          0% { transform: translateY(5px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-alert-pop {
-          animation: floatAlert 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes progressGlow {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .animate-glow-bar {
-          background-size: 200% 200%;
-          animation: progressGlow 2s ease infinite;
-        }
+        @keyframes floatAlert { 0% { transform: translateY(5px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .animate-alert-pop { animation: floatAlert 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes progressGlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .animate-glow-bar { background-size: 200% 200%; animation: progressGlow 2s ease infinite; }
+        @keyframes trackPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+        .track-pulse { animation: trackPulse 2s ease-in-out infinite; }
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.2); border-radius: 99px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(245,158,11,0.4); }
       `}</style>
 
-      {/* Glow ambient effects */}
-      <div className="absolute top-0 right-1/4 size-96 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 left-10 size-80 rounded-full bg-orange-600/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/8 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/8 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 lg:px-8">
-        
-        {/* Toast */}
+      <div className="mx-auto max-w-[1600px] px-4 py-4 lg:px-6 flex flex-col h-[calc(100vh-4rem)] gap-3">
+
+        {/* ─── TOAST ─── */}
         {toast && (
-          <div className={`fixed top-6 right-6 z-[var(--z-toast)] flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg animate-alert-pop ${
-            toast.type === "success" 
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" 
-              : "border-rose-500/30 bg-rose-500/10 text-rose-400"
-          }`}>
-            {toast.type === "success" ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-            {toast.message}
+          <div className={`fixed bottom-6 right-6 z-[var(--z-toast)] flex items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-extrabold shadow-2xl backdrop-blur-xl animate-alert-pop ${toast.type === "success" ? "border-emerald-500/30 bg-emerald-950/90 text-emerald-400" : "border-rose-500/30 bg-rose-950/90 text-rose-400"}`}>
+            {toast.type === "success" ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+            <span>{toast.message}</span>
           </div>
         )}
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="h-px w-6 bg-brand" />
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">Estúdio de Edição · Odin OS</p>
-              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">VIDEO</span>
+        {/* ════════════════════════════════════════════════
+           TOP PREPARATION ZONE (~38%)
+           ════════════════════════════════════════════════ */}
+        <div className="shrink-0 flex flex-col gap-3" style={{ maxHeight: "38%" }}>
+
+          {/* ── Studio Header ── */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand/75 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span></span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-brand">Estúdio de Vídeo · Odin OS</span>
+              </div>
+              <h1 className="font-divine text-xl sm:text-2xl font-black tracking-widest bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(245,158,11,0.3)]">
+                Video Creation Studio
+              </h1>
             </div>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
-              Estúdio de Edição de Vídeos (Dedicated space)
-            </h1>
-            <p className="mt-2 text-sm text-muted">
-              Corte, ritmo e orquestra multi-agente premium sem perdas e sem custos de infraestrutura.
-            </p>
-          </div>
-        </div>
-
-        {/* Splitted Workspace */}
-        <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
-          
-          {/* LEFT COLUMN */}
-          <div className="space-y-6">
-            
-            {/* INGESTION */}
-            <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Video size={16} className="text-rose-400" />
-                  <h2 className="text-sm font-bold uppercase text-foreground">Ingestão de Mídia Bruta</h2>
-                </div>
-                
-                <button 
-                  type="button"
-                  onClick={() => setShowStyleCreator(!showStyleCreator)}
-                  className="inline-flex items-center gap-1 text-[9px] font-bold text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded hover:bg-brand/25 transition"
-                >
-                  <Plus size={10} /> Novo Estilo
-                </button>
-              </div>
-              
-              {showStyleCreator && (
-                <form onSubmit={handleCreateCustomStyle} className="rounded-xl border border-brand/25 bg-brand/5 p-4 space-y-3 animate-alert-pop">
-                  <div className="flex justify-between items-center border-b border-brand/10 pb-2">
-                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Criar Estilo Único</span>
-                    <button type="button" onClick={() => setShowStyleCreator(false)}><X size={12} className="text-muted hover:text-foreground" /></button>
-                  </div>
-                  <Field label="Nome do Estilo">
-                    <input 
-                      className={`${inputClass} border-line bg-surface-strong text-xs`}
-                      placeholder="Ex: Minimalista Dark Kotaro"
-                      value={customStyleName}
-                      onChange={(e) => setCustomStyleName(e.target.value)}
-                      required
-                    />
-                  </Field>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Field label="Duração Alvo">
-                      <input className={`${inputClass} border-line bg-surface-strong text-[11px]`} placeholder="Ex: 30s - 45s" value={customStyleDuration} onChange={(e) => setCustomStyleDuration(e.target.value)} />
-                    </Field>
-                    <Field label="Músicas">
-                      <input className={`${inputClass} border-line bg-surface-strong text-[11px]`} placeholder="Synthwave, Lofi" value={customStyleMusic} onChange={(e) => setCustomStyleMusic(e.target.value)} />
-                    </Field>
-                  </div>
-                  <Field label="Transições e Efeitos">
-                    <input className={`${inputClass} border-line bg-surface-strong text-xs`} placeholder="Zoom, fade rápido..." value={customStyleTransitions} onChange={(e) => setCustomStyleTransitions(e.target.value)} />
-                  </Field>
-                  <Field label="Diretrizes Estruturais / Formatos">
-                    <textarea 
-                      className={`${textareaClass} border-line bg-surface-strong text-xs`}
-                      placeholder="Insira as regras exclusivas..."
-                      rows={3}
-                      value={customStyleDirectives}
-                      onChange={(e) => setCustomStyleDirectives(e.target.value)}
-                      required
-                    />
-                  </Field>
-                  <button className="w-full py-2 bg-brand text-neutral-950 text-xs font-bold rounded-lg shadow hover:bg-brand-strong transition">
-                    Salvar Novo Estilo
-                  </button>
-                </form>
-              )}
-
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Estilo e Diretrizes</label>
-                <select 
-                  className={`${inputClass} border-line bg-surface-strong text-xs font-semibold text-brand`}
-                  value={videoStyle}
-                  onChange={(e) => setVideoStyle(e.target.value)}
-                >
-                  {Object.entries(allPresets).map(([key, preset]) => (
-                    <option key={key} value={key}>{preset.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Clipes Brutos adicionados</label>
-                <form onSubmit={handleAddRawFile} className="flex gap-1.5 mb-2">
-                  <input 
-                    className={`${inputClass} border-line bg-surface-strong text-xs py-1.5`} 
-                    placeholder="Adicione clip_bruto.mp4..."
-                    value={newFileName}
-                    onChange={(e) => setNewFileName(e.target.value)}
-                  />
-                  <button className="px-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition text-xs font-bold shrink-0">
-                    Inserir
-                  </button>
-                </form>
-
-                <div className="space-y-1.5 max-h-[110px] overflow-y-auto border border-line/40 rounded-xl bg-surface-strong/30 p-2">
-                  {rawFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-[10px] bg-surface-strong/60 p-1.5 rounded border border-line/30 font-mono text-muted">
-                      <span className="truncate max-w-[170px]">{file}</span>
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveRawFile(idx)}
-                        className="text-rose-400 hover:text-rose-500 px-1 font-sans font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Field label="Orientações e Ganchos">
-                  <textarea 
-                    className={`${textareaClass} border-line bg-surface-strong text-xs`}
-                    rows={3}
-                    placeholder="Cole links ou descreva transições rápidas..."
-                    value={editingInstructions}
-                    onChange={(e) => setEditingInstructions(e.target.value)}
-                  />
-                </Field>
-                <Field label="Link de Referência">
-                  <input 
-                    className={`${inputClass} border-line bg-surface-strong text-xs`}
-                    placeholder="https://tiktok.com/@exemplo/video/..."
-                    value={referenceLink}
-                    onChange={(e) => setReferenceLink(e.target.value)}
-                  />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div>
-                  <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Formato</label>
-                  <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
-                    <button 
-                      type="button" 
-                      onClick={() => setVideoAspect("916")}
-                      className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "916" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                    >
-                      9:16
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setVideoAspect("169")}
-                      className={`py-1 text-[9px] font-bold rounded transition ${videoAspect === "169" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                    >
-                      16:9
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Duração Estilo</label>
-                  <div className="py-1.5 px-3 bg-surface-strong border border-line rounded-lg text-xs font-bold font-mono text-center">
-                    {activePreset.duration}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* RADAR */}
-            <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-brand/5 p-6 shadow-xl backdrop-blur-md space-y-4">
-              <div className="absolute right-0 top-0 size-20 bg-brand/5 blur-xl pointer-events-none" />
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Radio size={16} className="text-brand animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-wider uppercase text-brand">Radar de Gênero &amp; Trends</h2>
-                </div>
-                <Brain size={14} className="text-brand opacity-60" />
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">Gênero Alvo</label>
-                <select 
-                  className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
-                  value={videoGenre}
-                  onChange={(e) => setVideoGenre(e.target.value as "viral" | "educational" | "comedy" | "documentary" | "serious" | "sales")}
-                >
-                  <option value="viral">Trends &amp; Virais</option>
-                  <option value="educational">Educativos / Tutoriais</option>
-                  <option value="comedy">Humor &amp; Comédia</option>
-                  <option value="documentary">Cinematográfico / Mini-Doc</option>
-                  <option value="serious">Sérios &amp; Corporativos</option>
-                  <option value="sales">VSL / Alta Conversão</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1.5">Adaptação de Pacing</label>
-                <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface-strong border border-line rounded-lg">
-                  <button 
-                    type="button" 
-                    onClick={() => setAdaptationMode("liquid")}
-                    className={`py-1 text-[9px] font-bold rounded transition ${adaptationMode === "liquid" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                  >
-                    Algoritmo Líquido
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setAdaptationMode("fixed")}
-                    className={`py-1 text-[9px] font-bold rounded transition ${adaptationMode === "fixed" ? "bg-brand text-neutral-950" : "text-muted hover:text-foreground"}`}
-                  >
-                    Estilo Fixo Rígido
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 p-2.5 rounded-xl bg-neutral-950 border border-line/30 font-mono text-[9px] text-muted">
-                {trendRadarLogs.map((log, idx) => (
-                  <p key={idx} className="flex items-center gap-1.5 truncate">
-                    <span className="text-brand">•</span>
-                    <span>{log}</span>
-                  </p>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={runActiveTrendScan}
-                disabled={isScanningTrends}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-brand/40 bg-surface px-4 py-2 text-xs font-bold text-brand hover:bg-brand hover:text-neutral-950 transition duration-300"
-              >
-                <RefreshCw size={11} className={isScanningTrends ? "animate-spin" : ""} />
-                {isScanningTrends ? "Sintonizando Trends..." : "Atualizar Consciência de Trends"}
-              </button>
-            </section>
-
-            {/* ODIN SUPERVISOR */}
-            <section className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6 shadow-xl backdrop-blur-md">
-              <div className="absolute right-0 top-0 size-24 bg-emerald-500/10 blur-2xl pointer-events-none" />
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-emerald-400 animate-pulse" />
-                  <h2 className="text-sm font-bold tracking-wider uppercase text-emerald-400">Supervisor de Evolução (Odin)</h2>
-                </div>
-              </div>
-              <p className="text-[11px] text-muted leading-relaxed mb-4">
-                Lê erros LTM de edições passadas e ajusta automaticamente as diretrizes técnicas dos modelos gratuitos.
-              </p>
-              <button 
-                type="button"
-                onClick={() => {
-                  const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
-                  alert(`[ODIN EVOLUTION PIPELINE] Lendo base de rejeições LTM do usuário '${username}'...\n\n1. Consolidando correções de transição rápida no Qwen 2.5-VL.\n2. Reajustando ganchos de persuasão no Llama 3.3.\n3. Parâmetros de pesos e sistema sintonizados a custo $0.00!`);
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-surface px-4 py-2.5 text-xs font-bold text-emerald-400 transition duration-300 hover:bg-emerald-500 hover:text-neutral-950"
-              >
-                <RefreshCw size={13} className="animate-spin" />
-                Auto-Sintonizar e Ajustar Modelos (Free)
-              </button>
-            </section>
           </div>
 
-          {/* RIGHT COLUMN */}
-          <div className="space-y-6">
-            
-            <section className="rounded-2xl border border-line bg-surface/40 p-6 shadow-xl backdrop-blur-md space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line pb-4 gap-4">
-                <div>
-                  <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <Film size={18} className="text-rose-400" /> Mesa de Edição Colaborativa (Council OS)
-                  </h2>
-                  <p className="text-xs text-muted">Conselho de Agentes avalia e projeta cortes baseado no seu acervo e tendências</p>
-                </div>
-                
-                {videoStatus === "idle" && (
-                  <button 
-                    onClick={runVideoEditingPipeline}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-extrabold px-5 transition shadow-lg shadow-rose-500/10 animate-pulse"
+          {/* ── Platform Selector ── */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            {(Object.entries(PLATFORM_MAP) as [Platform, PlatformConfig][]).map(([key, p]) => {
+              const Icon = p.icon;
+              const isActive = selectedPlatform === key;
+              const isInsta = key === "instagram";
+              const isFb = key === "facebook";
+              return (
+                <div key={key} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPlatform(key); setShowExportPopover(false); }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border transition-all duration-200 ${
+                      isActive
+                        ? "border-brand bg-brand/10 text-brand shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        : "border-line/30 bg-black/30 text-muted hover:text-white hover:border-line/60"
+                    }`}
                   >
-                    <Wand2 size={13} /> Disparar Orquestra de Edição (Free)
+                    <Icon size={13} />
+                    <span>{p.label}</span>
+                    <span className="text-[7px] opacity-50 ml-0.5">{p.ratio}</span>
                   </button>
-                )}
-
-                {videoStatus !== "idle" && videoStatus !== "completed" && videoStatus !== "rejected" && videoStatus !== "exporting" && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-brand">
-                    <RefreshCw size={13} className="animate-spin text-rose-400" />
-                    <span>Reunindo e Renderizando...</span>
-                  </div>
-                )}
-
-                {videoStatus === "completed" && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400">
-                    <CheckCircle size={12} /> Render Concluído!
-                  </span>
-                )}
-              </div>
-
-              {(videoStatus !== "idle" && videoStatus !== "exporting") && (
-                <div className="w-full bg-neutral-900 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 h-1.5 rounded-full transition-all duration-500 animate-glow-bar" 
-                    style={{ width: `${progressVal}%` }}
-                  />
-                </div>
-              )}
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-line bg-surface-strong/30 p-3 space-y-1">
-                  <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1">
-                    <Radio size={10} className="animate-pulse" /> Tendências Locais
-                  </span>
-                  <div className="text-[9px] text-muted space-y-0.5 mt-1">
-                    {activePreset.trendingMusic.map((music, idx) => (
-                      <p key={idx} className="flex items-center gap-1 truncate"><Music size={8} /> {music}</p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-line bg-surface-strong/30 p-3 space-y-1">
-                  <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                    <Scissors size={10} /> Transições virais
-                  </span>
-                  <div className="text-[9px] text-muted space-y-0.5 mt-1">
-                    {activePreset.trendingTransitions.map((tran, idx) => (
-                      <p key={idx} className="truncate">• {tran}</p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-line bg-surface-strong/30 p-3 space-y-1">
-                  <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                    <Star size={10} /> Regras do Estilo
-                  </span>
-                  <p className="text-[9px] text-muted line-clamp-3 leading-relaxed mt-1">
-                    {activePreset.baseDirectives}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 lg:grid-cols-[160px_1fr]">
-                <div className="flex flex-col items-center justify-start border-r border-line/20 pr-4">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">Linha do tempo</span>
-                  
-                  <div className={`relative border-2 border-white/10 bg-neutral-950 rounded-2xl flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
-                    videoAspect === "916" ? "h-[220px] w-[124px]" : "h-[124px] w-[220px]"
-                  }`}>
-                    {videoStatus === "rendering" || videoStatus === "analyzing" ? (
-                      <div className="absolute inset-0 bg-neutral-950/80 flex flex-col items-center justify-center gap-2 z-20">
-                        <RefreshCw size={24} className="text-rose-400 animate-spin" />
-                        <span className="text-[8px] text-rose-300 font-mono tracking-widest animate-pulse">RENDER...</span>
-                      </div>
-                    ) : null}
-                    
-                    <Video className="text-rose-400/40 size-8" />
-                    <div className="absolute bottom-2 left-2 right-2 text-[7px] font-mono text-center text-white/50 truncate">
-                      {videoScriptTitle}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Cortes e Segmentos Projetados</span>
-                    <div className="flex border border-line bg-surface-strong/30 rounded-xl p-2 gap-1.5 overflow-x-auto">
-                      {videoTimeline.map((clip, idx) => (
-                        <div 
-                          key={clip.id} 
-                          className="flex-grow min-w-[90px] rounded-lg border border-line/40 bg-surface-strong/40 p-2 text-center"
-                        >
-                          <span className="text-[6px] font-bold uppercase block text-rose-400">{clip.type}</span>
-                          <span className="text-[10px] font-extrabold text-foreground truncate block mt-0.5">{clip.dur}</span>
-                          <span className="text-[8px] text-muted block truncate mt-1">Corte #{idx+1}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {videoStatus === "council_review" || videoStatus === "rendering" || videoStatus === "completed" ? (
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Deliberação do Conselho de Agentes</span>
-                      <div className="space-y-2 bg-surface-strong/30 rounded-xl p-3 border border-line max-h-[160px] overflow-y-auto">
-                        {councilMessages.map((msg, idx) => (
-                          <div key={idx} className="text-[11px] leading-relaxed flex items-start gap-2 animate-alert-pop">
-                            <span className="size-5 rounded-full bg-rose-500/10 border border-rose-500/20 grid place-items-center text-[10px] shrink-0">{msg.avatar}</span>
-                            <div className="flex-grow">
-                              <span className="font-bold text-foreground block">{msg.agent}</span>
-                              <p className="text-muted text-[10px] mt-0.5">{msg.message}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-line rounded-xl bg-surface/10">
-                      <Cpu className="text-rose-400/40 size-10 mb-2" />
-                       <p className="text-[10px] text-muted max-w-sm">Insira seus clipes, escolha o preset e clique em &quot;Disparar Orquestra&quot; para que o conselho de IAs execute a Mesa de Edição!</p>
+                  {isActive && (isInsta || isFb) && (
+                    <div className="absolute top-full left-0 mt-1 flex gap-1 z-10">
+                      <button
+                        type="button"
+                        onClick={() => isInsta ? setInstaMode("reels") : setFbMode("reels")}
+                        className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border transition ${
+                          (isInsta && instaMode === "reels") || (isFb && fbMode === "reels")
+                            ? "border-brand/40 bg-brand/15 text-brand" : "border-line/20 bg-black/40 text-muted"
+                        }`}
+                      >Reels</button>
+                      <button
+                        type="button"
+                        onClick={() => isInsta ? setInstaMode("feed") : setFbMode("feed")}
+                        className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border transition ${
+                          (isInsta && instaMode === "feed") || (isFb && fbMode === "feed")
+                            ? "border-brand/40 bg-brand/15 text-brand" : "border-line/20 bg-black/40 text-muted"
+                        }`}
+                      >Feed</button>
                     </div>
                   )}
                 </div>
+              );
+            })}
+          </div>
+
+          {/* ── Preparation Panel (Reference + Idea + AI) ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* References */}
+            <section className="rounded-xl border border-line/30 bg-surface/40 p-3 backdrop-blur-md space-y-2">
+              <div className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-muted">
+                <Search size={11} />
+                <span>Referências</span>
               </div>
-
-              {/* Upload simulation */}
-              <div className="border-t border-line/50 pt-5 space-y-4">
-                <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Adicionar Arquivos de Referência</span>
-                <div className="grid grid-cols-4 gap-2">
-                  <button type="button" onClick={() => handleSimulateAssetUpload("image")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <Image size={16} className="text-amber-400" />
-                    <span className="text-[9px] font-bold text-muted">Imagem</span>
+              <input
+                type="text"
+                placeholder="Link de referência (TikTok, YouTube...)"
+                value={referenceLink}
+                onChange={(e) => setReferenceLink(e.target.value)}
+                className="w-full h-8 rounded-lg border border-line/20 bg-black/30 px-2.5 text-[10px] text-foreground outline-none focus:border-brand/40 transition placeholder:text-muted/40"
+              />
+              <div className="flex gap-1">
+                {(["image", "video", "audio"] as const).map(type => (
+                  <button key={type} type="button" onClick={() => handleSimulateAssetUpload(type)}
+                    className="flex items-center gap-1 rounded-md border border-line/20 bg-black/30 px-2 py-1 text-[8px] font-bold text-muted hover:text-white transition">
+                    {type === "image" ? <Image size={10} /> : type === "video" ? <Play size={10} /> : <Music size={10} />}
+                    <span>{type}</span>
                   </button>
-                  <button type="button" onClick={() => handleSimulateAssetUpload("video")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <Play size={16} className="text-rose-400" />
-                    <span className="text-[9px] font-bold text-muted">Vídeo (Ref)</span>
-                  </button>
-                  <button type="button" onClick={() => handleSimulateAssetUpload("audio")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <Music size={16} className="text-sky-400" />
-                    <span className="text-[9px] font-bold text-muted">Áudio</span>
-                  </button>
-                  <button type="button" onClick={() => handleSimulateAssetUpload("doc")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1.5">
-                    <FileText size={16} className="text-emerald-400" />
-                    <span className="text-[9px] font-bold text-muted">Documento</span>
-                  </button>
-                </div>
-
-                {referenceAssets.length > 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {referenceAssets.map((asset) => (
-                      <div key={asset.id} className="flex items-center justify-between p-2.5 rounded-xl border border-line bg-surface-strong/50">
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-[10px] font-bold text-foreground block truncate max-w-[150px]">{asset.name}</span>
-                        </div>
-                        <button type="button" onClick={() => handleRemoveAsset(asset.id)} className="text-muted hover:text-rose-400 text-xs px-1">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
-
-              {/* 🚀 EXPORT PIPELINES */}
-              {videoStatus === "completed" && (
-                <div className="border-t border-line pt-5 space-y-4 animate-alert-pop">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Hub de Exportação Nativa (4K &amp; Redes)</span>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <button onClick={() => triggerPlatformPublish("4k")} className="flex flex-col items-center justify-center p-3 border border-brand/20 bg-brand/5 hover:border-brand/40 hover:bg-brand/10 rounded-xl transition gap-1">
-                      <Film size={18} className="text-brand animate-pulse" />
-                      <span className="text-[10px] font-bold text-foreground">ProRes 4K</span>
-                    </button>
-                    <button onClick={() => triggerPlatformPublish("tiktok")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1">
-                      <MessageSquare size={18} className="text-pink-400" />
-                      <span className="text-[10px] font-bold text-foreground">TikTok HD</span>
-                    </button>
-                    <button onClick={() => triggerPlatformPublish("reels")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1">
-                      <Heart size={18} className="text-rose-400" />
-                      <span className="text-[10px] font-bold text-foreground">Reels HDR</span>
-                    </button>
-                    <button onClick={() => triggerPlatformPublish("shorts")} className="flex flex-col items-center justify-center p-3 border border-line bg-surface-strong/30 hover:border-brand/30 hover:bg-surface-strong/60 rounded-xl transition gap-1">
-                      <Play size={18} className="text-red-400" />
-                      <span className="text-[10px] font-bold text-foreground">Shorts UHD</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {videoStatus === "exporting" && exportPlatform && (
-                <div className="rounded-xl border border-brand/20 bg-brand/5 p-4 space-y-3 animate-alert-pop">
-                  <div className="space-y-1 border border-line/40 rounded-lg p-2.5 bg-neutral-950 font-mono text-[9px] text-muted">
-                    {exportLogs.map((log, idx) => (
-                      <p key={idx} className="flex items-center gap-1.5">
-                        <span className="text-emerald-400">✓</span>
-                        <span>{log}</span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Accept / Reject loops */}
-              {videoStatus === "completed" && (
-                <div className="border-t border-line pt-5 space-y-4 animate-alert-pop">
-                  <div className="bg-surface-strong/40 rounded-xl p-4 border border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                        <Award size={14} className="text-brand" /> Revisão de Qualidade Pronta
-                      </h4>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setVideoStatus("idle")} className="px-4 py-2 rounded-xl bg-emerald-500 text-neutral-950 text-xs font-bold hover:bg-emerald-600 transition">
-                        ✓ Aceitar Vídeo
-                      </button>
-                      <button onClick={() => setVideoStatus("rejected")} className="px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition">
-                        ✕ Rejeitar (LTM Erro)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {videoStatus === "rejected" && (
-                <form onSubmit={handleRejectVideo} className="border-t border-line pt-5 space-y-3 animate-alert-pop">
-                  <textarea
-                    required
-                    className="w-full rounded-xl border border-line bg-surface-strong/30 p-3 text-xs text-foreground placeholder:text-muted focus:border-brand focus:outline-none"
-                    rows={3}
-                    value={rejectionError}
-                    onChange={(e) => setRejectionError(e.target.value)}
-                    placeholder="Descreva o que as IAs devem corrigir no vídeo (LTM)..."
-                  />
-                  <div className="flex justify-end">
-                    <button className="flex items-center gap-1.5 rounded-xl bg-brand py-2 px-4 text-xs font-bold text-neutral-950 shadow-md transition hover:bg-brand-strong">
-                      <Wand2 size={12} /> Absorver Feedback &amp; Re-renderizar
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {absorbedFeedback.length > 0 && (
-                <div className="rounded-xl border border-brand/20 bg-brand/5 p-3 space-y-1.5">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-brand flex items-center gap-1">
-                    <Brain size={10} /> Histórico de Rejeições Absorvidas LTM
-                  </span>
-                  <div className="text-[9px] text-muted space-y-1">
-                    {absorbedFeedback.map((fb, idx) => (
-                      <p key={idx} className="flex items-center gap-1.5">
-                        <span className="text-brand font-bold">•</span>
-                        <span>Fato neural injetado na LTM: <em>&quot;Corrigir: {fb}&quot;</em></span>
-                      </p>
-                    ))}
-                  </div>
+              {referenceAssets.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {referenceAssets.map(a => (
+                    <span key={a.id} className="inline-flex items-center gap-1 rounded-md bg-black/40 border border-line/20 px-1.5 py-0.5 text-[8px] text-muted">
+                      {a.name}
+                      <button type="button" onClick={() => handleRemoveAsset(a.id)} className="text-rose-400 hover:text-rose-300">✕</button>
+                    </span>
+                  ))}
                 </div>
               )}
             </section>
+
+            {/* Idea & Briefing */}
+            <section className="rounded-xl border border-line/30 bg-surface/40 p-3 backdrop-blur-md space-y-2">
+              <div className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-muted">
+                <Wand2 size={11} />
+                <span>Ideia / Briefing</span>
+              </div>
+              <textarea
+                placeholder="Descreva sua ideia para o vídeo..."
+                value={ideaDescription}
+                onChange={(e) => setIdeaDescription(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-line/20 bg-black/30 px-2.5 py-1.5 text-[10px] text-foreground outline-none focus:border-brand/40 transition placeholder:text-muted/40 resize-none"
+              />
+            </section>
+
+            {/* AI Analysis */}
+            <section className="rounded-xl border border-line/30 bg-surface/40 p-3 backdrop-blur-md space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-muted">
+                  <Brain size={11} className="text-brand" />
+                  <span>Análise IA · {platform.label}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={runAiAnalysis}
+                  disabled={aiAnalysisRunning}
+                  className="flex items-center gap-1 rounded-md bg-brand/10 border border-brand/20 px-2 py-0.5 text-[8px] font-bold text-brand hover:bg-brand/20 transition"
+                >
+                  <RefreshCw size={9} className={aiAnalysisRunning ? "animate-spin" : ""} />
+                  <span>{aiAnalysisRunning ? "Analisando..." : "Analisar"}</span>
+                </button>
+              </div>
+              <div className="space-y-0.5 max-h-[80px] overflow-y-auto scrollbar-thin">
+                {aiAnalysisResults.length > 0 ? aiAnalysisResults.map((r, i) => (
+                  <p key={i} className="text-[9px] text-muted leading-tight">{r}</p>
+                )) : (
+                  <p className="text-[9px] text-muted/50 italic">Clique em "Analisar" para otimização para {platform.label}.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* ════════════════════════════════════════════════
+           BOTTOM EDITOR ZONE (~62%)
+           ════════════════════════════════════════════════ */}
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
+
+          {/* ── EDITOR HEADER ── */}
+          <div className="flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="grid size-6 place-items-center rounded-md bg-brand/10 border border-brand/30 text-[10px] font-black text-brand">4</span>
+              <h2 className="text-sm font-black tracking-wider text-foreground">Editor & Preview</h2>
+              <span className="text-[10px] text-muted font-mono font-bold">— {platform.label} ({platform.ratio})</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Cortar</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Legendas</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Transição</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Efeitos</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Filtros</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-line/20 bg-black/30 text-[9px] font-bold text-muted hover:text-white hover:border-line/40 transition">Música</button>
+              <button type="button" className="px-2.5 py-1.5 rounded-lg border border-brand/20 bg-brand/5 text-[9px] font-bold text-brand hover:bg-brand/15 transition flex items-center gap-1">
+                <Brain size={11} /> IA
+              </button>
+              <button
+                ref={exportBtnRef}
+                type="button"
+                onClick={() => setShowExportPopover(!showExportPopover)}
+                className="px-3 py-1.5 rounded-lg bg-brand text-neutral-950 text-[9px] font-black hover:bg-brand-strong transition flex items-center gap-1 shadow-lg shadow-brand/20"
+              >
+                <Send size={11} /> ENVIAR
+              </button>
+            </div>
           </div>
 
+          {/* ── YOUTUBE: Large preview layout ── */}
+          {isYouTube ? (
+            <div className="flex-1 min-h-0 flex flex-col gap-3">
+              {/* Large 16:9 preview */}
+              <div className="flex-1 min-h-0 rounded-xl border border-line/30 bg-black/50 overflow-hidden flex items-center justify-center relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand/3 to-transparent pointer-events-none" />
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-full max-w-3xl aspect-video rounded-lg border border-line/20 bg-black/70 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play size={48} className="text-amber-500/30" />
+                    </div>
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] text-white/60 font-mono">
+                      <span>{videoScriptTitle}</span>
+                      <span>{platform.ratio} · {platform.resolution}</span>
+                    </div>
+                    <div className="absolute top-3 left-3 flex gap-1">
+                      {EDITOR_BUTTONS.map(b => (
+                        <button key={b.label} type="button" className="size-7 rounded-md bg-black/60 border border-white/10 grid place-items-center text-white/50 hover:text-white hover:border-white/30 transition" title={b.label}>
+                          <b.icon size={12} />
+                        </button>
+                      ))}
+                    </div>
+                    {videoStatus === "rendering" && (
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 z-20">
+                        <RefreshCw size={28} className="text-amber-400 animate-spin" />
+                        <span className="text-[9px] text-amber-300 font-mono tracking-widest animate-pulse">RENDERIZANDO...</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-[9px] text-muted">
+                    <span className="flex items-center gap-1"><Clock size={10} /> {formatDuration(timelineTotalSeconds)}</span>
+                    <span className="flex items-center gap-1"><Film size={10} /> {platform.resolution}</span>
+                    <span className="flex items-center gap-1"><Zap size={10} /> {platform.fps}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* YouTube: Timeline + compact checklist side-by-side */}
+              <div className="shrink-0 grid grid-cols-[1fr_220px] gap-3">
+                <TimelineSection clips={timelineClips} totalSeconds={timelineTotalSeconds} scale="minutes" isYouTube />
+                <YouTubeChecklist />
+              </div>
+            </div>
+          ) : (
+            /* ── SHORT-FORM: Preview left + Timeline right ── */
+            <div className="flex-1 min-h-0 flex gap-3">
+              {/* Preview (left) */}
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <div className={`${isVertical ? "h-[280px] w-[158px]" : "h-[158px] w-[280px]"} rounded-xl border border-line/30 bg-black/60 flex items-center justify-center relative overflow-hidden group`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand/3 to-transparent pointer-events-none" />
+                  <div className="flex flex-col items-center gap-2">
+                    <Play size={28} className="text-amber-500/20" />
+                    <span className="text-[7px] text-white/30 font-mono">{platform.ratio}</span>
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2 text-[6px] font-mono text-white/40 truncate text-center">{videoScriptTitle}</div>
+                  {videoStatus === "rendering" && (
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                      <RefreshCw size={20} className="text-amber-400 animate-spin" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 left-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                    {EDITOR_BUTTONS.slice(0, 3).map(b => (
+                      <button key={b.label} type="button" className="size-6 rounded bg-black/60 border border-white/10 grid place-items-center text-white/50 hover:text-white text-[9px]" title={b.label}>
+                        <b.icon size={10} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-1.5 text-[8px] text-muted font-mono">
+                  <span className="flex items-center gap-1"><Clock size={9} /> {formatDuration(timelineTotalSeconds)}</span>
+                  <span>{platform.fps}</span>
+                </div>
+              </div>
+
+              {/* Timeline + Tracks (right, fills remaining space) */}
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
+                {/* Editor buttons bar */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {EDITOR_BUTTONS.map(b => (
+                    <button key={b.label} type="button" className="size-8 rounded-lg border border-line/15 bg-black/30 grid place-items-center text-muted hover:text-white hover:border-line/40 transition" title={b.label}>
+                      <b.icon size={13} />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Timeline */}
+                <TimelineSection clips={timelineClips} totalSeconds={timelineTotalSeconds} scale="seconds" isYouTube={false} />
+
+                {/* Tracks */}
+                <TrackSection />
+              </div>
+            </div>
+          )}
+
+          {/* ── Bottom Controls ── */}
+          <BottomControls progressVal={progressVal} videoStatus={videoStatus} platform={platform} />
+
+          {/* ── Pipeline Trigger / Council / Export / Reject (preserved from original) ── */}
+          <PipelineSection
+            videoStatus={videoStatus}
+            progressVal={progressVal}
+            platform={platform}
+            runVideoEditingPipeline={runVideoEditingPipeline}
+            councilMessages={councilMessages}
+            rejectionError={rejectionError}
+            setRejectionError={setRejectionError}
+            handleRejectVideo={handleRejectVideo}
+            absorbedFeedback={absorbedFeedback}
+            setVideoStatus={setVideoStatus}
+            exportLogs={exportLogs}
+            showToast={showToast}
+          />
         </div>
+
+        {/* ── ENVIAR EXPORT POPOVER ── */}
+        {showExportPopover && (
+          <div ref={popoverRef} className="fixed z-[var(--z-popover)] w-[280px] rounded-xl border border-brand/30 bg-black/90 backdrop-blur-xl shadow-2xl shadow-brand/10 animate-alert-pop" style={{ bottom: exportBtnRef.current ? window.innerHeight - exportBtnRef.current.getBoundingClientRect().top + 8 + exportBtnRef.current.offsetHeight : "auto", right: exportBtnRef.current ? window.innerWidth - exportBtnRef.current.getBoundingClientRect().right : "auto" }}>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-line/20 pb-2">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand flex items-center gap-1.5">
+                  <Send size={11} /> Exportar para {platform.label}
+                </span>
+                <button type="button" onClick={() => setShowExportPopover(false)} className="text-muted hover:text-white">
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="space-y-1">
+                {exportInfo().lines.map((line, i) => {
+                  const isWarning = line.startsWith("⚠");
+                  return (
+                    <p key={i} className={`text-[10px] font-medium flex items-center gap-1.5 ${isWarning ? "text-amber-400/80" : "text-muted"}`}>
+                      <span className={isWarning ? "text-amber-400" : "text-emerald-400"}>{isWarning ? "⚠" : "▸"}</span>
+                      {line.replace(/^[✓⚠]\s/, "")}
+                    </p>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={handleExportConfirm}
+                className="w-full py-2 rounded-lg bg-brand text-neutral-950 text-[10px] font-black hover:bg-brand-strong transition flex items-center justify-center gap-1.5"
+              >
+                <Download size={11} />
+                <span>Confirmar & Preparar Exportação</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </main>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SUB-COMPONENTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const EDITOR_BUTTONS = [
+  { icon: Undo2, label: "Desfazer" },
+  { icon: Redo2, label: "Refazer" },
+  { icon: Copy, label: "Copiar" },
+  { icon: Trash2, label: "Excluir" },
+  { icon: Split, label: "Dividir" },
+  { icon: ZoomIn, label: "Zoom +" },
+  { icon: ZoomOut, label: "Zoom -" },
+];
+
+function formatDuration(totalSeconds: number): string {
+  if (totalSeconds >= 60) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}m${s > 0 ? `${s}s` : ""}`;
+  }
+  return `${totalSeconds}s`;
+}
+
+function TimelineSection({ clips, totalSeconds, scale, isYouTube }: { clips: TimelineClip[]; totalSeconds: number; scale: "seconds" | "minutes"; isYouTube: boolean }) {
+  const timeMarkers = scale === "minutes"
+    ? [0, 1, 2, 3, 5, 8, 10, 15].filter(t => t <= Math.ceil(totalSeconds / 60) + 1)
+    : [0, 5, 10, 15, 20, 30, 45, 60].filter(t => t <= totalSeconds + 5);
+
+  const unit = scale === "minutes" ? "m" : "s";
+
+  return (
+    <div className={`rounded-xl border border-line/20 bg-black/40 p-3 ${isYouTube ? "" : "flex-1 min-h-0"}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[8px] font-extrabold uppercase tracking-wider text-muted flex items-center gap-1">
+          <Clock size={9} /> Timeline
+        </span>
+        <span className="text-[8px] font-mono text-muted">{formatDuration(totalSeconds)} total</span>
+      </div>
+      <div className="relative overflow-x-auto scrollbar-thin" style={{ maxHeight: isYouTube ? "80px" : undefined }}>
+        <div className="relative" style={{ minWidth: `${Math.max(clips.length * 100, 400)}px`, height: isYouTube ? "60px" : "56px" }}>
+          {/* Time markers */}
+          <div className="absolute top-0 left-0 right-0 flex text-[7px] font-mono text-muted/50">
+            {timeMarkers.map((t, i) => (
+              <div key={i} className="absolute" style={{ left: `${(t / Math.max(...timeMarkers)) * 100}%`, transform: "translateX(-50%)" }}>
+                <span>{t}{unit}</span>
+              </div>
+            ))}
+          </div>
+          {/* Clip blocks */}
+          <div className="absolute top-4 left-0 right-0 bottom-0 flex gap-0.5">
+            {clips.map((clip, i) => {
+              const widthPct = (clip.seconds / Math.max(...timeMarkers, totalSeconds)) * 100;
+              return (
+                <div key={clip.id} className="relative h-full rounded-md border border-brand/20 bg-brand/8 flex items-center justify-center group cursor-pointer hover:bg-brand/15 transition flex-shrink-0" style={{ width: `${Math.max(widthPct, 8)}%` }}>
+                  <span className="text-[6px] font-bold text-brand/60 truncate px-0.5 leading-tight text-center">{clip.type}</span>
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[6px] font-mono text-muted/40 whitespace-nowrap">{clip.dur}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrackSection() {
+  const tracks = [
+    { icon: Video, label: "Vídeo", color: "text-amber-400", clips: [{ id: "t1", label: "Clip principal", dur: "25s" }, { id: "t2", label: "B-Roll", dur: "15s" }] },
+    { icon: Subtitles, label: "Texto / Legendas", color: "text-sky-400", clips: [{ id: "c1", label: "Legenda principal", dur: "25s" }, { id: "c2", label: "CTA sobreposto", dur: "10s" }] },
+    { icon: Volume2, label: "Áudio", color: "text-emerald-400", clips: [{ id: "a1", label: "Trilha de fundo", dur: "40s" }, { id: "a2", label: "Efeito sonoro", dur: "2s" }] },
+    { icon: Zap, label: "Efeitos / Transições", color: "text-rose-400", clips: [{ id: "e1", label: "Zoom rápido", dur: "1.5s" }, { id: "e2", label: "Fade", dur: "1s" }] },
+  ];
+
+  return (
+    <div className="rounded-xl border border-line/20 bg-black/40 p-3 flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+      <span className="text-[8px] font-extrabold uppercase tracking-wider text-muted flex items-center gap-1 mb-2"><Layers size={9} /> Tracks</span>
+      <div className="space-y-1.5">
+        {tracks.map(track => {
+          const Icon = track.icon;
+          return (
+            <div key={track.label} className="rounded-lg border border-line/15 bg-black/30 p-1.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Icon size={10} className={track.color} />
+                <span className={`text-[7px] font-bold uppercase tracking-wider ${track.color}`}>{track.label}</span>
+              </div>
+              <div className="flex gap-1">
+                {track.clips.map(c => (
+                  <div key={c.id} className="h-5 rounded border border-line/20 bg-black/50 px-1.5 flex items-center gap-1 hover:bg-brand/10 transition cursor-pointer">
+                    <span className="text-[6px] text-muted truncate max-w-[50px]">{c.label}</span>
+                    <span className="text-[6px] font-mono text-muted/50">{c.dur}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function YouTubeChecklist() {
+  const items = ["Título otimizado", "Miniatura definida", "Descrição pronta", "Capítulos sugeridos", "Legendas adicionadas", "End screen sugerido", "CTA incluído"];
+  return (
+    <div className="rounded-xl border border-line/20 bg-black/40 p-3 overflow-y-auto scrollbar-thin">
+      <span className="text-[8px] font-extrabold uppercase tracking-wider text-muted flex items-center gap-1 mb-2"><CheckCircle size={9} /> YouTube Checklist</span>
+      <div className="space-y-1">
+        {items.map(item => (
+          <label key={item} className="flex items-center gap-1.5 cursor-pointer group">
+            <input type="checkbox" className="accent-brand size-2.5" />
+            <span className="text-[8px] text-muted group-hover:text-white transition">{item}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BottomControls({ progressVal, videoStatus, platform }: { progressVal: number; videoStatus: string; platform: PlatformConfig }) {
+  return (
+    <div className="shrink-0 flex items-center justify-between bg-black/30 rounded-xl border border-line/15 px-4 py-2">
+      <div className="flex items-center gap-3 text-[9px] text-muted font-mono">
+        <span className="flex items-center gap-1"><Undo2 size={11} /></span>
+        <span className="flex items-center gap-1"><Redo2 size={11} /></span>
+        <span className="h-3 w-px bg-line/30" />
+        <span className="flex items-center gap-1"><Copy size={11} /></span>
+        <span className="flex items-center gap-1"><Trash2 size={11} /></span>
+        <span className="flex items-center gap-1"><Split size={11} /></span>
+        <span className="h-3 w-px bg-line/30" />
+        <span className="flex items-center gap-1"><ZoomIn size={11} /></span>
+        <span className="flex items-center gap-1"><ZoomOut size={11} /></span>
+      </div>
+      <div className="flex items-center gap-4 text-[9px] font-mono text-muted">
+        <span className="flex items-center gap-1"><Clock size={10} /> {platform.idealDuration}</span>
+        <span className="flex items-center gap-1"><Film size={10} /> {platform.ratio}</span>
+        <span className="flex items-center gap-1"><Zap size={10} /> {platform.fps}</span>
+      </div>
+    </div>
+  );
+}
+
+const videoScriptTitle = "Como Economizar 100% de APIs com YGGNAROK";
+
+function PipelineSection({
+  videoStatus, progressVal, platform, runVideoEditingPipeline,
+  councilMessages, rejectionError, setRejectionError,
+  handleRejectVideo, absorbedFeedback, setVideoStatus, exportLogs, showToast
+}: {
+  videoStatus: string; progressVal: number; platform: PlatformConfig;
+  runVideoEditingPipeline: () => void;
+  councilMessages: { agent: string; avatar: string; message: string; status: string }[];
+  rejectionError: string; setRejectionError: (v: string) => void;
+  handleRejectVideo: (e: React.FormEvent) => void;
+  absorbedFeedback: string[]; setVideoStatus: (v: any) => void;
+  exportLogs: string[]; showToast: (msg: string, type?: "success" | "error") => void;
+}) {
+  return (
+    <div className="shrink-0 flex items-center gap-3">
+      {/* Pipeline trigger */}
+      {videoStatus === "idle" && (
+        <button onClick={runVideoEditingPipeline} className="flex items-center gap-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-extrabold px-4 py-2 transition shadow-lg shadow-rose-500/10">
+          <Wand2 size={13} /> Disparar Orquestra de Edição
+        </button>
+      )}
+
+      {videoStatus !== "idle" && videoStatus !== "completed" && videoStatus !== "rejected" && videoStatus !== "exporting" && (
+        <div className="flex items-center gap-2 text-[10px] font-bold text-brand">
+          <RefreshCw size={13} className="animate-spin text-rose-400" />
+          <span>Processando...</span>
+          <div className="w-24 h-1 bg-neutral-900 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full transition-all duration-500 animate-glow-bar" style={{ width: `${progressVal}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Council messages inline */}
+      {videoStatus === "council_review" || videoStatus === "rendering" ? (
+        <div className="flex items-center gap-2 overflow-hidden max-w-md">
+          {councilMessages.filter(m => m.status === "approved").slice(-2).map((m, i) => (
+            <span key={i} className="text-[8px] text-emerald-400/70 truncate">✓ {m.agent.split(" ")[0]}</span>
+          ))}
+          {councilMessages.some(m => m.status === "thinking") && (
+            <span className="text-[8px] text-amber-400/70 animate-pulse">Deliberando...</span>
+          )}
+        </div>
+      ) : null}
+
+      {/* Completed actions */}
+      {videoStatus === "completed" && (
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[9px] font-bold text-emerald-400"><CheckCircle size={11} /> Render Concluído</span>
+          <button onClick={() => setVideoStatus("idle")} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-neutral-950 text-[9px] font-bold hover:bg-emerald-600 transition">✓ Aceitar</button>
+          <button onClick={() => setVideoStatus("rejected")} className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[9px] font-bold hover:bg-rose-500/20 transition">✕ Rejeitar</button>
+        </div>
+      )}
+
+      {/* Rejection form */}
+      {videoStatus === "rejected" && (
+        <form onSubmit={handleRejectVideo} className="flex items-center gap-2 flex-1">
+          <input
+            required
+            className="flex-1 rounded-lg border border-line bg-black/40 px-3 py-1.5 text-[10px] text-foreground outline-none focus:border-brand/40 transition placeholder:text-muted/40"
+            placeholder="Descreva o que as IAs devem corrigir..."
+            value={rejectionError}
+            onChange={(e) => setRejectionError(e.target.value)}
+          />
+          <button className="flex items-center gap-1 rounded-lg bg-brand py-1.5 px-3 text-[9px] font-bold text-neutral-950 hover:bg-brand-strong transition"><Wand2 size={11} /> Absorver</button>
+        </form>
+      )}
+
+      {/* Export logs */}
+      {videoStatus === "exporting" && exportLogs.length > 0 && (
+        <div className="flex items-center gap-2 text-[8px] font-mono text-emerald-400/70 truncate max-w-xs">
+          {exportLogs.map((l, i) => (<span key={i} className="truncate">{l}</span>))}
+        </div>
+      )}
+    </div>
   );
 }
