@@ -765,32 +765,40 @@ export function AgentNodeStudio() {
               transformStyle: 'preserve-3d'
             }}
           >
-            {/* The Globe Background Layer (Massive Sphere) */}
+            {/* The True Globe Background (Centered Sphere) */}
             <div 
               className="absolute rounded-full pointer-events-none"
               style={{ 
-                width: '1800px',
-                height: '1800px',
+                width: '800px',
+                height: '800px',
                 left: '50%',
                 top: '50%',
-                transform: 'translate(-50%, -50%) translateZ(-350px)',
+                transform: 'translate(-50%, -50%) translateZ(-250px)',
                 backgroundImage: "url('/neural-bg.png')",
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                opacity: 0.65,
-                // Inset shadow creates the 3D spherical volume (dark edges, brighter center)
-                boxShadow: 'inset 0 0 300px 200px rgba(0,0,0,0.95), inset 0 0 100px 50px rgba(0,0,0,0.8)'
+                opacity: 0.7,
+                boxShadow: 'inset -20px -20px 80px rgba(0,0,0,0.9), inset 20px 20px 80px rgba(0,0,0,0.6), 0 0 100px rgba(16,185,129,0.1)'
               }}
             />
             
-            {/* Holographic Grid overlay */}
+            {/* Holographic Grid overlay (Attached to the globe) */}
             <div 
-              className="absolute inset-0 pointer-events-none opacity-30 bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:32px_32px]"
-              style={{ transform: 'translateZ(-150px)' }}
+              className="absolute pointer-events-none opacity-40 rounded-full"
+              style={{ 
+                width: '800px',
+                height: '800px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%) translateZ(-248px)',
+                backgroundImage: 'radial-gradient(circle at center, rgba(16,185,129,0.2) 2px, transparent 2px)',
+                backgroundSize: '32px 32px'
+              }}
             />
 
-            {/* SVG Edges without viewBox to guarantee pixel-perfect match with CSS coordinates */}
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" style={{ transform: 'translateZ(0px)', overflow: 'visible' }}>
+            {/* Neural Web Layer (Flat at Z=0 so SVG and Nodes perfectly align without parallax detachment) */}
+            <div className="absolute inset-0" style={{ transform: 'translateZ(0px)', transformStyle: 'preserve-3d' }}>
+              <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" style={{ overflow: 'visible' }}>
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
                 <path d="M0,0 L0,5 L8,2.5 z" className="fill-brand/60" />
@@ -841,8 +849,6 @@ export function AgentNodeStudio() {
               style={{ 
                 left: node.x,
                 top: node.y,
-                transform: `translateZ(${draggingNodeId === node.id ? '60px' : (selected.id === node.id ? '40px' : '20px')})`,
-                transformStyle: 'preserve-3d',
                 touchAction: 'none'
               }}
               onPointerDown={(e) => handlePointerDown(e, node.id)}
