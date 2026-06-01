@@ -924,7 +924,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none"
                               style={{ 
-                                backgroundImage: "url('/neural-bg.jpg')", 
+                                backgroundImage: "url('/neural-bg.png')", 
                                 transform: 'translateZ(-200px) scale(1.2)' // Pushes it deep into the background
                               }}
                             />
