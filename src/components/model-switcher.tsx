@@ -131,40 +131,39 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-2 rounded-full border transition-all duration-500 ease-out ${
+        title={`Consumo: ${Math.round(pct * 100)}% (${(usage.tokens / 1000).toFixed(1)}k / ${(limit / 1000).toFixed(0)}k tokens)`}
+        className={`relative overflow-hidden flex items-center gap-2 rounded-full border transition-all duration-500 ease-out ${
           compact
             ? "px-3 py-1.5 text-[12px]"
             : "px-3.5 py-2 text-[13px]"
         } ${
           open
             ? "border-brand bg-brand/10 text-brand shadow-[0_0_15px_rgba(245,158,11,0.1)]"
-            : "border-line bg-surface/85 text-foreground hover:border-brand/40 hover:bg-brand/[0.03] shadow-sm"
+            : "border-line bg-surface/85 text-foreground hover:border-brand/40 shadow-sm"
         }`}
-        style={{
-          background: open 
-            ? undefined 
-            : `linear-gradient(to right, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.08) ${pct * 100}%, transparent ${pct * 100}%, transparent 100%)`
-        }}
       >
-        <span className="font-mono text-[9.5px] uppercase tracking-wider text-brand font-extrabold bg-brand/10 dark:bg-brand/15 px-2 py-0.5 rounded border border-brand/25 shrink-0">
+        {/* Full-Button Progress Background Layer */}
+        {!open && (
+          <div 
+            className="absolute inset-0 pointer-events-none transition-all duration-700 ease-out z-0"
+            style={{
+              background: `linear-gradient(to right, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.12) 100%)`,
+              width: `${usage.tokens > 0 ? Math.max(pct * 100, 5) : 0}%`,
+              borderRight: usage.tokens > 0 ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
+              boxShadow: usage.tokens > 0 ? '2px 0 8px rgba(245, 158, 11, 0.2)' : 'none'
+            }}
+          />
+        )}
+        
+        {/* Content Layer */}
+        <span className="relative z-10 font-mono text-[9.5px] uppercase tracking-wider text-brand font-extrabold bg-brand/10 dark:bg-brand/15 px-2 py-0.5 rounded border border-brand/25 shrink-0">
           {SECTOR_LABELS[sector].split(" & ")[0]}
         </span>
-        <span className="font-semibold truncate max-w-[120px] sm:max-w-none">{shortName}</span>
-        
-        {/* Spent-Tokens Capsule Pill */}
-        <div 
-          className="h-2 w-9 rounded-full bg-neutral-200 dark:bg-neutral-800/80 overflow-hidden shrink-0 border border-neutral-300/30 dark:border-neutral-700/50 relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]" 
-          title={`Consumo: ${Math.round(pct * 100)}% (${(usage.tokens / 1000).toFixed(1)}k / ${(limit / 1000).toFixed(0)}k tokens)`}
-        >
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-brand dark:to-brand-strong transition-all duration-700 ease-out shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-            style={{ width: `${usage.tokens > 0 ? Math.max(pct * 100, 5) : 0}%` }}
-          />
-        </div>
+        <span className="relative z-10 font-semibold truncate max-w-[120px] sm:max-w-none">{shortName}</span>
         
         <ChevronDown
           size={12}
-          className={`text-muted transition-transform duration-300 ${open ? "rotate-180 text-brand" : ""}`}
+          className={`relative z-10 text-muted transition-transform duration-300 ${open ? "rotate-180 text-brand" : ""}`}
         />
       </button>
 
