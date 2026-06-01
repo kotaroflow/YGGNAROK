@@ -168,6 +168,25 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
 
+  // === 3D Parallax State ===
+  const [canvasRotation, setCanvasRotation] = useState({ x: 20, y: -10 }); // Initial 3D tilt
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (draggingNodeId || !canvasRef.current) return;
+    
+    // Calculate rotation based on mouse position (Parallax effect)
+    const rect = canvasRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Max rotation of 30 degrees
+    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
+    const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 15;
+    
+    setCanvasRotation({ x: rotateX + 15, y: rotateY }); // +15 gives it a base tilt like looking down at a globe
+  };
+
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
     // If we are in connecting mode and click a node, try to connect them
     if (connectingFromId && connectingFromId !== nodeId) {
@@ -884,15 +903,44 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         </>
                       ) : (
                         <div 
-                          className={`relative w-full h-[528px] bg-black/60 overflow-hidden ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`} 
-                          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(245,158,11,0.15) 1px, transparent 0)', backgroundSize: '32px 32px' }}
-                          onPointerMove={handlePointerMove}
-                          onPointerUp={handlePointerUp}
-                          onPointerLeave={handlePointerUp}
-                          onClick={() => connectingFromId && setConnectingFromId(null)}
+                          ref={canvasRef}
+                          className="relative w-full h-[528px] overflow-hidden bg-black flex items-center justify-center"
+                          style={{ perspective: '1200px' }}
+                          onMouseMove={handleCanvasMouseMove}
                         >
+                          {/* Inner 3D Container */}
+                          <div 
+                            className={`relative w-[150%] h-[150%] transition-transform duration-200 ease-out ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`}
+                            style={{ 
+                              transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg) translateZ(-50px)`,
+                              transformStyle: 'preserve-3d'
+                            }}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerLeave={handlePointerUp}
+                            onClick={() => connectingFromId && setConnectingFromId(null)}
+                          >
+                            {/* Imagem de Fundo (Miku Matrix) */}
+                            <div 
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none"
+                              style={{ 
+                                backgroundImage: "url('/neural-bg.jpg')", 
+                                transform: 'translateZ(-200px) scale(1.2)' // Pushes it deep into the background
+                              }}
+                            />
+                            
+                            {/* Malha de Fundo Holográfica */}
+                            <div 
+                              className="absolute inset-0 pointer-events-none opacity-50"
+                              style={{ 
+                                backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.2) 1px, transparent 0)', 
+                                backgroundSize: '48px 48px',
+                                transform: 'translateZ(-100px)' 
+                              }}
+                            />
+
                            {/* Linhas de conexão dinâmicas calculadas via Edges */}
-                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'translateZ(0px)' }}>
                              {canvasEdges.map(edge => {
                                const sourceNode = canvasNodes.find(n => n.id === edge.source);
                                const targetNode = canvasNodes.find(n => n.id === edge.target);
@@ -949,8 +997,14 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                                <div 
                                  key={node.id}
                                  onPointerDown={(e) => handlePointerDown(e, node.id)}
-                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-xl border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors z-10 select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 z-50 ring-2 ring-brand/50" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
-                                 style={{ left: `${node.x}px`, top: `${node.y}px`, touchAction: 'none' }}
+                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-md border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 ring-2 ring-brand/50" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
+                                 style={{ 
+                                   left: `${node.x}px`, 
+                                   top: `${node.y}px`, 
+                                   touchAction: 'none',
+                                   transform: `translateZ(${draggingNodeId === node.id ? '50px' : '20px'})`, // Pops out in 3D
+                                   transformStyle: 'preserve-3d'
+                                 }}
                                >
                                  <button onClick={(e) => deleteCanvasNode(node.id, e)} className="absolute -top-2 -right-2 grid size-5 place-items-center bg-black border border-line rounded-full text-muted hover:text-red-400 hover:border-red-500 transition-colors z-20">
                                    <X size={10} />
@@ -982,15 +1036,18 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                              );
                            })}
                            
-                           {/* Connecting Mode Helper Text */}
+                           {/* End Inner 3D Container */}
+                           </div>
+
+                           {/* Connecting Mode Helper Text (Outside 3D to stay readable) */}
                            {connectingFromId && (
-                             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl animate-pulse z-50">
+                             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl animate-pulse z-50 pointer-events-none">
                                Clique em outro Nó para conectar
                              </div>
                            )}
                            
-                           {/* Floating Action Toolbar */}
-                           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 bg-black/60 backdrop-blur-md border border-line/40 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-20">
+                           {/* Floating Action Toolbar (Outside 3D so it doesn't spin) */}
+                           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 bg-black/60 backdrop-blur-md border border-line/40 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-50">
                              <button onClick={() => addCanvasNode("input")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 transition-colors group">
                                <FileText size={14} className="text-muted group-hover:text-white" />
                                <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-white tracking-widest">Fonte</span>
