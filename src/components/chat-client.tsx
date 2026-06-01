@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image as ImageIcon, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
 import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel, getSectorFromPath, incrementModelUsage } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
@@ -59,21 +59,22 @@ export function ChatClient() {
     return Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
   });
 
-  const [feedbacks, setFeedbacks] = useState<Record<string, 'like' | 'dislike'>>({});
+  type FeedbackEntry = { messageId: string; rating: 'like' | 'dislike'; timestamp?: string; model?: string; comment?: string; commentTimestamp?: string };
 
-  useEffect(() => {
+  const [feedbacks, setFeedbacks] = useState<Record<string, 'like' | 'dislike'>>(() => {
     if (typeof window !== "undefined") {
       const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
       if (raw) {
         try {
-          const list = JSON.parse(raw) as { messageId: string; rating: 'like' | 'dislike' }[];
+          const list = JSON.parse(raw) as FeedbackEntry[];
           const map: Record<string, 'like' | 'dislike'> = {};
           list.forEach(f => { map[f.messageId] = f.rating; });
-          setFeedbacks(map);
+          return map;
         } catch (_) {}
       }
     }
-  }, []);
+    return {};
+  });
 
   const handleFeedback = (messageId: string, rating: 'like' | 'dislike') => {
     setFeedbacks(prev => {
@@ -83,16 +84,16 @@ export function ChatClient() {
       } else {
         next[messageId] = rating;
       }
-      
+
       if (typeof window !== "undefined") {
         const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
-        let list: { messageId: string; rating: 'like' | 'dislike'; timestamp: string; model: string }[] = [];
+        let list: FeedbackEntry[] = [];
         if (raw) {
           try { list = JSON.parse(raw); } catch (_) {}
         }
-        
+
         list = list.filter(item => item.messageId !== messageId);
-        
+
         if (next[messageId]) {
           list.push({
             messageId,
@@ -103,7 +104,7 @@ export function ChatClient() {
         }
         localStorage.setItem("yggnarok.chat-feedback.v1", JSON.stringify(list));
       }
-      
+
       return next;
     });
   };
@@ -114,22 +115,22 @@ export function ChatClient() {
   const handleFeedbackCommentSubmit = (messageId: string) => {
     if (typeof window !== "undefined") {
       const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
-      let list: any[] = [];
+      let list: FeedbackEntry[] = [];
       if (raw) {
         try { list = JSON.parse(raw); } catch (_) {}
       }
-      
+
       list = list.map(item => {
         if (item.messageId === messageId) {
-          return { 
-            ...item, 
-            comment: feedbackComment, 
-            commentTimestamp: new Date().toISOString() 
+          return {
+            ...item,
+            comment: feedbackComment,
+            commentTimestamp: new Date().toISOString()
           };
         }
         return item;
       });
-      
+
       localStorage.setItem("yggnarok.chat-feedback.v1", JSON.stringify(list));
     }
     setFeedbackTextId(null);
@@ -317,15 +318,15 @@ export function ChatClient() {
 
     // --- SMART COST & QUALITY ROUTER (Front-end Firewall) ---
     const textForRouting = content.toLowerCase();
-    
+
     // Rule 1: Image Request Interception
     const isImageRequest = /\b(gerar imagem|crie uma imagem|criar imagem|desenhe|gerar foto|criar foto|generate image|create image)\b/.test(textForRouting);
-    
+
     // Rule 2: Code detection (Qwen 2.5 Coder 32B - Free)
-    const isCodeRequest = 
-      textForRouting.includes("```") || 
+    const isCodeRequest =
+      textForRouting.includes("```") ||
       /\b(function|const|let|import|javascript|typescript|python|html|css|sql|api|nextjs|react|código|programar|programação|bug|erro|compilar|site|página|layout|front-end|frontend|backend|componente|tela|estilizar|style|class|div|button|link|input|span|pages|route|db|database|supabase|vercel|deploy|build|npm|yarn|package|json|git|github|console|log|alert|window|document|href|target)\b/.test(textForRouting);
-      
+
     // Rule 3: Business, Marketing & Strategic reasoning (Llama 3.3 70B - Free)
     const isBusinessRequest = /\b(campanha|estratégia|marketing|copywriting|vendas|negócio|copy|redigir|vender|análise de mercado|plano de negócios|estratégico|lançamento|conversão|monetização|precificação|produto|funil|lead|tráfego|anúncio|ads|seo)\b/.test(textForRouting);
 
@@ -333,13 +334,13 @@ export function ChatClient() {
     const isLogicRequest = /\b(calcule|equação|lógica|matemática|raciocínio|científico|algoritmo|fórmula|física|química|resolver problema|complexo|matemático|filosofia|dedução|indução)\b/.test(textForRouting);
 
     // Rule 5: Greetings & basic messages (Llama 3.1 8B - Fast & Free)
-    const isSimpleGreeting = 
-      content.length < 15 || 
+    const isSimpleGreeting =
+      content.length < 15 ||
       /\b(oi|olá|ola|bom dia|boa tarde|boa noite|opa|valeu|obrigado|obrigada|hey|hello|hi|tudo bem|tudo bom)\b/.test(textForRouting);
 
     // Rule 6: Specific detailed query
-    const isSpecificQuery = 
-      content.length > 50 || 
+    const isSpecificQuery =
+      content.length > 50 ||
       /\b(como|por que|porque|explique|diferença|quais|qual|passos|analise|comparação|vantagens|desvantagens|tutorial|passo a passo)\b/.test(textForRouting);
 
     const premiumModels = [
@@ -506,7 +507,7 @@ export function ChatClient() {
       const remainingQuota = Number(localStorage.getItem(QUOTA_KEY) || "10");
       const activeModelName = modelObj.name;
       const activeModelPrice = modelObj.free ? "GRÁTIS (Totalmente livre de custo)" : "PAGO (Consome saldo financeiro premium)";
-      
+
       let additionalInstructions = "";
 
       // 1. Add advanced cognitive semantic memories hierarchy if available
@@ -515,7 +516,7 @@ export function ChatClient() {
         if (memoriesList.length > 0) {
           additionalInstructions += `\n\n[SISTEMA DE MEMÓRIA COGNITIVA DEDICADA DE LONGO PRAZO (LTM) - CAPACIDADE VASTA]:` +
             `\nVocê possui uma base de dados cognitiva dedicada e permanente de aprendizados acumulados. Utilize estas memórias e diretrizes para personalizar, lapidar e guiar suas respostas de forma contínua ao usuário Kotaro sem que ele precise repetir preferências.`;
-          
+
           // Categorize and isolate facts for extreme clarity in large context windows
           const copyFacts = memoriesList.filter(m => m.category === "copy");
           const techFacts = memoriesList.filter(m => m.category === "tecnico");
@@ -523,19 +524,19 @@ export function ChatClient() {
           const prefFacts = memoriesList.filter(m => m.category === "preferencias");
 
           if (prefFacts.length > 0) {
-            additionalInstructions += `\n\n  🧬 Namespace: [PREFERÊNCIAS & IDENTIDADE DO KOTARO]\n  ` + 
+            additionalInstructions += `\n\n  🧬 Namespace: [PREFERÊNCIAS & IDENTIDADE DO KOTARO]\n  ` +
               prefFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (copyFacts.length > 0) {
-            additionalInstructions += `\n\n  🎨 Namespace: [COPYWRITING, REDAÇÃO & TOM DE ESCRITA]\n  ` + 
+            additionalInstructions += `\n\n  🎨 Namespace: [COPYWRITING, REDAÇÃO & TOM DE ESCRITA]\n  ` +
               copyFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (techFacts.length > 0) {
-            additionalInstructions += `\n\n  💻 Namespace: [DIRETRIZES TÉCNICAS, CÓDIGO & INFRA]\n  ` + 
+            additionalInstructions += `\n\n  💻 Namespace: [DIRETRIZES TÉCNICAS, CÓDIGO & INFRA]\n  ` +
               techFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
           if (salesFacts.length > 0) {
-            additionalInstructions += `\n\n  📈 Namespace: [METAS DE CONVERSÃO, CRO & VENDAS]\n  ` + 
+            additionalInstructions += `\n\n  📈 Namespace: [METAS DE CONVERSÃO, CRO & VENDAS]\n  ` +
               salesFacts.map((m) => `• ${m.fact}`).join("\n  ");
           }
         }
@@ -648,7 +649,7 @@ export function ChatClient() {
     }, 0);
     router.replace(`/chat?conv=${convId}`);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [initialQuery, hydrated, convId]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -658,7 +659,7 @@ export function ChatClient() {
     }
   }
 
-   
+
   const handleKeyDownCallback = useEffect(() => {}, []);
 
   function stop() {
@@ -790,7 +791,7 @@ export function ChatClient() {
                     <span>🚨</span> Consumo Alto: ${spentCost.toFixed(2)}
                   </span>
                 )}
-                
+
                 <button
                   type="button"
                   onClick={() => {
@@ -838,7 +839,7 @@ export function ChatClient() {
   if (isEmpty) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto animate-[pulse_20s_infinite]">
-        
+
         {/* Ambient Light Orbs for Void Mode Legibility */}
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
         <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
@@ -848,8 +849,8 @@ export function ChatClient() {
           <div className="transition-all duration-700 ease-out">
             <h2
               className="bg-gradient-to-br from-foreground via-foreground to-muted bg-clip-text text-2xl font-black tracking-tight text-transparent transition-all duration-700 sm:text-4xl inline-block"
-              style={{ 
-                opacity: fading ? 0 : 1, 
+              style={{
+                opacity: fading ? 0 : 1,
                 transform: fading ? "translateY(8px) scale(0.98)" : "translateY(0) scale(1)",
                 filter: fading ? "blur(4px)" : "blur(0)"
               }}
@@ -858,7 +859,7 @@ export function ChatClient() {
             </h2>
             <p className="text-xs text-muted mt-2 font-medium tracking-wide">Selecione uma sugestão operacional ou digite sua instrução abaixo.</p>
           </div>
-          
+
           {/* Exemplos de uso Cards Grid - Field.io Motion Poetics */}
           <div className="text-left space-y-3">
             <span className="text-[10px] font-bold text-muted/80 uppercase tracking-widest pl-1 select-none">Exemplos de uso</span>
@@ -902,7 +903,7 @@ export function ChatClient() {
                   >
                     {/* Hover Amber Glow Background Layer */}
                     <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/0 to-brand/10 opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100 pointer-events-none" />
-                    
+
                     <div className="relative z-10 grid size-10 shrink-0 place-items-center rounded-xl bg-surface-strong border border-line/30 shadow-sm transition-all duration-500 ease-out group-hover:bg-brand/15 group-hover:border-brand/40 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.25)] group-hover:scale-110">
                       <CardIcon size={16} className="text-muted transition-colors duration-500 group-hover:text-brand" />
                     </div>
@@ -978,7 +979,7 @@ export function ChatClient() {
                           {files.map((file, idx) => (
                             <div key={idx} className="flex items-center gap-2 rounded-lg border border-line bg-surface/50 px-2.5 py-1 text-xs text-foreground font-medium select-none shadow-sm">
                               {file.type.startsWith("image/") ? (
-                                <Image size={13} className="text-brand shrink-0" />
+                                <ImageIcon size={13} className="text-brand shrink-0" />
                               ) : (
                                 <FileText size={13} className="text-brand shrink-0" />
                               )}
@@ -993,7 +994,7 @@ export function ChatClient() {
                 })() : (
                   <div className="space-y-3">
                     <p className="whitespace-pre-wrap">{cleanAssistantContent(m.content)}</p>
-                    
+
                     {/* Feedback Rating Buttons */}
                     <div className="flex items-center gap-1.5 pt-1.5 border-t border-line/10 select-none">
                       <button
@@ -1020,7 +1021,7 @@ export function ChatClient() {
                       >
                         <ThumbsDown size={13} className={feedbacks[m.id] === 'dislike' ? "fill-current" : ""} />
                       </button>
-                      
+
                       {feedbacks[m.id] && (
                         <span className="text-[10px] text-brand/80 font-semibold tracking-wide animate-fade-in pl-1 select-none">
                           Feedback coletado! Obrigado.

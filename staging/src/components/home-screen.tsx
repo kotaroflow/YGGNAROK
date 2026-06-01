@@ -25,7 +25,6 @@ export function HomeScreen() {
   const { createConversation } = useChatWorkspace();
   const [value, setValue] = useState("");
   const [hint, setHint] = useState<string | null>(null);
-  const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -35,7 +34,6 @@ export function HomeScreen() {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
-    setCurrentHour(new Date().getHours());
   }, [value]);
 
   async function goToChat(text: string) {
@@ -114,29 +112,23 @@ export function HomeScreen() {
     setHint("Ouvindo… fale agora (clique no microfone para parar).");
   }
 
-  function getGreeting(hour: number): string {
-    if (hour >= 5 && hour < 12) return "Bom dia";
-    if (hour >= 12 && hour < 18) return "Boa tarde";
-    return "Boa noite";
-  }
-
   return (
     <div className="flex w-full flex-col items-center justify-center px-4 py-8">
-       <div className="mb-8 text-center">
-         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-brand font-divine">YGGNAROK</p>
-         <h1 className="text-balance text-4xl font-light tracking-tight text-foreground md:text-5xl font-heading">
-           <span className="mr-2 text-brand drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]">✦</span>
-           {getGreeting(currentHour)}
-         </h1>
-         <p className="mx-auto mt-3 max-w-md text-sm text-muted font-body">
-           Calma, foco e confiança — comece pelo chat ou escolha um fluxo abaixo.
-         </p>
-       </div>
+      <div className="mb-8 text-center">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-brand">YGGNAROK</p>
+        <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+          <span className="mr-2 text-brand">✦</span>
+          Como posso ajudar?
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+          Calma, foco e confiança — comece pelo chat ou escolha um fluxo abaixo.
+        </p>
+      </div>
 
       <div className="w-full max-w-2xl">
         <form
           onSubmit={handleSubmit}
-          className="relative rounded-2xl border-2 border-line bg-surface-strong/60 backdrop-blur-md shadow-md transition-all duration-300 focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)]"
+          className="relative rounded-2xl border border-line bg-surface-strong shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/15"
         >
           <input
             ref={fileRef}
@@ -205,7 +197,7 @@ export function HomeScreen() {
               key={label}
               type="button"
               onClick={() => router.push(href)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-bold text-muted transition-all duration-200 hover:border-brand/40 hover:bg-brand/[0.03] hover:text-foreground hover:-translate-y-0.5 shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition hover:border-brand/40 hover:text-foreground"
             >
               <Icon size={14} className="text-brand" />
               {label}

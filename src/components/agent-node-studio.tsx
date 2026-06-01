@@ -257,7 +257,7 @@ export function AgentNodeStudio() {
     const element = canvasRef.current;
     if (!element) return;
     const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         setContainerSize({
           width: entry.contentRect.width,
           height: entry.contentRect.height

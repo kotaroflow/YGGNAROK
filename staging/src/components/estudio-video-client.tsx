@@ -395,8 +395,8 @@ export function EstudioVideoClient() {
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">Estúdio de Edição · Odin OS</p>
               <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-brand">VIDEO</span>
             </div>
-            <h1 className="mt-2 text-3xl font-black tracking-tighter bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent sm:text-4xl">
-              Estúdio de Edição de Vídeos
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
+              Estúdio de Edição de Vídeos (Dedicated space)
             </h1>
             <p className="mt-2 text-sm text-muted">
               Corte, ritmo e orquestra multi-agente premium sem perdas e sem custos de infraestrutura.
@@ -411,7 +411,7 @@ export function EstudioVideoClient() {
           <div className="space-y-6">
             
             {/* INGESTION */}
-            <section className="relative overflow-hidden rounded-2xl border-2 border-line bg-surface/50 p-6 shadow-2xl backdrop-blur-md space-y-5 transition-all duration-300 focus-within:border-brand/40 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)]">
+            <section className="relative overflow-hidden rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md space-y-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Video size={16} className="text-rose-400" />

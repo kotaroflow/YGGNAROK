@@ -6,7 +6,7 @@ import {
   Lightbulb, Brain, Send, Sparkles, 
   Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle, 
   Trash2, ShieldAlert, Cpu, HelpCircle, Video, Scissors,
-  Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image, Check,
+  Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image as ImageIcon, Check,
   MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library,
   ScrollText, Subtitles, Hash, Globe, Settings, Terminal, Share2, ZoomIn, ZoomOut
 } from "lucide-react";
@@ -525,8 +525,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
       setContents(prev => [newItem, ...prev]);
       setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
       showToast(data.message || "Pipeline de geração (n8n) acionado!");
-    } catch (err: any) {
-      showToast(err.message, "error");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Erro ao acionar o pipeline", "error");
     } finally {
       setActionLoading(null);
     }
@@ -733,7 +733,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             className="flex items-center gap-2 bg-black/10 hover:bg-black/30 border border-line/20 hover:border-line/40 px-3 py-1.5 rounded-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-white"
           >
             <Zap size={12} className="text-brand/50" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Comandos "/"</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Comandos &quot;/&quot;</span>
           </button>
         </div>
 
@@ -1262,7 +1262,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                      <Image size={15} className="text-amber-400 transition-transform duration-500 group-hover:scale-125" />
+                      <ImageIcon size={15} className="text-amber-400 transition-transform duration-500 group-hover:scale-125" />
                       <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Quadro de Estilo</span>
                     </button>
                     <button 

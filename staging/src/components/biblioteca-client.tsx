@@ -64,7 +64,7 @@ export function BibliotecaClient({
             <span className="h-px w-6 bg-brand" />
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">Acervo Criativo</p>
           </div>
-          <h1 className="mt-2 text-3xl font-black tracking-tighter bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted bg-clip-text text-transparent">
             Biblioteca de Ativos
           </h1>
           <p className="mt-2 text-sm text-muted">
@@ -89,7 +89,7 @@ export function BibliotecaClient({
         
         {/* LEFT COLUMN: Premium Dual Form Panel */}
         <div className="space-y-6">
-          <div className="rounded-2xl border-2 border-line bg-surface/50 p-6 shadow-2xl backdrop-blur-md relative overflow-hidden transition-all duration-300 focus-within:border-brand/40 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)]">
+          <div className="rounded-2xl border border-line bg-surface/50 p-6 shadow-xl backdrop-blur-md relative overflow-hidden">
             {/* Ambient Background Glow inside form */}
             <div className="absolute -top-10 -left-10 size-40 rounded-full bg-brand/5 blur-2xl pointer-events-none" />
 
@@ -212,9 +212,9 @@ export function BibliotecaClient({
                   key={t}
                   type="button"
                   onClick={() => setSelectedType(t)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide uppercase transition-all whitespace-nowrap ${
                     selectedType === t
-                      ? "bg-brand text-neutral-950 shadow-md transform scale-105"
+                      ? "bg-brand text-neutral-950 shadow-sm"
                       : "bg-surface-strong/40 border border-line text-muted hover:border-brand/35 hover:text-foreground"
                   }`}
                 >

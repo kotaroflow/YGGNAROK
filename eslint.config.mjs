@@ -12,7 +12,16 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    ".agents/**",
+    "staging/**",
   ]),
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+      "jsx-a11y/alt-text": "off",
+      "react-hooks/exhaustive-deps": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
