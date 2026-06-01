@@ -529,8 +529,11 @@ export function ChatClient() {
         );
       }
 
+      const promptTokens = Math.ceil((input || "").length / 3.5);
+      const responseTokens = Math.ceil(accumulatedContent.length / 3.5);
+      const totalTokens = promptTokens + responseTokens;
       setStatus("idle");
-      incrementModelUsage(modelToUse);
+      incrementModelUsage(modelToUse, totalTokens);
 
       // Save conversation immediately after streaming finishes successfully!
       const finalMessages: ChatMessage[] = [

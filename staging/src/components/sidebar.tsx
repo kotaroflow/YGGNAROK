@@ -732,20 +732,22 @@ export function Sidebar({
           <div className="mt-auto p-3">
             <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
               {!collapsed ? (
-                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                   <div 
-                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-black"
+                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/40 bg-black overflow-hidden relative"
                     style={{ 
                       backgroundImage: 'url(/ygn-coin.png)', 
                       backgroundPosition: '4.5% 50%', 
                       backgroundSize: '220%' 
                     }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-transparent pointer-events-none" />
+                  </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[13px] font-semibold text-sidebar-text truncate max-w-[90px]">
+                    <span className="text-[13px] font-bold text-sidebar-text truncate max-w-[90px] tracking-tight">
                       {emailName}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold tracking-widest uppercase bg-brand/10 text-brand border border-brand/25 select-none leading-none shrink-0">
+                    <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-widest uppercase bg-brand text-neutral-950 border border-brand/20 select-none leading-none shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
                       {planTag}
                     </span>
                   </div>

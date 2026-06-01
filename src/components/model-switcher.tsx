@@ -73,6 +73,8 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   
   const model = getModel(selectedId);
+  const usage = getModelUsage(selectedId);
+  const limit = getModelDailyLimit(selectedId);
   const pct = getModelUsagePercent(selectedId);
 
   // Compute filtered models
@@ -150,10 +152,13 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
         <span className="font-semibold truncate max-w-[120px] sm:max-w-none">{shortName}</span>
         
         {/* Spent-Tokens Capsule Pill */}
-        <div className="h-2 w-9 rounded-full bg-line/25 overflow-hidden shrink-0 border border-line/10 relative" title={`Uso de Limite Diário: ${Math.round(pct * 100)}%`}>
+        <div 
+          className="h-2 w-9 rounded-full bg-neutral-200 dark:bg-neutral-800/80 overflow-hidden shrink-0 border border-neutral-300/30 dark:border-neutral-700/50 relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]" 
+          title={`Consumo: ${Math.round(pct * 100)}% (${(usage.tokens / 1000).toFixed(1)}k / ${(limit / 1000).toFixed(0)}k tokens)`}
+        >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-brand to-brand-strong transition-all duration-700 ease-out"
-            style={{ width: `${Math.min(pct * 100, 100)}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-brand dark:to-brand-strong transition-all duration-700 ease-out shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+            style={{ width: `${usage.tokens > 0 ? Math.max(pct * 100, 5) : 0}%` }}
           />
         </div>
         

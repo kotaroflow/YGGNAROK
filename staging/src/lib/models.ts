@@ -536,31 +536,38 @@ const USAGE_STORAGE_KEY = "yggnarok.model-usage.v1";
 
 type ModelUsage = {
   requests: number;
+  tokens: number;
   date: string;
 };
 
 export function getModelUsage(modelId: string): ModelUsage {
-  if (typeof window === "undefined") return { requests: 0, date: "" };
+  if (typeof window === "undefined") return { requests: 0, tokens: 0, date: "" };
   const raw = localStorage.getItem(USAGE_STORAGE_KEY);
   const all: Record<string, ModelUsage> = raw ? JSON.parse(raw) : {};
   const today = new Date().toISOString().slice(0, 10);
   const entry = all[modelId];
-  if (entry && entry.date === today) return entry;
-  return { requests: 0, date: today };
+  if (entry && entry.date === today) {
+    return {
+      requests: entry.requests || 0,
+      tokens: entry.tokens || (entry.requests ? entry.requests * 600 : 0),
+      date: entry.date,
+    };
+  }
+  return { requests: 0, tokens: 0, date: today };
 }
 
 export function getModelUsagePercent(modelId: string): number {
   const usage = getModelUsage(modelId);
   const limit = getModelDailyLimit(modelId);
-  return Math.min(usage.requests / limit, 1);
+  return Math.min(usage.tokens / limit, 1);
 }
 
 export function getModelDailyLimit(modelId: string): number {
   const model = getModel(modelId);
-  if (model.free) return 50;
-  if (model.tier === "fast") return 2000;
-  if (model.tier === "balanced") return 1000;
-  return 500;
+  if (model.free) return 50000;
+  if (model.tier === "fast") return 200000;
+  if (model.tier === "balanced") return 500000;
+  return 1000000;
 }
 
 export function getAllModelUsage(): Record<string, ModelUsage> {
@@ -569,12 +576,18 @@ export function getAllModelUsage(): Record<string, ModelUsage> {
   return raw ? JSON.parse(raw) : {};
 }
 
-export function incrementModelUsage(modelId: string, tokens?: number) {
+export function incrementModelUsage(modelId: string, tokensUsed = 0) {
   const all = getAllModelUsage();
   const today = new Date().toISOString().slice(0, 10);
   const current = all[modelId];
+  
+  const oldRequests = current?.date === today ? current.requests : 0;
+  const oldTokens = current?.date === today ? (current.tokens || oldRequests * 600) : 0;
+  const tokensToAdd = tokensUsed > 0 ? tokensUsed : 600;
+
   all[modelId] = {
-    requests: (current?.date === today ? current.requests : 0) + 1,
+    requests: oldRequests + 1,
+    tokens: oldTokens + tokensToAdd,
     date: today,
   };
   localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(all));
