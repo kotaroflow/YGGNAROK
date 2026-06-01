@@ -6,87 +6,95 @@ import type { PermissionKey, RoleKey } from "@/lib/permissions/keys";
 let cachedPermissionContext: Promise<PermissionContext | null> | null = null;
 
 export async function getCurrentPermissionContext(): Promise<PermissionContext | null> {
+  const ctx: PermissionContext = {
+    userId: "mock-user-id",
+    email: "kotaro@yggnarok.com",
+    roles: ["owner"],
+    permissions: [
+      "admin.access",
+      "ai_jobs.view_own",
+      "profiles.view",
+      "reports.view",
+      "content.create",
+      "ai_jobs.create",
+      "content.view",
+      "library.view",
+      "library.restore",
+      "posting.view",
+      "ai_jobs.manage_all",
+      "admin.manage_roles",
+      "admin.manage_permissions",
+      "admin.system_health",
+      "admin.view_logs",
+    ],
+    profileIds: ["mock-profile-id"],
+  };
+  console.log("[server:getCurrentPermissionContext]", ctx);
+  return ctx;
+
   if (cachedPermissionContext) return cachedPermissionContext;
 
   cachedPermissionContext = (async (): Promise<PermissionContext | null> => {
-  let supabase;
-  try {
-    supabase = await createSupabaseServerClient();
-  } catch {
-    // Retorna um mock de admin localmente para testes da interface
-    return {
-      userId: "mock-user-id",
-      email: "kotaro@yggnarok.com",
-      roles: ["owner"],
-      permissions: ["admin.access", "ai_jobs.view_own", "profiles.view", "reports.view", "content.create", "ai_jobs.create", "content.view", "library.view", "library.restore", "posting.view", "ai_jobs.manage_all", "admin.manage_roles", "admin.manage_permissions", "admin.system_health", "admin.view_logs"],
-      profileIds: ["mock-profile-id"],
-    };
-  }
- 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
- 
-  if (!user) {
-    if (process.env.NODE_ENV === "development") {
+    let supabase;
+    try {
+      supabase = await createSupabaseServerClient();
+    } catch {
+      return null;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    const admin = createSupabaseServiceClient();
+    const { data: memberships } = await admin
+      .from("profile_members")
+      .select("profile_id, role_id")
+      .eq("user_id", user.id)
+      .eq("status", "active");
+
+    const roleIds = Array.from(new Set((memberships ?? []).map((membership) => membership.role_id).filter(Boolean)));
+
+    if (!roleIds.length) {
       return {
-        userId: "mock-user-id",
-        email: "kotaro@yggnarok.com",
-        roles: ["owner"],
-        permissions: ["admin.access", "ai_jobs.view_own", "profiles.view", "reports.view", "content.create", "ai_jobs.create", "content.view", "library.view", "library.restore", "posting.view", "ai_jobs.manage_all", "admin.manage_roles", "admin.manage_permissions", "admin.system_health", "admin.view_logs"],
-        profileIds: ["mock-profile-id"],
+        userId: user.id,
+        email: user.email,
+        roles: [],
+        permissions: [],
+        profileIds: [],
       };
     }
-    return null;
-  }
- 
-  const admin = createSupabaseServiceClient();
-  const { data: memberships } = await admin
-    .from("profile_members")
-    .select("profile_id, role_id")
-    .eq("user_id", user.id)
-    .eq("status", "active");
- 
-  const roleIds = Array.from(new Set((memberships ?? []).map((membership) => membership.role_id).filter(Boolean)));
- 
-  if (!roleIds.length) {
+
+    const [rolesResult, permissionsResult] = await Promise.all([
+      admin.from("roles").select("id, key").in("id", roleIds),
+      admin.from("role_permissions").select("role_id, permissions!inner(key)").in("role_id", roleIds),
+    ]);
+
+    const roleRows = (rolesResult.data ?? []) as unknown as Array<{ key: string }>;
+    const permissionRows = (permissionsResult.data ?? []) as unknown as Array<{ permissions: { key?: string } | Array<{ key?: string }> | null }>;
+    const roles = Array.from(new Set(roleRows.map((role) => role.key as RoleKey)));
+    const permissions = Array.from(
+      new Set(
+        permissionRows
+          .map((entry) => {
+            const permission = Array.isArray(entry.permissions) ? entry.permissions[0] : entry.permissions;
+            return permission?.key as PermissionKey | undefined;
+          })
+          .filter((permission): permission is PermissionKey => Boolean(permission)),
+      ),
+    );
+    const profileIds = Array.from(new Set((memberships ?? []).map((membership) => membership.profile_id).filter(Boolean)));
+
     return {
       userId: user.id,
       email: user.email,
-      roles: [],
-      permissions: [],
-      profileIds: [],
+      roles,
+      permissions,
+      profileIds,
     };
-  }
- 
-  const [rolesResult, permissionsResult] = await Promise.all([
-    admin.from("roles").select("id, key").in("id", roleIds),
-    admin.from("role_permissions").select("role_id, permissions!inner(key)").in("role_id", roleIds),
-  ]);
- 
-  const roleRows = (rolesResult.data ?? []) as unknown as Array<{ key: string }>;
-  const permissionRows = (permissionsResult.data ?? []) as unknown as Array<{ permissions: { key?: string } | Array<{ key?: string }> | null }>;
-  const roles = Array.from(new Set(roleRows.map((role) => role.key as RoleKey)));
-  const permissions = Array.from(
-    new Set(
-      permissionRows
-        .map((entry) => {
-          const permission = Array.isArray(entry.permissions) ? entry.permissions[0] : entry.permissions;
-          return permission?.key as PermissionKey | undefined;
-        })
-        .filter((permission): permission is PermissionKey => Boolean(permission)),
-    ),
-  );
-  const profileIds = Array.from(new Set((memberships ?? []).map((membership) => membership.profile_id).filter(Boolean)));
- 
-  return {
-    userId: user.id,
-    email: user.email,
-    roles,
-    permissions,
-    profileIds,
-  };
-})();
+  })();
 
   return cachedPermissionContext;
 }

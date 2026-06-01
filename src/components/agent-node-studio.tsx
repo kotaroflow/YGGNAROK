@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect, Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useTexture, Html, QuadraticBezierLine, Stars, Sparkles as DreiSparkles } from "@react-three/drei";
+import * as THREE from "three";
 import { 
   Brain, CircleDot, GitBranch, Plus, Save, ShieldCheck, 
   Sparkles, Trash2, Play, Loader2, Check, X, 
   Layers, ShieldAlert, Cpu, RefreshCw, Zap
 } from "lucide-react";
 import { Field, buttonClass, inputClass, textareaClass } from "@/components/field";
+import { useTheme } from "./theme-toggle";
 
 type AgentNode = {
   id: string;
@@ -15,8 +19,8 @@ type AgentNode = {
   model: string;
   instructions: string;
   outputFormat: string;
-  x: number;
-  y: number;
+  phi: number;
+  theta: number;
   color: string;
   status: "idle" | "success" | "warning";
   health: number;
@@ -47,8 +51,8 @@ const initialNodes: AgentNode[] = [
     model: "manual (Grátis)",
     instructions: "Recebe objetivo, publico, tom, plataforma e restricoes.",
     outputFormat: "Contexto limpo para os agentes.",
-    x: 48,
-    y: 200,
+    phi: 0.15,
+    theta: -2.6,
     color: "border-sky-500/30 dark:bg-sky-950/20 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.05)]",
     status: "success",
     health: 100
@@ -60,8 +64,8 @@ const initialNodes: AgentNode[] = [
     model: "mistralai/mistral-nemo (Grátis)",
     instructions: "Gerar ideias, roteiro, legenda, variacoes e um primeiro caminho forte.",
     outputFormat: "summary, items, next_actions, risk, metadata",
-    x: 280,
-    y: 80,
+    phi: 0.55,
+    theta: -1.9,
     color: "border-amber-500/30 dark:bg-amber-950/20 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.05)]",
     status: "warning", // Has bottleneck!
     health: 82
@@ -73,8 +77,8 @@ const initialNodes: AgentNode[] = [
     model: "google/gemini-2.0-flash-thinking-exp (Grátis)",
     instructions: "Encontrar fraquezas, repeticao, promessa fraca, risco e falta de clareza.",
     outputFormat: "critica, ajustes obrigatorios, nota de prontidao",
-    x: 520,
-    y: 80,
+    phi: 0.55,
+    theta: -1.2,
     color: "border-rose-500/30 dark:bg-rose-950/20 text-rose-200 shadow-[0_0_15px_rgba(239,68,68,0.05)]",
     status: "success",
     health: 95
@@ -86,8 +90,8 @@ const initialNodes: AgentNode[] = [
     model: "meta-llama/llama-3.3-70b-instruct (Grátis)",
     instructions: "Aumentar utilidade, venda, retencao, clareza de oferta e proximo passo.",
     outputFormat: "melhorias, angulos, hooks, CTA",
-    x: 520,
-    y: 320,
+    phi: 0.15,
+    theta: -1.57,
     color: "border-emerald-500/30 dark:bg-emerald-950/20 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.05)]",
     status: "warning", // Has bottleneck!
     health: 78
@@ -99,8 +103,8 @@ const initialNodes: AgentNode[] = [
     model: "deepseek/deepseek-r1 (Grátis)",
     instructions: "Unir o melhor das propostas, cortar ruido e entregar versao pronta para uso.",
     outputFormat: "conteudo final, checklist, riscos, proximas acoes",
-    x: 770,
-    y: 200,
+    phi: 0.15,
+    theta: -0.5,
     color: "border-violet-500/30 dark:bg-violet-950/20 text-violet-200 shadow-[0_0_15px_rgba(139,92,246,0.05)]",
     status: "success",
     health: 98
@@ -115,19 +119,192 @@ const initialEdges: AgentEdge[] = [
   { from: "strategy", to: "supervisor", label: "direcao", colorClass: "stroke-emerald-500/40" },
 ];
 
+function FullGlobe({ nodes, edges, selectedId, onNodePointerDown, setIsInteracting }: { nodes: AgentNode[], edges: AgentEdge[], selectedId: string, onNodePointerDown: (id: string) => void, setIsInteracting: (val: boolean) => void }) {
+  // Apontando para o arquivo neural-bg.png que contém a Miku Hacker!
+  const texture = useTexture("/neural-bg.png");
+  const R = 2.6; // Slightly larger than globe radius for pins
+  
+  return (
+    <group>
+      <mesh>
+        <sphereGeometry args={[2.5, 64, 64]} />
+        <meshStandardMaterial 
+          map={texture} 
+          roughness={0.2} 
+          metalness={0.8}
+        />
+      </mesh>
+      
+      {/* 3D Neural Edges */}
+      {edges.map((edge, idx) => {
+        const fromNode = nodes.find(n => n.id === edge.from);
+        const toNode = nodes.find(n => n.id === edge.to);
+        if (!fromNode || !toNode) return null;
+        
+        const x1 = R * Math.cos(fromNode.phi) * Math.cos(fromNode.theta);
+        const y1 = R * Math.cos(fromNode.phi) * Math.sin(fromNode.theta);
+        const z1 = -R * Math.sin(fromNode.phi);
+        
+        const x2 = R * Math.cos(toNode.phi) * Math.cos(toNode.theta);
+        const y2 = R * Math.cos(toNode.phi) * Math.sin(toNode.theta);
+        const z2 = -R * Math.sin(toNode.phi);
+        
+        // Midpoint pushed out for a curved arc over the planet
+        const mx = (x1 + x2) / 2 * 1.2;
+        const my = (y1 + y2) / 2 * 1.2;
+        const mz = (z1 + z2) / 2 * 1.2;
+
+        return (
+          <QuadraticBezierLine
+            key={`${edge.from}-${edge.to}-${idx}`}
+            start={[x1, y1, z1]}
+            end={[x2, y2, z2]}
+            mid={[mx, my, mz]}
+            color={edge.colorClass.includes("amber") ? "#f59e0b" : edge.colorClass.includes("rose") ? "#ef4444" : edge.colorClass.includes("emerald") ? "#10b981" : "#38bdf8"}
+            lineWidth={2}
+            dashed={false}
+          />
+        );
+      })}
+
+      {/* 3D HTML Pins */}
+      {nodes.map(node => {
+        const x = R * Math.cos(node.phi) * Math.cos(node.theta);
+        const y = R * Math.cos(node.phi) * Math.sin(node.theta);
+        const z = -R * Math.sin(node.phi);
+        const isSelected = selectedId === node.id;
+
+        return (
+          <Html key={node.id} position={[x, y, z]} center zIndexRange={[100, 0]} occlude="blending">
+            <div
+              className={`relative flex flex-col items-center justify-center group cursor-pointer transition-all duration-300 ${
+                isSelected ? "scale-110" : "hover:scale-105"
+              }`}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onNodePointerDown(node.id);
+              }}
+              onPointerEnter={() => setIsInteracting(true)}
+              onPointerLeave={() => setIsInteracting(false)}
+            >
+              <div className={`relative flex items-center justify-center size-10 rounded-full border-2 backdrop-blur-sm ${
+                isSelected 
+                  ? "border-brand bg-brand/20 shadow-[0_0_20px_rgba(245,158,11,0.5)]" 
+                  : "border-brand/40 bg-black/40 group-hover:border-brand"
+              }`}>
+                {/* Inner core pulsing indicator */}
+                <div className={`size-3 rounded-full animate-pulse ${
+                  node.status === "warning" ? "bg-amber-500 shadow-[0_0_8px_#f59e0b]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
+                }`} />
+
+                {/* Miniature health ring border using circular SVG gauge */}
+                <svg className="absolute inset-0 size-full -rotate-90 p-0.5 pointer-events-none">
+                  <circle 
+                    cx="18" 
+                    cy="18" 
+                    r="16" 
+                    fill="none" 
+                    stroke={node.status === "warning" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)"}
+                    strokeWidth="1.5"
+                  />
+                  <circle 
+                    cx="18" 
+                    cy="18" 
+                    r="16" 
+                    fill="none" 
+                    stroke={node.status === "warning" ? "#f59e0b" : "#10b981"}
+                    strokeWidth="1.5"
+                    strokeDasharray={2 * Math.PI * 16}
+                    strokeDashoffset={2 * Math.PI * 16 * (1 - node.health / 100)}
+                  />
+                </svg>
+              </div>
+
+              {/* Clean text label attached below the node */}
+              <div className={`mt-2 px-2 py-0.5 whitespace-nowrap rounded-md border text-[10px] font-bold font-mono tracking-wide transition-all duration-300 ${
+                isSelected
+                  ? "bg-brand text-neutral-950 border-brand shadow-[0_0_10px_rgba(245,158,11,0.25)]"
+                  : "bg-surface-strong/90 text-foreground border-line group-hover:border-brand/50 group-hover:text-brand"
+              }`}>
+                {node.label}
+              </div>
+            </div>
+          </Html>
+        );
+      })}
+    </group>
+  );
+}
+
 export function AgentNodeStudio() {
+  const [theme] = useTheme();
   const [nodes, setNodes] = useState<AgentNode[]>(initialNodes);
   const [edges, setEdges] = useState<AgentEdge[]>(initialEdges);
   const [selectedId, setSelectedId] = useState("creator");
   const selected = nodes.find((node) => node.id === selectedId) ?? nodes[0];
   const nodeMap = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
+  const [isInteracting, setIsInteracting] = useState(false);
 
   // === 3D Parallax & Drag State ===
   const [canvasRotation, setCanvasRotation] = useState({ x: 20, y: -10 });
   const canvasRef = useRef<HTMLDivElement>(null);
-
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // ResizeObserver for absolute node styling and SVG paths
+  const [containerSize, setContainerSize] = useState({ width: 1200, height: 580 });
+  
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
+        });
+      }
+    });
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const R = 280; // Planet radius
+  
+  // Calculate projected node coordinates in 3D space
+  const projectedNodes = useMemo(() => {
+    const map = new Map<string, { x: number; y: number; z: number; visible: boolean }>();
+    const pitch = (canvasRotation.x * Math.PI) / 180;
+    const yaw = (canvasRotation.y * Math.PI) / 180;
+    const cx = containerSize.width / 2;
+    const cy = containerSize.height / 2 + 100; // Shift down to match planet equator center
+
+    nodes.forEach(node => {
+      // 3D position on hemisphere surface
+      const px = R * Math.cos(node.phi) * Math.cos(node.theta);
+      const py = -R * Math.sin(node.phi);
+      const pz = R * Math.cos(node.phi) * Math.sin(node.theta);
+
+      // Rotate Y (Yaw)
+      const x1 = px * Math.cos(yaw) - pz * Math.sin(yaw);
+      const z1 = px * Math.sin(yaw) + pz * Math.cos(yaw);
+
+      // Rotate X (Pitch)
+      const y2 = py * Math.cos(pitch) - z1 * Math.sin(pitch);
+      const z2 = py * Math.sin(pitch) + z1 * Math.cos(pitch);
+
+      // Perspective scale
+      const D = 600;
+      const scale = D / (D + z2);
+
+      map.set(node.id, {
+        x: cx + x1 * scale,
+        y: cy + y2 * scale,
+        z: z2,
+        visible: z2 > -R * 1.5
+      });
+    });
+    return map;
+  }, [nodes, canvasRotation, containerSize]);
 
   const handlePointerMove = (e: React.PointerEvent) => {
     // 3D Rotation via Middle Mouse Button (buttons === 4)
@@ -137,7 +314,6 @@ export function AgentNodeStudio() {
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       
-      // Softer rotation (Max 8 degrees instead of 15)
       const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 8;
       const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 8;
       
@@ -145,33 +321,32 @@ export function AgentNodeStudio() {
       return;
     }
 
-    // Node Dragging Logic
+    // Node Dragging Logic (gliding along Hatsune Miku planet surface!)
     if (!draggingNodeId || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
     
-    // Calculate new position based on pointer minus offset
-    let newX = e.clientX - rect.left - dragOffset.x;
-    let newY = e.clientY - rect.top - dragOffset.y;
+    const deltaX = e.movementX;
+    const deltaY = e.movementY;
 
-    // Boundary constraints
-    if (newX < 0) newX = 0;
-    if (newY < 0) newY = 0;
+    setNodes(prev => prev.map(node => {
+      if (node.id !== draggingNodeId) return node;
+      
+      let newTheta = node.theta + deltaX * 0.005;
+      let newPhi = node.phi - deltaY * 0.005;
 
-    setNodes(prev => prev.map(node => 
-      node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
-    ));
+      // Clamping limits to keep nodes on upper hemisphere of Hatsune Miku planet
+      if (newPhi < 0.05) newPhi = 0.05;
+      if (newPhi > Math.PI / 2 - 0.05) newPhi = Math.PI / 2 - 0.05;
+
+      if (newTheta > Math.PI) newTheta -= Math.PI * 2;
+      if (newTheta < -Math.PI) newTheta += Math.PI * 2;
+
+      return { ...node, phi: newPhi, theta: newTheta };
+    }));
   };
 
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
     if (e.button === 1) return; // Ignore middle click for dragging
     e.preventDefault();
-    const nodeElement = e.currentTarget as HTMLDivElement;
-    const rect = nodeElement.getBoundingClientRect();
-    
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
     setDraggingNodeId(nodeId);
     setSelectedId(nodeId);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -223,8 +398,8 @@ export function AgentNodeStudio() {
       model: "google/gemini-2.0-flash-thinking-exp (Grátis)",
       instructions: "Defina como este agente deve pensar e decidir.",
       outputFormat: "summary, items, next_actions, risk",
-      x: 320,
-      y: 400,
+      phi: 0.35,
+      theta: 0.1,
       color: "border-brand/30 dark:bg-brand/10 text-brand shadow-[0_0_15px_rgba(245,158,11,0.05)] node-animation-pop",
       status: "idle",
       health: 100
@@ -263,8 +438,8 @@ export function AgentNodeStudio() {
           model: "manual (Grátis)",
           instructions: "Define o tema de busca, concorrentes e volume estimado.",
           outputFormat: "keyword, intent, parameters",
-          x: 48,
-          y: 200,
+          phi: 0.15,
+          theta: -2.6,
           color: "border-sky-500/30 dark:bg-sky-950/20 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.05)] node-animation-pop",
           status: "success",
           health: 100
@@ -276,8 +451,8 @@ export function AgentNodeStudio() {
           model: "meta-llama/llama-3.3-70b-instruct (Grátis)",
           instructions: "Busca intenção de busca, headings ideais (H2/H3) e densidade de LSI.",
           outputFormat: "headings, keywords_list, strategy",
-          x: 280,
-          y: 80,
+          phi: 0.55,
+          theta: -1.9,
           color: "border-emerald-500/30 dark:bg-emerald-950/20 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.05)] node-animation-pop",
           status: "success",
           health: 98
@@ -289,8 +464,8 @@ export function AgentNodeStudio() {
           model: "mistralai/mistral-nemo (Grátis)",
           instructions: "Escrever artigo completo estruturado com introdução atraente e formatação limpa.",
           outputFormat: "content_markdown, summary, tags",
-          x: 520,
-          y: 80,
+          phi: 0.55,
+          theta: -1.2,
           color: "border-amber-500/30 dark:bg-amber-950/20 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.05)] node-animation-pop",
           status: "warning",
           health: 84
@@ -302,8 +477,8 @@ export function AgentNodeStudio() {
           model: "meta-llama/llama-3.2-3b-instruct (Grátis)",
           instructions: "Adiciona caixas de captura, links internos ideais e chamadas de conversão.",
           outputFormat: "cta_blocks, lead_magnet_suggestion",
-          x: 520,
-          y: 320,
+          phi: 0.15,
+          theta: -1.57,
           color: "border-indigo-500/30 dark:bg-indigo-950/20 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.05)] node-animation-pop",
           status: "warning",
           health: 81
@@ -315,8 +490,8 @@ export function AgentNodeStudio() {
           model: "deepseek/deepseek-r1 (Grátis)",
           instructions: "Garante legibilidade, remove prolixidades e audita densidade das palavras-chave.",
           outputFormat: "artigo_pronto, meta_title, meta_description",
-          x: 770,
-          y: 200,
+          phi: 0.15,
+          theta: -0.5,
           color: "border-violet-500/30 dark:bg-violet-950/20 text-violet-200 shadow-[0_0_15px_rgba(139,92,246,0.05)] node-animation-pop",
           status: "success",
           health: 99
@@ -338,8 +513,8 @@ export function AgentNodeStudio() {
           model: "manual (Grátis)",
           instructions: "Define o bug report, comportamento esperado e stack utilizada.",
           outputFormat: "bug_details, expected, technologies",
-          x: 48,
-          y: 200,
+          phi: 0.15,
+          theta: -2.6,
           color: "border-sky-500/30 dark:bg-sky-950/20 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.05)] node-animation-pop",
           status: "success",
           health: 100
@@ -351,8 +526,8 @@ export function AgentNodeStudio() {
           model: "google/gemini-2.0-flash-thinking-exp (Grátis)",
           instructions: "Planeja o refactoring das pastas, hooks necessários e previne regressões.",
           outputFormat: "refactoring_plan, risk_assessment",
-          x: 280,
-          y: 80,
+          phi: 0.55,
+          theta: -1.9,
           color: "border-rose-500/30 dark:bg-rose-950/20 text-rose-200 shadow-[0_0_15px_rgba(239,68,68,0.05)] node-animation-pop",
           status: "success",
           health: 96
@@ -364,8 +539,8 @@ export function AgentNodeStudio() {
           model: "qwen/qwen-2.5-coder-32b-instruct (Grátis)",
           instructions: "Escrever código limpo, comentado, tipado e otimizado com TypeScript.",
           outputFormat: "source_code, imports, complexity",
-          x: 520,
-          y: 80,
+          phi: 0.55,
+          theta: -1.2,
           color: "border-amber-500/30 dark:bg-amber-950/20 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.05)] node-animation-pop",
           status: "warning",
           health: 85
@@ -377,8 +552,8 @@ export function AgentNodeStudio() {
           model: "microsoft/phi-4 (Grátis)",
           instructions: "Escrever testes unitários correspondentes no Jest/Vitest e caçar edge cases.",
           outputFormat: "unit_tests, edge_cases_checked",
-          x: 520,
-          y: 320,
+          phi: 0.15,
+          theta: -1.57,
           color: "border-emerald-500/30 dark:bg-emerald-950/20 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.05)] node-animation-pop",
           status: "warning",
           health: 80
@@ -390,8 +565,8 @@ export function AgentNodeStudio() {
           model: "deepseek/deepseek-r1 (Grátis)",
           instructions: "Audita segurança, vazamento de memória e faz a compilação final.",
           outputFormat: "reviewed_code, status_check, merged",
-          x: 770,
-          y: 200,
+          phi: 0.15,
+          theta: -0.5,
           color: "border-violet-500/30 dark:bg-violet-950/20 text-violet-200 shadow-[0_0_15px_rgba(139,92,246,0.05)] node-animation-pop",
           status: "success",
           health: 98
@@ -414,8 +589,8 @@ export function AgentNodeStudio() {
           model: "manual (Grátis)",
           instructions: "Objetivo do produto, mercado nichado e orçamento estimado.",
           outputFormat: "target_market, value_prop, goals",
-          x: 48,
-          y: 200,
+          phi: 0.15,
+          theta: -2.6,
           color: "border-sky-500/30 dark:bg-sky-950/20 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.05)] node-animation-pop",
           status: "success",
           health: 100
@@ -427,8 +602,8 @@ export function AgentNodeStudio() {
           model: "mistralai/mistral-nemo (Grátis)",
           instructions: "Gerar oferta irresistível, roteiro e ângulo de captação de leads.",
           outputFormat: "offer_structure, scripts",
-          x: 280,
-          y: 80,
+          phi: 0.55,
+          theta: -1.9,
           color: "border-amber-500/30 dark:bg-amber-950/20 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.05)] node-animation-pop",
           status: "warning",
           health: 82
@@ -440,8 +615,8 @@ export function AgentNodeStudio() {
           model: "google/gemini-2.0-flash-thinking-exp (Grátis)",
           instructions: "Identificar termos clichês, propostas fracas e gargalos na jornada do cliente.",
           outputFormat: "risk_points, clarity_score",
-          x: 520,
-          y: 80,
+          phi: 0.55,
+          theta: -1.2,
           color: "border-rose-500/30 dark:bg-rose-950/20 text-rose-200 shadow-[0_0_15px_rgba(239,68,68,0.05)] node-animation-pop",
           status: "success",
           health: 95
@@ -453,8 +628,8 @@ export function AgentNodeStudio() {
           model: "meta-llama/llama-3.3-70b-instruct (Grátis)",
           instructions: "Injeta hooks de vídeo de 3s e organiza a prova social acima da dobra.",
           outputFormat: "hooks_list, layout_structure",
-          x: 520,
-          y: 320,
+          phi: 0.15,
+          theta: -1.57,
           color: "border-emerald-500/30 dark:bg-emerald-950/20 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.05)] node-animation-pop",
           status: "warning",
           health: 78
@@ -466,8 +641,8 @@ export function AgentNodeStudio() {
           model: "deepseek/deepseek-r1 (Grátis)",
           instructions: "Gera a oferta lapidada pronta para o checkout e valida o budget de mídia.",
           outputFormat: "final_sales_copy, budget_recommendations",
-          x: 770,
-          y: 200,
+          phi: 0.15,
+          theta: -0.5,
           color: "border-violet-500/30 dark:bg-violet-950/20 text-violet-200 shadow-[0_0_15px_rgba(139,92,246,0.05)] node-animation-pop",
           status: "success",
           health: 98
@@ -519,28 +694,24 @@ export function AgentNodeStudio() {
         setNodes((current) => 
           current.map((n) => {
             // Realignment (perfect grid snapping + vertical alignment)
-            let updatedY = n.y;
-
             if (n.id === "creator") {
-              updatedY = 90;
               return {
                 ...n,
                 label: "Hefesto Pro",
                 instructions: n.instructions + " [OTIMIZADO POR HEIMDALL: Use linguagem direta, de alta conversão, sem chavões genéricos. Foco em escassez e exclusividade.]",
                 health: 100,
                 status: "success",
-                y: updatedY
+                phi: 0.50
               };
             }
             if (n.id === "strategy" || n.id === "cro_expert") {
-              updatedY = 310;
               return {
                 ...n,
                 label: n.label + " Optimized",
                 instructions: n.instructions + " [OTIMIZADO POR HEIMDALL: Exija CTAs explícitos ao final de cada proposta. Formate links de gatilho em negrito.]",
                 health: 100,
                 status: "success",
-                y: updatedY
+                phi: 0.15
               };
             }
             if (n.id === "copywriter") {
@@ -748,135 +919,44 @@ export function AgentNodeStudio() {
           )}
         </div>
  
-        <div 
-          ref={canvasRef}
-          className="relative h-[580px] overflow-hidden bg-black flex-grow flex items-center justify-center cursor-crosshair"
-          style={{ perspective: '1200px' }}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-          onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }} // Prevent Windows auto-scroll
-        >
-          {/* Inner 3D Container (Curved Globe Setup) */}
-          <div 
-            className="relative w-full h-full transition-transform duration-200 ease-out"
-            style={{ 
-              transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg)`,
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            {/* The True Globe Background (Centered Sphere) */}
-            <div 
-              className="absolute rounded-full pointer-events-none"
-              style={{ 
-                width: '800px',
-                height: '800px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%) translateZ(-250px)',
-                backgroundImage: "url('/neural-bg.png')",
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                opacity: 0.7,
-                boxShadow: 'inset -20px -20px 80px rgba(0,0,0,0.9), inset 20px 20px 80px rgba(0,0,0,0.6), 0 0 100px rgba(16,185,129,0.1)'
-              }}
-            />
+        <div className="relative h-[580px] overflow-hidden bg-black flex-grow flex items-center justify-center cursor-move">
+          <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }}>
+            {/* Deep Space Background with True Depth (Fog) */}
+            <color attach="background" args={['#010204']} />
+            <fog attach="fog" args={['#010204', 8, 40]} />
             
-            {/* Holographic Grid overlay (Attached to the globe) */}
-            <div 
-              className="absolute pointer-events-none opacity-40 rounded-full"
-              style={{ 
-                width: '800px',
-                height: '800px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%) translateZ(-248px)',
-                backgroundImage: 'radial-gradient(circle at center, rgba(16,185,129,0.2) 2px, transparent 2px)',
-                backgroundSize: '32px 32px'
-              }}
-            />
+            {/* Distant Galaxy Layers: Radius is high so stars don't block the foreground planet! */}
+            <Stars radius={35} depth={50} count={5000} factor={2} saturation={0.5} fade speed={0.5} />
+            <Stars radius={45} depth={60} count={2000} factor={5} saturation={1} fade speed={1.2} />
+            
+            {/* Simulated Meteors / Constellation Dust (pushed far back on Z axis) */}
+            <DreiSparkles count={30} scale={40} size={5} speed={3} opacity={0.8} color="#2dd4bf" position={[0, 0, -15]} />
+            <DreiSparkles count={20} scale={50} size={3} speed={5} opacity={0.5} color="#f59e0b" position={[0, 0, -25]} />
 
-            {/* Neural Web Layer (Flat at Z=0 so SVG and Nodes perfectly align without parallax detachment) */}
-            <div className="absolute inset-0" style={{ transform: 'translateZ(0px)', transformStyle: 'preserve-3d' }}>
-              <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" style={{ overflow: 'visible' }}>
-            <defs>
-              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-                <path d="M0,0 L0,5 L8,2.5 z" className="fill-brand/60" />
-              </marker>
-            </defs>
-            {edges.map((edge) => {
-              const from = nodeMap.get(edge.from);
-              const to = nodeMap.get(edge.to);
-              if (!from || !to) return null;
-              
-              // No additional container offset needed if we match the absolute layout properly
-              const x1 = from.x + 168; // 168 is node width
-              const y1 = from.y + 50;  // 50 is half node height
-              const x2 = to.x;
-              const y2 = to.y + 50;
-              const mid = Math.max(48, Math.abs(x2 - x1) / 2);
- 
-              return (
-                <g key={`${edge.from}-${edge.to}`} className="transition duration-500">
-                  {/* Base visual wire */}
-                  <path
-                    d={`M ${x1} ${y1} C ${x1 + mid} ${y1}, ${x2 - mid} ${y2}, ${x2} ${y2}`}
-                    className="fill-none stroke-line transition duration-500"
-                    strokeWidth="3.5"
-                  />
-                  {/* n8n Glowing Data Packet Overlay Animation */}
-                  <path
-                    d={`M ${x1} ${y1} C ${x1 + mid} ${y1}, ${x2 - mid} ${y2}, ${x2} ${y2}`}
-                    className={`fill-none glowing-edge-pulse ${edge.colorClass} transition duration-500`}
-                    strokeWidth="2"
-                    markerEnd="url(#arrow)"
-                  />
-                  <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 8} className="fill-brand/70 text-[10px] font-bold font-mono">{edge.label}</text>
-                </g>
-              );
-            })}
-          </svg>
- 
-          {nodes.map((node) => (
-            <div
-              key={node.id}
-              className={[
-                "absolute h-[100px] w-[168px] rounded-xl border border-line p-3 text-left shadow-lg transition-colors duration-300 backdrop-blur-md bg-surface-strong/90 node-animation-pop hover:border-brand/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
-                node.color,
-                selected.id === node.id ? "ring-1 ring-brand border-brand shadow-[0_0_25px_rgba(245,158,11,0.25)] bg-surface-strong z-20" : "z-10",
-                draggingNodeId === node.id ? "cursor-grabbing scale-105" : "cursor-grab"
-              ].join(" ")}
-              style={{ 
-                left: node.x,
-                top: node.y,
-                touchAction: 'none'
-              }}
-              onPointerDown={(e) => handlePointerDown(e, node.id)}
-            >
-              {/* Bottom Node Info */}
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <CircleDot size={12} className={node.status === "warning" ? "text-amber-500 animate-pulse" : "text-emerald-500"} />
-                  <span className="truncate text-xs font-bold tracking-tight text-foreground">{node.label}</span>
-                </div>
-                
-                {/* Health Score indicator badge */}
-                <span className={`text-[8px] font-bold px-1 rounded ${
-                  node.health > 90 
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                    : "bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"
-                }`}>
-                  {node.health}%
-                </span>
-              </div>
-              
-              <p className="mt-1.5 truncate text-[10px] font-bold opacity-75">{node.role}</p>
-              <p className="mt-0.5 line-clamp-2 text-[9px] leading-relaxed opacity-60 text-muted-foreground">{node.instructions}</p>
-            </div>
-          ))}
-          
-          {/* End 3D Container */}
-          </div>
+            {/* Premium Cinematic Lighting (High Contrast) */}
+            <ambientLight intensity={0.2} color="#0f172a" /> {/* Very dark ambient for dramatic shadows */}
+            
+            {/* Key Light (Sun) */}
+            <directionalLight position={[12, 10, 8]} intensity={2.5} color="#ffffff" />
+            
+            {/* Rim Lights (Bounces off the dark side of the planet) */}
+            <directionalLight position={[-10, 5, -12]} intensity={4} color="#2dd4bf" /> {/* Teal Miku Glow */}
+            <directionalLight position={[10, -10, -12]} intensity={3} color="#f59e0b" /> {/* Amber Yggnarok Glow */}
+            
+            <Suspense fallback={null}>
+              <FullGlobe nodes={nodes} edges={edges} selectedId={selectedId} onNodePointerDown={setSelectedId} setIsInteracting={setIsInteracting} />
+            </Suspense>
+
+            {/* OrbitControls: Super slow majestic rotation (0.05) */}
+            <OrbitControls 
+              enableZoom={true} 
+              enablePan={false} 
+              autoRotate={!isInteracting} 
+              autoRotateSpeed={0.05} 
+              minDistance={3}
+              maxDistance={12}
+            />
+          </Canvas>
         </div>
       </section>
  

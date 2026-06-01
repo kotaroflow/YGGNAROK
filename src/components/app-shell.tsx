@@ -1,7 +1,6 @@
 import { ChatWorkspaceProvider } from "./chat-workspace-provider";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
-import { PageTransition } from "./page-transition";
 import { getCurrentPermissionContext } from "@/server/permissions/context";
 
 export async function AppShell({
@@ -19,7 +18,7 @@ export async function AppShell({
         <Sidebar user={permissions} />
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           {hideTopBar ? null : <TopBar />}
-          <PageTransition>{children}</PageTransition>
+          {children}
         </div>
       </div>
     </ChatWorkspaceProvider>

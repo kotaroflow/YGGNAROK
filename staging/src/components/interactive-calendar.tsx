@@ -23,6 +23,18 @@ const monthNames = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
+// Date classifications for visual styling
+const HOLIDAYS = ["2026-01-01", "2026-12-25", "2026-04-07"];
+const IMPORTANT_DATES = ["2026-06-01", "2026-10-15"];
+
+const getDateType = (day: number, monthIdx: number, yearNum: number) => {
+  const dateStr = `${yearNum}-${(monthIdx + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (dateStr === todayStr) return "today";
+  if (HOLIDAYS.includes(dateStr)) return "holiday";
+  if (IMPORTANT_DATES.includes(dateStr)) return "important";
+  return "normal";
+};
 
 export function InteractiveCalendar({ initialContents }: { initialContents: ContentItem[] }) {
   const router = useRouter();
@@ -122,13 +134,15 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
         </div>
 
         <div className="grid grid-cols-7 divide-x divide-y divide-line">
-          {cells.map((day, i) => {
-            const isToday = 
-              day === today.getDate() && 
-              month === today.getMonth() && 
-              year === today.getFullYear();
-            
-            const dayItems = day ? getItemsForDay(day) : [];
+            {cells.map((day, i) => {
+              const isToday = 
+                day === today.getDate() && 
+                month === today.getMonth() && 
+                year === today.getFullYear();
+              
+              const dateType = day ? getDateType(day, month, year) : "normal";
+              const dayItems = day ? getItemsForDay(day) : [];
+
 
             return (
               <div
@@ -145,17 +159,22 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
                 {day !== null ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <span
-                        className={`inline-flex size-6 items-center justify-center rounded-lg text-xs font-semibold ${
-                          isToday
-                            ? "bg-brand text-neutral-950 shadow-md ring-2 ring-brand/50"
-                            : dayItems.length > 0
-                            ? "text-sky-700 dark:text-sky-300 bg-sky-500/10 dark:bg-sky-700/20"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {day}
-                      </span>
+                        <span
+                          className={`inline-flex size-6 items-center justify-center rounded-lg text-xs font-semibold ${
+                            dateType === "today"
+                              ? "bg-brand text-neutral-950 shadow-md ring-2 ring-brand/50"
+                              : dateType === "holiday"
+                              ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                              : dateType === "important"
+                              ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
+                              : dayItems.length > 0
+                              ? "text-sky-700 dark:text-sky-300 bg-sky-500/10 dark:bg-sky-700/20"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {day}
+                        </span>
+
                     </div>
 
                     <div className="mt-2 space-y-1 flex-1 overflow-y-auto max-h-[70px]">
@@ -190,8 +209,8 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
 
       {/* Item Drawer / Detail Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 relative z-[61]">
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-semibold text-brand uppercase">
@@ -202,7 +221,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="rounded-lg p-1 text-muted hover:bg-surface-strong hover:text-foreground"
+                className="rounded-lg p-1 text-muted hover:bg-surface-strong hover:text-foreground transition"
               >
                 ✕
               </button>
@@ -225,7 +244,7 @@ export function InteractiveCalendar({ initialContents }: { initialContents: Cont
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold hover:bg-surface-strong"
+                className="rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold hover:bg-surface-strong transition"
               >
                 Fechar
               </button>

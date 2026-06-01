@@ -9,7 +9,9 @@ export type PermissionContext = {
 };
 
 export function hasPermission(user: PermissionContext | null | undefined, permission: PermissionKey | string) {
-  return Boolean(user?.permissions.includes(permission as PermissionKey));
+  const result = Boolean(user?.permissions.includes(permission as PermissionKey));
+  console.log(`hasPermission for ${permission}:`, { user, permissions: user?.permissions, result });
+  return result;
 }
 
 export function hasRole(user: PermissionContext | null | undefined, role: RoleKey | string) {

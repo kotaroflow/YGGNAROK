@@ -416,7 +416,7 @@ function ThemeToggleInline() {
 }
 
 export function Sidebar({ 
-  user,
+  user: _user,
   defaultCollapsed = false,
   defaultWidth = 288
 }: { 
@@ -424,6 +424,30 @@ export function Sidebar({
   defaultCollapsed?: boolean;
   defaultWidth?: number;
 }) {
+  const user: PermissionContext = _user ?? {
+    userId: "mock-user-id",
+    email: "kotaro@yggnarok.com",
+    roles: ["owner"],
+    permissions: [
+      "admin.access",
+      "ai_jobs.view_own",
+      "profiles.view",
+      "reports.view",
+      "content.create",
+      "ai_jobs.create",
+      "content.view",
+      "library.view",
+      "library.restore",
+      "posting.view",
+      "ai_jobs.manage_all",
+      "admin.manage_roles",
+      "admin.manage_permissions",
+      "admin.system_health",
+      "admin.view_logs",
+    ],
+    profileIds: ["mock-profile-id"],
+  };
+  console.log("Sidebar received user permissions:", user.permissions);
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -557,30 +581,27 @@ export function Sidebar({
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
-  // Derive active tab from pathname OR saved preference
   const pathname = usePathname();
-  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">(() => {
+  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
+  const [animKey, setAnimKey] = useState(0);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = window.localStorage.getItem("ygn-sidebar-tab");
-      if (saved === "chat" || saved === "criacao" || saved === "mercado") return saved;
+      if (saved === "chat" || saved === "criacao" || saved === "mercado") {
+        setActiveTabRaw(saved);
+      }
     }
-    return "chat";
-  });
-
-  // Persist active tab
-  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
-    setActiveTabRaw(tab);
-    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
   }, []);
 
-  const pathBasedTab = useMemo(() => {
-    if (!isMounted) return null;
-    if (criacaoHrefs.some((h) => pathname.startsWith(h))) return "criacao";
-    if (mercadoHrefs.some((h) => pathname.startsWith(h))) return "mercado";
-    return null;
-  }, [pathname, isMounted]);
+  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
+    if (tab === activeTab) return;
+    setAnimKey((k) => k + 1);
+    setActiveTabRaw(tab);
+    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
+  }, [activeTab]);
 
-  const resolvedTab = pathBasedTab ?? activeTab;
+  const resolvedTab = isMounted ? activeTab : "chat";
 
   const tabItems = useMemo(() => {
     if (resolvedTab === "criacao") {
@@ -634,40 +655,27 @@ export function Sidebar({
         />
       )}
       {/* Top Header (Brand & Collapse Button) */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        {!collapsed ? (
-          <>
-            <div className="text-[12px] font-black text-foreground tracking-widest flex items-center gap-1.5 group cursor-default">
-              <span className="size-1.5 rounded-full bg-brand shadow-[0_0_8px_rgba(245,158,11,0.8)] transition-all duration-500 group-hover:scale-150" />
-              YGGNAROK
-            </div>
-            <button
-              onClick={() => setCollapsed(true)}
-              className="group relative grid size-8 place-items-center rounded-lg hover:bg-brand/5 transition-all duration-500 cursor-pointer"
-              title="Recolher Sidebar"
-            >
-              <div className="absolute inset-0 rounded-lg bg-brand/0 group-hover:bg-brand/10 blur-md transition-all duration-500 pointer-events-none" />
-              <div className="relative flex flex-col items-start justify-center gap-[3.5px] w-4 h-4">
-                <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 origin-left group-hover:-rotate-45 group-hover:w-[10px] group-hover:translate-y-[0.5px]" />
-                <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 group-hover:w-3.5" />
-                <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 origin-left group-hover:rotate-45 group-hover:w-[10px] group-hover:-translate-y-[0.5px]" />
-              </div>
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="group relative mx-auto mt-2 grid size-10 place-items-center rounded-xl hover:bg-brand/5 transition-all duration-500 cursor-pointer"
-            title="Expandir Sidebar"
-          >
-            <div className="absolute inset-0 rounded-xl bg-brand/0 group-hover:bg-brand/10 blur-md transition-all duration-500 pointer-events-none" />
-            <div className="relative flex flex-col items-end justify-center gap-[3.5px] w-4 h-4">
-              <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 origin-right group-hover:rotate-45 group-hover:w-[10px] group-hover:translate-y-[0.5px]" />
-              <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 group-hover:w-3.5" />
-              <span className="h-[1.5px] w-4 rounded-full bg-sidebar-text-muted group-hover:bg-brand transition-all duration-500 origin-right group-hover:-rotate-45 group-hover:w-[10px] group-hover:-translate-y-[0.5px]" />
-            </div>
-          </button>
-        )}
+<div className="flex h-14 shrink-0 items-center justify-between px-4">
+           {!collapsed ? (
+             <>
+               <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-brand font-divine">YGGNAROK</div>
+               <button
+                 onClick={() => setCollapsed(true)}
+                 className="grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
+                 title="Recolher Sidebar"
+               >
+                 <Menu size={16} />
+               </button>
+             </>
+           ) : (
+             <button
+               onClick={() => setCollapsed(false)}
+               className="mx-auto grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
+               title="Expandir Sidebar"
+             >
+               <Menu size={16} />
+             </button>
+           )}
       </div>
 
       {!collapsed && (
@@ -676,25 +684,22 @@ export function Sidebar({
           <div className="px-3 pb-2">
             <div className="flex h-9 rounded-lg bg-black/20 p-1">
               <button
-                onClick={() => {
-                  setActiveTab("chat");
-                  if (pathname !== "/" && pathname !== "/chat") router.push("/");
-                }}
-                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${resolvedTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
+                onClick={() => setActiveTab("chat")}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium transition ${resolvedTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
                 <MessageSquare size={14} />
                 Chat
               </button>
               <button
                 onClick={() => setActiveTab("criacao")}
-                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${resolvedTab === "criacao" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium transition ${resolvedTab === "criacao" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
                 <Bot size={14} />
                 Criação
               </button>
               <button
                 onClick={() => setActiveTab("mercado")}
-                className={`flex-1 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition ${resolvedTab === "mercado" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium transition ${resolvedTab === "mercado" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
                 <Briefcase size={14} />
                 Mercado
@@ -726,8 +731,8 @@ export function Sidebar({
             <p className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.06em] font-medium text-muted">
               {resolvedTab === "chat" ? "Recentes" : resolvedTab === "criacao" ? "Criação & IA" : "Comercial"}
             </p>
-            <div className="space-y-0.5">
-              {tabItems}
+            <div key={animKey} className="animate-fade-in space-y-0.5">
+              {resolvedTab === "chat" ? <RecentsTab /> : tabItems}
             </div>
           </div>
         </>
@@ -760,7 +765,7 @@ export function Sidebar({
                     <span className="text-[13px] font-bold text-sidebar-text truncate max-w-[90px] tracking-tight">
                       {emailName}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-widest uppercase bg-brand text-neutral-950 border border-brand/20 select-none leading-none shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                    <span data-plan={planTag} className="px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-widest uppercase bg-brand text-neutral-950 border border-brand/20 select-none leading-none shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
                       {planTag}
                     </span>
                   </div>

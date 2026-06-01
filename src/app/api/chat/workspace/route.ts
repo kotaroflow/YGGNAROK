@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (process.env.NODE_ENV === "development" && (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("example.supabase.co"))) {
+      return NextResponse.json({ mode: "local" as const }, { status: 200 });
+    }
+
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -46,6 +50,10 @@ type ImportBody = {
 
 export async function POST(req: Request) {
   try {
+    if (process.env.NODE_ENV === "development" && (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("example.supabase.co"))) {
+      return NextResponse.json({ mode: "local" as const }, { status: 200 });
+    }
+
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
