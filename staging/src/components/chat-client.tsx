@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal } from "lucide-react";
+import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
 import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel, getSectorFromPath, incrementModelUsage } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
@@ -58,6 +58,55 @@ export function ChatClient() {
     if (typeof window === "undefined") return 0;
     return Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
   });
+
+  const [feedbacks, setFeedbacks] = useState<Record<string, 'like' | 'dislike'>>({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
+      if (raw) {
+        try {
+          const list = JSON.parse(raw) as { messageId: string; rating: 'like' | 'dislike' }[];
+          const map: Record<string, 'like' | 'dislike'> = {};
+          list.forEach(f => { map[f.messageId] = f.rating; });
+          setFeedbacks(map);
+        } catch (_) {}
+      }
+    }
+  }, []);
+
+  const handleFeedback = (messageId: string, rating: 'like' | 'dislike') => {
+    setFeedbacks(prev => {
+      const next = { ...prev };
+      if (next[messageId] === rating) {
+        delete next[messageId];
+      } else {
+        next[messageId] = rating;
+      }
+      
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
+        let list: { messageId: string; rating: 'like' | 'dislike'; timestamp: string; model: string }[] = [];
+        if (raw) {
+          try { list = JSON.parse(raw); } catch (_) {}
+        }
+        
+        list = list.filter(item => item.messageId !== messageId);
+        
+        if (next[messageId]) {
+          list.push({
+            messageId,
+            rating,
+            timestamp: new Date().toISOString(),
+            model: selectedModel
+          });
+        }
+        localStorage.setItem("yggnarok.chat-feedback.v1", JSON.stringify(list));
+      }
+      
+      return next;
+    });
+  };
 
   const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; type: string; url?: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -902,7 +951,43 @@ export function ChatClient() {
                     </>
                   );
                 })() : (
-                  <p className="whitespace-pre-wrap">{cleanAssistantContent(m.content)}</p>
+                  <div className="space-y-3">
+                    <p className="whitespace-pre-wrap">{cleanAssistantContent(m.content)}</p>
+                    
+                    {/* Feedback Rating Buttons */}
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-line/10 select-none">
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(m.id, 'like')}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 flex items-center justify-center cursor-pointer ${
+                          feedbacks[m.id] === 'like'
+                            ? "bg-amber-500/10 dark:bg-brand/15 border-amber-500/30 dark:border-brand/40 text-amber-600 dark:text-brand scale-110 shadow-sm"
+                            : "bg-transparent border-transparent text-muted hover:border-line/40 hover:bg-surface-strong hover:text-foreground"
+                        }`}
+                        title="Gostei da resposta"
+                      >
+                        <ThumbsUp size={13} className={feedbacks[m.id] === 'like' ? "fill-current" : ""} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(m.id, 'dislike')}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 flex items-center justify-center cursor-pointer ${
+                          feedbacks[m.id] === 'dislike'
+                            ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 scale-110 shadow-sm"
+                            : "bg-transparent border-transparent text-muted hover:border-line/40 hover:bg-surface-strong hover:text-foreground"
+                        }`}
+                        title="Não gostei da resposta"
+                      >
+                        <ThumbsDown size={13} className={feedbacks[m.id] === 'dislike' ? "fill-current" : ""} />
+                      </button>
+                      
+                      {feedbacks[m.id] && (
+                        <span className="text-[10px] text-brand/80 font-semibold tracking-wide animate-fade-in pl-1 select-none">
+                          Feedback coletado! Obrigado.
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
