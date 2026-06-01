@@ -176,7 +176,7 @@ export function IntegracoesClient() {
     <main className="min-h-screen text-foreground bg-neutral-950 px-4 py-8 lg:px-8 relative">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-neutral-950 border border-brand/40 text-foreground px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-alert-pop">
+        <div className="fixed top-6 right-6 z-[var(--z-toast)] bg-neutral-950 border border-brand/40 text-foreground px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-alert-pop">
           <div className="size-2 rounded-full bg-brand animate-ping" />
           <span className="text-xs font-bold">{toastMessage}</span>
         </div>

@@ -377,7 +377,7 @@ export function EstudioVideoClient() {
         
         {/* Toast */}
         {toast && (
-          <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg animate-alert-pop ${
+          <div className={`fixed top-6 right-6 z-[var(--z-toast)] flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg animate-alert-pop ${
             toast.type === "success" 
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" 
               : "border-rose-500/30 bg-rose-500/10 text-rose-400"

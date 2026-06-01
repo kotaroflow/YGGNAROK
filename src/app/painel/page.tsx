@@ -120,7 +120,7 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
             </div>
           </Panel>
 
-          <Panel title="Postagem manual" href="/postagem-manual" action="Ver fila">
+          <Panel title="Distribution Bureau" href="/postagem-manual" action="Ver fila">
             <div className="grid min-h-40 place-items-center text-center">
               <div>
                 <p className="text-3xl font-bold text-foreground">{overview.counts.manualPosts}</p>

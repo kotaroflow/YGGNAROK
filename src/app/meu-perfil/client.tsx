@@ -121,7 +121,7 @@ export function MeuPerfilClient({
     <main className="min-h-screen text-foreground relative">
       {/* Toast Alert */}
       {successToast && (
-        <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-brand/30 bg-surface/90 px-4 py-3 text-xs font-semibold text-brand shadow-xl shadow-brand/10 backdrop-blur flex items-center gap-2 animate-bounce">
+        <div className="fixed bottom-5 right-5 z-[var(--z-toast)] rounded-xl border border-brand/30 bg-surface/90 px-4 py-3 text-xs font-semibold text-brand shadow-xl shadow-brand/10 backdrop-blur flex items-center gap-2 animate-bounce">
           <Check size={14} />
           {successToast}
         </div>

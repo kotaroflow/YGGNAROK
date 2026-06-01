@@ -69,7 +69,7 @@ export async function restoreLibraryItem(id: string) {
     throw new Error("Não foi possível restaurar o item.");
   }
 
-  revalidatePath("/lixeira-inteligente");
+  revalidatePath("/criar-conteudo");
   revalidatePath("/biblioteca");
 }
 
@@ -84,5 +84,5 @@ export async function deleteLibraryItemPermanently(id: string) {
     throw new Error("Não foi possível deletar permanentemente.");
   }
 
-  revalidatePath("/lixeira-inteligente");
+  revalidatePath("/criar-conteudo");
 }

@@ -13,6 +13,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* ═══════════════════════════════════════
+     Z-INDEX LAYER SYSTEM — Global Hierarchy
+     Do NOT hardcode z-index values.
+     Use these variables everywhere.
+     ═══════════════════════════════════════ */
+  --z-content: 1;
+  --z-amber-ambient: 4;
+  --z-amber-aura: 5;
+  --z-page-effects: 10;
+  --z-sidebar: 1000;
+  --z-sidebar-popup: 1010;
+  --z-mobile-hamburger: 1020;
+  --z-dropdown: 1100;
+  --z-popover: 1150;
+  --z-modal-backdrop: 1200;
+  --z-modal: 1210;
+  --z-toast: 1300;
+  --z-tooltip: 1400;
+
   --background: #FAFAFA;
   --foreground: #171717;
   --surface-base: #FAFAFA;
@@ -95,21 +114,68 @@ body {
 body::before {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  pointer-events: none;
   content: "";
+  /* Large ambient glow – subtle, slow, covers whole viewport */
+  z-index: var(--z-amber-ambient);
   background:
-    radial-gradient(circle at 16% 12%, rgba(245, 158, 11, 0.05) 0%, transparent 35%),
-    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.05) 0%, transparent 40%),
-    linear-gradient(135deg, #fdfdfd 0%, #f9f9f9 44%, #fcfcfc 100%);
+    radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-ambient-opacity)) 0%, transparent 80%),
+    linear-gradient(135deg, var(--ambient-bg-start) 0%, var(--ambient-bg-end) 100%);
+  filter: blur(120px);
 }
 
-.dark body::before {
-  background:
-    radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.18) 0%, transparent 45%),
-    radial-gradient(circle at 80% 85%, rgba(245, 158, 11, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 15%, rgba(87, 71, 170, 0.18) 0%, transparent 45%),
-    linear-gradient(135deg, #141318 0%, #171512 52%, #111819 100%);
+body::after {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  /* Core amber aura – follows cursor, more vivid */
+  z-index: var(--z-amber-aura);
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-core-opacity)) 0%, transparent 45%);
+  filter: blur(80px);
 }
+
+/* Light mode ambient colors */
+:root {
+  --amber-core-opacity: 0.22;
+  --amber-ambient-opacity: 0.06;
+  --ambient-bg-start: rgba(255, 240, 200, 0.08);
+  --ambient-bg-end: rgba(255, 225, 165, 0.04);
+}
+
+/* Dark mode overrides */
+.dark {
+  /* Core amber is stronger in dark */
+  --amber-core-opacity: 0.35;
+  --amber-ambient-opacity: 0.12;
+  --ambient-bg-start: rgba(30, 20, 0, 0.12);
+  --ambient-bg-end: rgba(45, 30, 5, 0.08);
+}
+
+
+/* Ambient pulse variables */
+:root {
+  --ambient-pulse-from: 0.03;
+  --ambient-pulse-to: 0.07;
+}
+
+.dark {
+  --ambient-pulse-from: 0.04;
+  --ambient-pulse-to: 0.09;
+}
+
+/* Mobile (coarse pointer) subtle breathing animation */
+@media (pointer: coarse) {
+  body::before {
+    animation: amber-pulse 12s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes amber-pulse {
+  from { opacity: var(--ambient-pulse-from); }
+  to { opacity: var(--ambient-pulse-to); }
+}
+
 
 button,
 a,
@@ -123,6 +189,7 @@ textarea {
   background: var(--brand);
   color: #171717;
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   *,

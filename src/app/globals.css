@@ -13,6 +13,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* ═══════════════════════════════════════
+     Z-INDEX LAYER SYSTEM — Global Hierarchy
+     Do NOT hardcode z-index values.
+     Use these variables everywhere.
+     ═══════════════════════════════════════ */
+  --z-content: 1;
+  --z-amber-ambient: 4;
+  --z-amber-aura: 5;
+  --z-page-effects: 10;
+  --z-sidebar: 1000;
+  --z-sidebar-popup: 1010;
+  --z-mobile-hamburger: 1020;
+  --z-dropdown: 1100;
+  --z-popover: 1150;
+  --z-modal-backdrop: 1200;
+  --z-modal: 1210;
+  --z-toast: 1300;
+  --z-tooltip: 1400;
+
   --background: #FAFAFA;
   --foreground: #171717;
   --surface-base: #FAFAFA;
@@ -98,7 +117,7 @@ body::before {
   pointer-events: none;
   content: "";
   /* Large ambient glow – subtle, slow, covers whole viewport */
-  z-index: -2;
+  z-index: var(--z-amber-ambient);
   background:
     radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-ambient-opacity)) 0%, transparent 80%),
     linear-gradient(135deg, var(--ambient-bg-start) 0%, var(--ambient-bg-end) 100%);
@@ -111,7 +130,7 @@ body::after {
   pointer-events: none;
   content: "";
   /* Core amber aura – follows cursor, more vivid */
-  z-index: -1;
+  z-index: var(--z-amber-aura);
   background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-core-opacity)) 0%, transparent 45%);
   filter: blur(80px);
 }

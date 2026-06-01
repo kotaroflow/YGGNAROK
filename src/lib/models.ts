@@ -621,8 +621,7 @@ export function getSectorFromPath(pathname: string): SectorId {
     pathname.startsWith("/agentes-ia") ||
     pathname.startsWith("/continuidade-ia") ||
     pathname.startsWith("/prompts") ||
-    pathname.startsWith("/analise-site") ||
-    pathname.startsWith("/lixeira-inteligente")
+    pathname.startsWith("/analise-site")
   ) {
     return "sosaku-kobo";
   }

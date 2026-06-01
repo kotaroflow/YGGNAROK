@@ -152,7 +152,7 @@ const RecentChatItem = memo(function RecentChatItem({
 
         {/* Context Menu */}
         {menuOpen && !showProjectPicker && (
-          <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
+          <div className="absolute right-0 top-full mt-1 z-[var(--z-sidebar-popup)] w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
             <button
               type="button"
               onClick={() => { onPin(chat.id); setMenuOpen(false); }}
@@ -191,7 +191,7 @@ const RecentChatItem = memo(function RecentChatItem({
 
         {/* Project Picker submenu */}
         {menuOpen && showProjectPicker && (
-          <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
+          <div className="absolute right-0 top-full mt-1 z-[var(--z-sidebar-popup)] w-52 rounded-xl border border-sidebar-hover bg-sidebar shadow-lg overflow-hidden py-1">
             <button
               type="button"
               onClick={() => setShowProjectPicker(false)}
@@ -417,11 +417,11 @@ function ThemeToggleInline() {
   );
 }
 
-export function Sidebar({ 
+export function Sidebar({
   user: _user,
   defaultCollapsed = false,
   defaultWidth = 288
-}: { 
+}: {
   user: PermissionContext | null;
   defaultCollapsed?: boolean;
   defaultWidth?: number;
@@ -476,7 +476,7 @@ export function Sidebar({
   const [transitionsEnabled, setTransitionsEnabled] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
-  
+
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -484,7 +484,7 @@ export function Sidebar({
     // Triple click detector: opens/expands the sidebar
     clickCountRef.current += 1;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-    
+
     if (clickCountRef.current === 3) {
       clickCountRef.current = 0;
       if (collapsed) {
@@ -644,17 +644,17 @@ export function Sidebar({
     <aside
       ref={sidebarRef}
       onClick={handleSidebarClick}
-      style={{ 
-        width: collapsed ? "4.5rem" : `${sidebarWidth}px`, 
-        transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s" 
+      style={{
+        width: collapsed ? "4.5rem" : `${sidebarWidth}px`,
+        transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s"
       }}
-      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted shrink-0 rounded-xl select-none"
+      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted rounded-xl select-none"
     >
       {/* Resizer Handle */}
       {!collapsed && (
         <div
           onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-          className="absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize hover:bg-brand/50 z-50"
+          className="absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize hover:bg-brand/50 z-[var(--z-sidebar-popup)]"
         />
       )}
       {/* Top Header (Brand & Collapse Button) */}
@@ -730,7 +730,7 @@ export function Sidebar({
                 <ProjectsSection collapsed={collapsed} />
               </div>
             )}
-            
+
             <p className="px-3 pb-1.5 text-[10px] uppercase tracking-[0.06em] font-medium text-muted">
               {resolvedTab === "chat" ? "Recentes" : resolvedTab === "criacao" ? "Criação & IA" : "Comercial"}
             </p>
@@ -775,9 +775,9 @@ export function Sidebar({
               ) : (
                 <YggSidebarEmblem collapsed={collapsed} />
               )}
-              
+
               {/* Profile Menu Popover - opens to the RIGHT with a gorgeous zoom-in spring micro-animation */}
-              <div className="absolute bottom-0 left-full ml-3.5 z-50 w-64 origin-bottom-left rounded-xl border border-line bg-neutral-900/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
+              <div className="absolute bottom-0 left-full ml-3.5 z-[var(--z-sidebar-popup)] w-64 origin-bottom-left rounded-xl border border-line bg-neutral-900/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
                 {/* Stylized System Status Header instead of raw email address */}
                 <div className="px-3 py-2.5 mb-2 rounded-lg bg-neutral-950/60 border border-line/20 flex items-center gap-2.5 select-none">
                   <div className="relative flex h-2 w-2 shrink-0">
@@ -789,18 +789,18 @@ export function Sidebar({
                     <span className="text-[8.5px] text-muted font-mono uppercase tracking-wider mt-1">Acesso: {isOwner ? "Administrador Master" : "Membro"}</span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-0.5">
                   <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Globe size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Meu Perfil</span>
                   </Link>
-                  
+
                   <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Settings size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Configurações do OS</span>
                   </Link>
-                  
+
                   <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Library size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Biblioteca de Prompts</span>
@@ -808,11 +808,11 @@ export function Sidebar({
 
                   <ThemeToggleInline />
                 </div>
-                
+
                 <div className="my-1.5 border-t border-line/10"></div>
-                
+
                 <div className="space-y-0.5">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       if (confirm("Deseja mesmo limpar todo o cache e histórico local do sistema?")) {
@@ -829,7 +829,7 @@ export function Sidebar({
                 </div>
 
                 <div className="my-1.5 border-t border-line/10"></div>
-                
+
                 <form action={signOut}>
                   <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <LogOut size={14} className="text-muted group-hover/item:text-brand transition-colors" />
@@ -848,15 +848,29 @@ export function Sidebar({
     <>
       <button
         type="button"
-        className="fixed left-3 top-3 z-40 grid size-10 place-items-center rounded-full border border-slate-200/80 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/85 lg:hidden"
+        className="fixed left-3 top-3 z-[var(--z-mobile-hamburger)] grid size-10 place-items-center rounded-full border border-slate-200/80 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/85 lg:hidden"
         onClick={() => setMobileOpen(true)}
         aria-label="Abrir navegacao"
       >
         <Menu size={20} />
       </button>
-      <div className="hidden h-screen lg:block">{sidebar}</div>
+
+      {/* Desktop sidebar — fixed to viewport as OS shell layer */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 z-[var(--z-sidebar)]">
+        {sidebar}
+      </div>
+
+      {/* Spacer — maintains layout in flex parent, matches sidebar total width (ml-2 + content) */}
+      <div
+        className="hidden lg:block shrink-0"
+        style={{
+          width: collapsed ? "calc(4.5rem + 8px)" : `calc(${sidebarWidth}px + 8px)`,
+          transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s"
+        }}
+      />
+
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[var(--z-modal-backdrop)] lg:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/45"

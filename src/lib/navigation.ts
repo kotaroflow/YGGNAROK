@@ -1,7 +1,7 @@
 import {
   Home, Users,
   ShoppingBag, Link2, FileBarChart,
-  PenLine, Bot, BookOpen, Library, Film, Trash2, Send,
+  PenLine, Bot, BookOpen, Library, Film, Send,
   Shield, Briefcase, Brain, UserCog, KeyRound, Settings, ScrollText,
   MessageSquare
 } from "lucide-react";
@@ -56,9 +56,8 @@ export const sidebarGroups: SidebarGroup[] = [
       { label: "Estúdio de Edição", description: "Edição de vídeo e orquestra IA", href: "/estudio-video", permission: "content.create", icon: Film },
       { label: "Agentes IA", description: "Fluxo em nodes", href: "/agentes-ia", permission: "ai_jobs.create", icon: Bot },
       { label: "Calendário", description: "Planejamento", href: "/calendario", permission: "content.view", icon: ScrollText },
-      { label: "Postagem Manual", description: "Fila assistida", href: "/postagem-manual", permission: "posting.view", icon: Send },
+      { label: "Distribution Bureau", description: "Ryūtsū Kanrikyoku", href: "/postagem-manual", permission: "posting.view", icon: Send },
       { label: "Biblioteca", description: "Referencias", href: "/biblioteca", permission: "library.view", icon: Library },
-      { label: "Lixeira Inteligente", description: "Restaurar itens", href: "/lixeira-inteligente", permission: "library.restore", icon: Trash2 },
     ],
   },
   {

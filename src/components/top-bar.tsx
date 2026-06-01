@@ -3,7 +3,7 @@ import { PenLine, Search, Settings } from "lucide-react";
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/80 px-4 pl-16 shadow-sm backdrop-blur-xl lg:pl-6">
+    <header className="sticky top-0 z-[var(--z-page-effects)] flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/80 px-4 pl-16 shadow-sm backdrop-blur-xl lg:pl-6">
       <form action="/busca" method="GET" className="relative hidden max-w-xl flex-1 items-center sm:flex">
         <Search className="pointer-events-none absolute left-3 text-muted" size={18} />
         <input

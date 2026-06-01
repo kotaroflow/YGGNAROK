@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState, useCallback, useRef } from "react";
-import { 
-  Lightbulb, Brain, Send, Sparkles, 
-  Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle, 
+import {
+  Lightbulb, Brain, Send, Sparkles,
+  Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle,
   Trash2, ShieldAlert, Cpu, HelpCircle, Video, Scissors,
   Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image as ImageIcon, Check,
-  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library,
+  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library, Archive,
   ScrollText, Subtitles, Hash, Globe, Settings, Terminal, Share2, ZoomIn, ZoomOut
 } from "lucide-react";
 import { inputClass } from "@/components/field";
@@ -41,6 +41,37 @@ type ReferenceAsset = {
   size: string;
   status: "uploading" | "completed";
   progress: number;
+};
+
+type CreativeNodeType = "image" | "video" | "prompt" | "chat" | "campaign" | "project" | "reference" | "idea" | "script";
+
+type CreativeNode = {
+  id: string;
+  type: CreativeNodeType;
+  title: string;
+  x: number;
+  y: number;
+  content: string;
+  tags: string[];
+  source: string;
+  status: string;
+  meta: {
+    preview?: string;
+    duration?: string;
+    platform?: string;
+    model?: string;
+    persona?: string;
+    progress?: number;
+    deadline?: string;
+    history?: string;
+  };
+  related: string[];
+};
+
+type CreativeEdge = {
+  id: string;
+  source: string;
+  target: string;
 };
 
 type VideoStylePreset = {
@@ -101,6 +132,97 @@ const DEMO_CONTENTS: ContentItem[] = [
   { id: "demo-3", profile_id: "", title: "Sequência de Posts — IAs Gratuitas", content_type: "carrossel", platform: "Instagram", idea: "Carrossel educativo comparando 5 IAs gratuitas com alto desempenho para criadores de conteúdo.", status: "rascunho", created_at: new Date(Date.now() - 259200000).toISOString(), etapa_fluxo: "ideia", origem: "manual" },
 ];
 
+const CREATIVE_NODE_WIDTH = 240;
+const CREATIVE_NODE_PORT_Y = 46;
+
+const CREATIVE_NODE_META: Record<CreativeNodeType, { label: string; icon: typeof FileText; tone: string }> = {
+  image: { label: "Imagem", icon: ImageIcon, tone: "border-brand/30 bg-brand/10 text-brand" },
+  video: { label: "Vídeo", icon: Video, tone: "border-rose-500/30 bg-rose-950/30 text-rose-300" },
+  prompt: { label: "Prompt", icon: Sparkles, tone: "border-violet-500/30 bg-violet-950/30 text-violet-300" },
+  chat: { label: "Chat", icon: MessageSquare, tone: "border-sky-500/30 bg-sky-950/30 text-sky-300" },
+  campaign: { label: "Campanha", icon: Award, tone: "border-brand/35 bg-amber-950/30 text-brand" },
+  project: { label: "Projeto", icon: Layers, tone: "border-emerald-500/30 bg-emerald-950/30 text-emerald-300" },
+  reference: { label: "Referência", icon: Library, tone: "border-indigo-500/30 bg-indigo-950/30 text-indigo-300" },
+  idea: { label: "Ideia", icon: Lightbulb, tone: "border-yellow-500/30 bg-yellow-950/25 text-yellow-300" },
+  script: { label: "Roteiro", icon: ScrollText, tone: "border-orange-500/30 bg-orange-950/25 text-orange-300" },
+};
+
+const INITIAL_CREATIVE_NODES: CreativeNode[] = [
+  {
+    id: "image-01",
+    type: "image",
+    title: "Rainha Sombria",
+    x: 40,
+    y: 64,
+    content: "Referência visual principal para atmosfera de mistério, ouro escuro e presença lendária.",
+    tags: ["#referência", "#visual", "#dark-fantasy"],
+    source: "Moodboard YGN",
+    status: "Referência ativa",
+    meta: { preview: "Luz âmbar, silhueta nobre, contraste alto." },
+    related: ["Prompt — Dark fantasy queen", "Roteiro — Gancho Viral"],
+  },
+  {
+    id: "prompt-01",
+    type: "prompt",
+    title: "Dark Fantasy Queen",
+    x: 320,
+    y: 64,
+    content: "Dark fantasy queen, golden lighting, ultra detailed, cinematic mood, sacred artifact atmosphere.",
+    tags: ["#prompt", "#midjourney", "#visual"],
+    source: "Midjourney v6",
+    status: "Pronto para reuso",
+    meta: { model: "Midjourney v6", history: "Usado 12 vezes em variações visuais." },
+    related: ["Rainha Sombria", "Moodboard — Inspiração Visual"],
+  },
+  {
+    id: "chat-01",
+    type: "chat",
+    title: "Conversa Kotaro IA",
+    x: 600,
+    y: 64,
+    content: "Sugere variações com emoção, mistério e foco em campanha de lançamento.",
+    tags: ["#chat", "#direção", "#ia"],
+    source: "Kotaro IA",
+    status: "Contexto vivo",
+    meta: { persona: "Kotaro IA", history: "Conversa ligada ao conceito central." },
+    related: ["Prompt — Dark Fantasy Queen", "Campanha YGN Ascensão"],
+  },
+  {
+    id: "script-01",
+    type: "script",
+    title: "Gancho Viral",
+    x: 320,
+    y: 240,
+    content: "Eles não querem que você saiba disso... mas mudou meu jogo completamente.",
+    tags: ["#roteiro", "#shorts", "#retenção"],
+    source: "Creative Vault",
+    status: "Em refinamento",
+    meta: { platform: "Shorts / Reels / TikTok" },
+    related: ["Conversa Kotaro IA", "Campanha YGN Ascensão"],
+  },
+  {
+    id: "campaign-01",
+    type: "campaign",
+    title: "Campanha YGN Ascensão",
+    x: 600,
+    y: 240,
+    content: "Campanha completa para lançamento YGN Ascensão. Foco em storytelling, mistério e transformação.",
+    tags: ["#campanha", "#lançamento", "#high-ticket"],
+    source: "Creation Nexus",
+    status: "78% estruturada",
+    meta: { progress: 78, deadline: "28/11/2026", platform: "Multicanal" },
+    related: ["Rainha Sombria", "Gancho Viral", "Conversa Kotaro IA"],
+  },
+];
+
+const INITIAL_CREATIVE_EDGES: CreativeEdge[] = [
+  { id: "e-image-prompt", source: "image-01", target: "prompt-01" },
+  { id: "e-prompt-chat", source: "prompt-01", target: "chat-01" },
+  { id: "e-chat-script", source: "chat-01", target: "script-01" },
+  { id: "e-script-campaign", source: "script-01", target: "campaign-01" },
+  { id: "e-chat-campaign", source: "chat-01", target: "campaign-01" },
+];
+
 const tabs = [
   { id: "ideias", label: "Ideias", icon: Lightbulb, description: "Novas Pautas" },
   { id: "roteiros", label: "Roteiros", icon: ScrollText, description: "Scripts e Falas" },
@@ -149,24 +271,19 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [contents, setContents] = useState<ContentItem[]>(
     initialContents.length > 0 ? initialContents : DEMO_CONTENTS
   );
-  
+
   const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
   const [briefingMode, setBriefingMode] = useState<"text" | "canvas">("text");
   const [carouselIdx, setCarouselIdx] = useState(0);
 
   // === Neural Canvas Drag & Drop State ===
-  const [canvasNodes, setCanvasNodes] = useState([
-    { id: "raw-input", type: "input", title: "Input Raw", x: 32, y: 48, content: "" },
-    { id: "council", type: "agent", title: "Conselho I.A", x: 300, y: 176, content: "> Mapeando ganchos...\n> Otimizando SEO", agent: "Odin" },
-    { id: "output", type: "output", title: "Saída Neural", x: 600, y: 300, content: "Aguardando disparo..." }
-  ]);
-  const [canvasEdges, setCanvasEdges] = useState([
-    { id: "e1", source: "raw-input", target: "council" },
-    { id: "e2", source: "council", target: "output" }
-  ]);
+  const [canvasNodes, setCanvasNodes] = useState<CreativeNode[]>(INITIAL_CREATIVE_NODES);
+  const [canvasEdges, setCanvasEdges] = useState<CreativeEdge[]>(INITIAL_CREATIVE_EDGES);
+  const [selectedCanvasNodeId, setSelectedCanvasNodeId] = useState(INITIAL_CREATIVE_NODES[4]?.id ?? INITIAL_CREATIVE_NODES[0].id);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
+  const nextCreativeNodeId = useRef(0);
 
   // === 3D Parallax State ===
   const [canvasRotation, setCanvasRotation] = useState({ x: 20, y: -10 }); // Initial 3D tilt
@@ -174,20 +291,21 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (draggingNodeId || !canvasRef.current) return;
-    
+
     // Calculate rotation based on mouse position (Parallax effect)
     const rect = canvasRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     // Max rotation of 30 degrees
     const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
     const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 15;
-    
+
     setCanvasRotation({ x: rotateX + 15, y: rotateY }); // +15 gives it a base tilt like looking down at a globe
   };
 
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
+    setSelectedCanvasNodeId(nodeId);
     // If we are in connecting mode and click a node, try to connect them
     if (connectingFromId && connectingFromId !== nodeId) {
       setCanvasEdges(prev => [...prev, { id: `e-${Date.now()}`, source: connectingFromId, target: nodeId }]);
@@ -195,7 +313,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
       e.stopPropagation();
       return;
     }
-    
+
     // Normal drag
     e.preventDefault();
     const nodeElement = e.currentTarget as HTMLDivElement;
@@ -212,7 +330,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     if (!draggingNodeId) return;
     const canvasElement = e.currentTarget as HTMLDivElement;
     const rect = canvasElement.getBoundingClientRect();
-    
+
     let newX = e.clientX - rect.left - dragOffset.x;
     let newY = e.clientY - rect.top - dragOffset.y;
 
@@ -221,7 +339,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     if (newX > rect.width - 200) newX = rect.width - 200;
     if (newY > rect.height - 100) newY = rect.height - 100;
 
-    setCanvasNodes(prev => prev.map(node => 
+    setCanvasNodes(prev => prev.map(node =>
       node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
     ));
   };
@@ -233,45 +351,71 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     }
   };
 
-  const addCanvasNode = (type: string) => {
-    const newNode = {
-      id: `node-${Date.now()}`,
+  const selectedCanvasNode = canvasNodes.find((node) => node.id === selectedCanvasNodeId) ?? canvasNodes[0];
+  const selectedCanvasConnections = canvasEdges
+    .filter((edge) => edge.source === selectedCanvasNode?.id || edge.target === selectedCanvasNode?.id)
+    .map((edge) => {
+      const connectedId = edge.source === selectedCanvasNode?.id ? edge.target : edge.source;
+      return canvasNodes.find((node) => node.id === connectedId);
+    })
+    .filter((node): node is CreativeNode => Boolean(node));
+
+  const addCanvasNode = (type: CreativeNodeType) => {
+    const meta = CREATIVE_NODE_META[type];
+    nextCreativeNodeId.current += 1;
+    const newNode: CreativeNode = {
+      id: `creative-node-${nextCreativeNodeId.current}`,
       type,
-      title: type === "agent" ? "Novo Agente" : type === "input" ? "Nova Fonte" : "Ação n8n",
-      x: 150 + Math.random() * 100,
-      y: 150 + Math.random() * 100,
-      content: "Novo bloco inserido...",
-      agent: type === "agent" ? "Mimir" : undefined
+      title: `Novo ${meta.label}`,
+      x: 160 + (canvasNodes.length % 3) * 280,
+      y: 96 + Math.floor(canvasNodes.length / 3) * 168,
+      content: "Novo bloco criativo inserido no Nexus.",
+      tags: ["#creative-node"],
+      source: "Creation Nexus",
+      status: "Rascunho visual",
+      meta: {},
+      related: [],
     };
     setCanvasNodes(prev => [...prev, newNode]);
+    setSelectedCanvasNodeId(newNode.id);
   };
 
   const deleteCanvasNode = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCanvasNodes(prev => prev.filter(n => n.id !== id));
     setCanvasEdges(prev => prev.filter(e => e.source !== id && e.target !== id));
+    setSelectedCanvasNodeId(prev => prev === id ? INITIAL_CREATIVE_NODES[0].id : prev);
   };
   // ==========================================
-  
+
   const [contentType, setContentType] = useState("ideia");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [showChannelMention, setShowChannelMention] = useState(false);
   const [channelFilter, setChannelFilter] = useState("");
   const briefingRef = useRef<HTMLTextAreaElement>(null);
   const [, setRefinementInstructions] = useState("");
-  
+
   const [acervoFilter, setAcervoFilter] = useState<string>("todos");
   const [acervoSearch, setAcervoSearch] = useState("");
+  const [showArchive, setShowArchive] = useState(false);
+  const [archivedItems, setArchivedItems] = useState<ContentItem[]>(() => {
+    const now = Date.now();
+    return [
+      { id: "arc-1", profile_id: "", title: "Roteiro Antigo - Vendas Exponenciais", content_type: "Roteiro", platform: "Multicanais", idea: "Roteiro focado em gerar escassez imediata com gatilhos de copy do YGGNAROK.", status: "arquivado", created_at: new Date(now - 86400000 * 2).toISOString(), etapa_fluxo: "publicacao", origem: "manual" },
+      { id: "arc-2", profile_id: "", title: "Pauta: IA no Cotidiano", content_type: "Ideia", platform: "Instagram", idea: "Uma pauta abordando como a IA otimiza tarefas diárias.", status: "arquivado", created_at: new Date(now - 86400000 * 5).toISOString(), etapa_fluxo: "ideia", origem: "manual" },
+      { id: "arc-3", profile_id: "", title: "Storyboard Campanha Q2", content_type: "Documento", platform: "YouTube", idea: "Storyboard completo para campanha do segundo trimestre.", status: "arquivado", created_at: new Date(now - 86400000 * 12).toISOString(), etapa_fluxo: "ideia", origem: "hefesto" },
+    ];
+  });
   const [openCardMenu, setOpenCardMenu] = useState<string | null>(null);
-  
+
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
+
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
-  
+
   const [learningMargin, setLearningMargin] = useState(85);
   const [autoFreeTier, setAutoFreeTier] = useState(true);
 
@@ -336,7 +480,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [exportPlatform, setExportPlatform] = useState<"4k" | "tiktok" | "reels" | "shorts" | null>(null);
   const [exportLogs, setExportLogs] = useState<string[]>([]);
   const [exportStep, setExportStep] = useState(0);
-  
+
   const [rejectionError, setRejectionError] = useState("");
   const [absorbedFeedback, setAbsorbedFeedback] = useState<string[]>([]);
   const [councilMessages, setCouncilMessages] = useState<{agent: string, avatar: string, message: string, status: "thinking" | "approved"}[]>([]);
@@ -487,7 +631,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const handleGenerateContent = async () => {
     if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
     setActionLoading("generate");
-    
+
     const payload = {
       id: `n8n-${Date.now()}`,
       title: manualTitle.trim(),
@@ -504,9 +648,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || "Falha na ponte com o n8n");
 
       const newItem: ContentItem = {
@@ -658,7 +802,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
   return (
     <main className="min-h-screen text-foreground relative bg-background pb-20 select-none">
-      
+
       {/* CSS Keyframe Injections for Rich Aesthetics */}
       <style>{`
         @keyframes subtleGlow {
@@ -694,12 +838,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
       <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none" />
 
       <div className="mx-auto max-w-[1440px] px-6 pt-8">
-        
+
         {/* Dynamic Toast Feedback Overlay */}
         {toast && (
-          <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-extrabold shadow-2xl backdrop-blur-xl animate-bounce ${
-            toast.type === "success" 
-              ? "border-emerald-500/30 bg-emerald-950/90 text-emerald-400" 
+          <div className={`fixed bottom-6 right-6 z-[var(--z-toast)] flex items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-extrabold shadow-2xl backdrop-blur-xl animate-bounce ${
+            toast.type === "success"
+              ? "border-emerald-500/30 bg-emerald-950/90 text-emerald-400"
               : "border-rose-500/30 bg-rose-950/90 text-rose-400"
           }`}>
             <span className="relative flex h-2 w-2">
@@ -727,7 +871,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
           </div>
 
           {/* Slash Command Button (Menos Destaque, Clicável) */}
-          <button 
+          <button
             type="button"
             onClick={() => showToast("Comandos '/' estarão disponíveis em breve!")}
             className="flex items-center gap-2 bg-black/10 hover:bg-black/30 border border-line/20 hover:border-line/40 px-3 py-1.5 rounded-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-white"
@@ -739,14 +883,14 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
         {/* ── 3-Column Symmetrical Studio Grid Workspace ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* COLUMN 1 & 2: Console de Criação (Left/Middle - 8 Cols) */}
           <div className="lg:col-span-8 space-y-8">
-            
+
             {activeTab !== "videos" ? (
               /* console de criação de conteúdo */
               <section className="rounded-2xl border border-line/40 bg-surface/60 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-300 focus-within:border-brand/30">
-                
+
                 {/* Panel Header */}
                 <div className="flex items-center justify-between border-b border-line/10 pb-4">
                   <div className="flex items-center gap-2.5">
@@ -814,7 +958,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Conteúdo / Briefing Principal</label>
-                      
+
                       {/* Obsidian Mode Toggle */}
                       <div className="flex items-center bg-black/40 border border-line/20 rounded-lg p-0.5">
                         <button
@@ -859,7 +1003,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                             >
                               <RotateCcw size={14} />
                             </button>
-                            
+
                             {creationMode === "manual" ? (
                               <button
                                 type="button"
@@ -885,7 +1029,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
                           {/* @mention floating overlay */}
                           {showChannelMention && filteredMentionChannels.length > 0 && (
-                            <div className="absolute left-5 bottom-16 mb-2 z-50 w-56 rounded-xl border border-line bg-surface-strong/95 shadow-[0_10px_40px_rgba(0,0,0,0.8)] py-1.5 backdrop-blur-xl animate-fade-in-up">
+                            <div className="absolute left-5 bottom-16 mb-2 z-[var(--z-dropdown)] w-56 rounded-xl border border-line bg-surface-strong/95 shadow-[0_10px_40px_rgba(0,0,0,0.8)] py-1.5 backdrop-blur-xl animate-fade-in-up">
                               <p className="px-3 py-1 text-[9px] font-black text-brand uppercase tracking-widest border-b border-line/10 mb-1">Canais e Redes</p>
                               {filteredMentionChannels.map(ch => (
                                 <button
@@ -902,173 +1046,234 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           )}
                         </>
                       ) : (
-                        <div 
+                        <div
                           ref={canvasRef}
-                          className="relative w-full h-[528px] overflow-hidden bg-black flex items-center justify-center"
-                          style={{ perspective: '1200px' }}
+                          className="relative grid h-[620px] w-full overflow-hidden bg-[#080706] lg:grid-cols-[1fr_320px]"
                           onMouseMove={handleCanvasMouseMove}
                         >
-                          {/* Inner 3D Container */}
-                          <div 
-                            className={`relative w-[150%] h-[150%] transition-transform duration-200 ease-out ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`}
-                            style={{ 
-                              transform: `rotateX(${canvasRotation.x}deg) rotateY(${canvasRotation.y}deg) translateZ(-50px)`,
-                              transformStyle: 'preserve-3d'
+                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(245,158,11,0.16),transparent_36%),linear-gradient(135deg,rgba(12,10,8,0.96),rgba(0,0,0,0.98))]" />
+                          <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(245,158,11,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.12)_1px,transparent_1px)] [background-size:56px_56px]" />
+
+                          <div
+                            className={`relative z-10 min-h-0 overflow-hidden ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`}
+                            style={{
+                              transform: `translate3d(${canvasRotation.y * 0.08}px, ${canvasRotation.x * 0.04}px, 0)`,
                             }}
                             onPointerMove={handlePointerMove}
                             onPointerUp={handlePointerUp}
                             onPointerLeave={handlePointerUp}
                             onClick={() => connectingFromId && setConnectingFromId(null)}
                           >
-                            {/* Imagem de Fundo (Miku Matrix) */}
-                            <div 
-                              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none"
-                              style={{ 
-                                backgroundImage: "url('/neural-bg.png')", 
-                                transform: 'translateZ(-200px) scale(1.2)' // Pushes it deep into the background
-                              }}
-                            />
-                            
-                            {/* Malha de Fundo Holográfica */}
-                            <div 
-                              className="absolute inset-0 pointer-events-none opacity-50"
-                              style={{ 
-                                backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.2) 1px, transparent 0)', 
-                                backgroundSize: '48px 48px',
-                                transform: 'translateZ(-100px)' 
-                              }}
-                            />
+                            <div className="absolute left-5 top-5 z-20 rounded-xl border border-brand/25 bg-black/45 px-4 py-3 backdrop-blur-md">
+                              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Creation Nexus</p>
+                              <p className="mt-1 text-[10px] font-semibold text-muted">Creative Brain: ideias, memórias e relações. Não executa workflows.</p>
+                            </div>
 
-                           {/* Linhas de conexão dinâmicas calculadas via Edges */}
-                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'translateZ(0px)' }}>
-                             {canvasEdges.map(edge => {
-                               const sourceNode = canvasNodes.find(n => n.id === edge.source);
-                               const targetNode = canvasNodes.find(n => n.id === edge.target);
-                               if (!sourceNode || !targetNode) return null;
-                               
-                               // Calculate port positions (Right of source, Left of target)
-                               const startX = sourceNode.x + 260; // width of node is 260
-                               const startY = sourceNode.y + 40;  // approx center Y of node header
-                               const endX = targetNode.x;
-                               const endY = targetNode.y + 40;
-                               
-                               const controlX1 = startX + (endX - startX) / 2;
-                               const controlX2 = startX + (endX - startX) / 2;
+                            <svg className="absolute inset-0 z-0 size-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                              <defs>
+                                <marker id="creative-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                                  <path d="M 0 0 L 8 4 L 0 8 z" fill="rgba(245,158,11,0.62)" />
+                                </marker>
+                              </defs>
+                              {canvasEdges.map(edge => {
+                                const sourceNode = canvasNodes.find(n => n.id === edge.source);
+                                const targetNode = canvasNodes.find(n => n.id === edge.target);
+                                if (!sourceNode || !targetNode) return null;
 
-                               return (
-                                 <path 
-                                   key={edge.id}
-                                   d={`M ${startX} ${startY} C ${controlX1} ${startY}, ${controlX2} ${endY}, ${endX} ${endY}`} 
-                                   fill="none" 
-                                   stroke={targetNode.type === "output" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"} 
-                                   strokeWidth="2" 
-                                   strokeDasharray="5,5" 
-                                   className="animate-pulse" 
-                                 />
-                               );
-                             })}
-                           </svg>
-                           
-                           {/* Renderização Dinâmica dos Nós */}
-                           {canvasNodes.map(node => {
-                             let borderColor = "border-line/30";
-                             let hoverColor = "hover:border-brand/40";
-                             let bgColor = "bg-surface/80";
-                             let TitleIcon = FileText;
-                             let iconColor = "text-white";
-                             let shadowColor = "shadow-xl";
+                                const startX = sourceNode.x + CREATIVE_NODE_WIDTH;
+                                const startY = sourceNode.y + CREATIVE_NODE_PORT_Y;
+                                const endX = targetNode.x;
+                                const endY = targetNode.y + CREATIVE_NODE_PORT_Y;
+                                const midX = startX + (endX - startX) / 2;
+                                const isSelectedConnection = selectedCanvasNode?.id === sourceNode.id || selectedCanvasNode?.id === targetNode.id;
+                                const points = `${startX},${startY} ${midX},${startY} ${midX},${endY} ${endX},${endY}`;
 
-                             if (node.type === "agent") {
-                               borderColor = "border-brand/30";
-                               hoverColor = "hover:border-brand/60";
-                               bgColor = "bg-brand/10";
-                               TitleIcon = Cpu;
-                               iconColor = "text-brand";
-                               shadowColor = "shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]";
-                             } else if (node.type === "output") {
-                               borderColor = "border-emerald-500/30";
-                               hoverColor = "hover:border-emerald-500/50";
-                               bgColor = "bg-emerald-950/40";
-                               TitleIcon = CheckCircle;
-                               iconColor = "text-emerald-400";
-                             }
+                                return (
+                                  <polyline
+                                    key={edge.id}
+                                    points={points}
+                                    fill="none"
+                                    stroke={isSelectedConnection ? "rgba(245,158,11,0.82)" : "rgba(245,158,11,0.36)"}
+                                    strokeWidth={isSelectedConnection ? 2.4 : 1.7}
+                                    strokeLinejoin="round"
+                                    strokeLinecap="round"
+                                    markerEnd="url(#creative-arrow)"
+                                  />
+                                );
+                              })}
+                            </svg>
 
-                             return (
-                               <div 
-                                 key={node.id}
-                                 onPointerDown={(e) => handlePointerDown(e, node.id)}
-                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-md border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 ring-2 ring-brand/50" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
-                                 style={{ 
-                                   left: `${node.x}px`, 
-                                   top: `${node.y}px`, 
-                                   touchAction: 'none',
-                                   transform: `translateZ(${draggingNodeId === node.id ? '50px' : '20px'})`, // Pops out in 3D
-                                   transformStyle: 'preserve-3d'
-                                 }}
-                               >
-                                 <button onClick={(e) => deleteCanvasNode(node.id, e)} className="absolute -top-2 -right-2 grid size-5 place-items-center bg-black border border-line rounded-full text-muted hover:text-red-400 hover:border-red-500 transition-colors z-20">
-                                   <X size={10} />
-                                 </button>
+                            {canvasNodes.map(node => {
+                              const meta = CREATIVE_NODE_META[node.type];
+                              const TitleIcon = meta.icon;
+                              const isSelected = selectedCanvasNode?.id === node.id;
 
-                                 <div className={`flex items-center justify-between mb-2 pb-2 border-b ${node.type === "agent" ? "border-brand/20" : node.type === "output" ? "border-emerald-500/20" : "border-line/10"}`}>
-                                   <div className="flex items-center gap-2">
-                                     <TitleIcon size={12} className={`${iconColor} ${node.type === "agent" ? "animate-spin-slow" : ""}`} />
-                                     <span className={`text-[10px] font-black uppercase ${iconColor} tracking-widest`}>{node.title}</span>
-                                   </div>
-                                   {node.type === "agent" && (
-                                     <span className="text-[8px] bg-brand/20 text-brand px-1.5 py-0.5 rounded font-black uppercase">{selectedAgent || node.agent}</span>
-                                   )}
-                                 </div>
-                                 <p className={`text-xs font-medium leading-relaxed ${node.type === "agent" ? "text-brand/80 font-mono text-[10px]" : node.type === "output" ? "text-emerald-300/60 font-mono text-[10px]" : "text-muted line-clamp-3"}`}>
-                                   {node.type === "input" && !node.content ? (manualIdea || "O Canvas aguarda o início do seu briefing. Escreva algo no modo texto ou cole arquivos aqui.") : node.content}
-                                 </p>
-                                 
-                                 {/* Connection Ports */}
-                                 <div className={`absolute top-1/2 -left-1.5 w-3 h-3 rounded-full border-2 border-black bg-surface-strong -translate-y-1/2`} />
-                                 <button 
-                                   onPointerDown={(e) => { e.stopPropagation(); setConnectingFromId(node.id); }}
-                                   className={`absolute top-1/2 -right-1.5 w-4 h-4 rounded-full border-2 border-black bg-brand hover:scale-125 transition-transform cursor-crosshair -translate-y-1/2 grid place-items-center group/port`}
-                                   title="Arrastar conexão"
-                                 >
-                                   <Plus size={8} className="text-black opacity-0 group-hover/port:opacity-100" />
-                                 </button>
-                               </div>
-                             );
-                           })}
-                           
-                           {/* End Inner 3D Container */}
+                              return (
+                                <div
+                                  key={node.id}
+                                  onPointerDown={(e) => handlePointerDown(e, node.id)}
+                                  className={`absolute w-[240px] rounded-xl border p-3 shadow-xl backdrop-blur-md transition-colors select-none ${meta.tone} ${isSelected ? "ring-2 ring-brand/55 shadow-[0_0_32px_rgba(245,158,11,0.28)]" : "hover:border-brand/50"} ${draggingNodeId === node.id ? "cursor-grabbing scale-[1.02]" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
+                                  style={{
+                                    left: `${node.x}px`,
+                                    top: `${node.y}px`,
+                                    touchAction: "none",
+                                  }}
+                                >
+                                  <button onClick={(e) => deleteCanvasNode(node.id, e)} className="absolute -right-2 -top-2 z-20 grid size-5 place-items-center rounded-full border border-line bg-black text-muted transition hover:border-red-500 hover:text-red-400">
+                                    <X size={10} />
+                                  </button>
+
+                                  <div className="mb-2 flex items-center justify-between border-b border-line/15 pb-2">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      <TitleIcon size={13} className="shrink-0" />
+                                      <span className="truncate text-[10px] font-black uppercase tracking-widest">{meta.label}</span>
+                                    </div>
+                                    <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider">{node.status}</span>
+                                  </div>
+                                  <h3 className="line-clamp-2 text-sm font-black leading-tight text-foreground">{node.title}</h3>
+                                  <p className="mt-2 line-clamp-3 text-[11px] font-medium leading-relaxed text-muted">{node.content}</p>
+                                  <div className="mt-3 flex flex-wrap gap-1">
+                                    {node.tags.slice(0, 2).map(tag => (
+                                      <span key={tag} className="rounded border border-current/15 bg-black/15 px-1.5 py-0.5 text-[8px] font-bold uppercase opacity-85">{tag}</span>
+                                    ))}
+                                  </div>
+
+                                  <div className="absolute -left-1.5 top-[46px] size-3 rounded-full border-2 border-black bg-surface-strong" />
+                                  <button
+                                    onPointerDown={(e) => { e.stopPropagation(); setConnectingFromId(node.id); }}
+                                    className="absolute -right-2 top-[44px] grid size-4 cursor-crosshair place-items-center rounded-full border-2 border-black bg-brand transition-transform hover:scale-125"
+                                    title="Adicionar conexão criativa"
+                                  >
+                                    <Plus size={8} className="text-black" />
+                                  </button>
+                                </div>
+                              );
+                            })}
                            </div>
 
-                           {/* Connecting Mode Helper Text (Outside 3D to stay readable) */}
                            {connectingFromId && (
-                             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl animate-pulse z-50 pointer-events-none">
-                               Clique em outro Nó para conectar
+                             <div className="absolute left-1/2 top-4 z-[var(--z-toast)] -translate-x-1/2 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400 shadow-xl pointer-events-none">
+                               Clique em outro nó criativo para conectar memórias
                              </div>
                            )}
-                           
-                           {/* Floating Action Toolbar (Outside 3D so it doesn't spin) */}
-                           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 bg-black/60 backdrop-blur-md border border-line/40 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-50">
-                             <button onClick={() => addCanvasNode("input")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 transition-colors group">
-                               <FileText size={14} className="text-muted group-hover:text-white" />
-                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-white tracking-widest">Fonte</span>
-                             </button>
-                             <div className="w-[1px] h-6 bg-line/30 mx-1" />
-                             <button onClick={() => addCanvasNode("agent")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-brand/10 transition-colors group">
-                               <Cpu size={14} className="text-muted group-hover:text-brand" />
-                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-brand tracking-widest">Agente</span>
-                             </button>
-                             <div className="w-[1px] h-6 bg-line/30 mx-1" />
-                             <button onClick={() => addCanvasNode("output")} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors group">
-                               <Zap size={14} className="text-muted group-hover:text-emerald-400" />
-                               <span className="text-[8px] font-extrabold uppercase text-muted group-hover:text-emerald-400 tracking-widest">n8n</span>
-                             </button>
+
+                           <div className="absolute bottom-6 left-[calc(50%-160px)] z-[var(--z-popover)] flex -translate-x-1/2 items-center gap-2 rounded-xl border border-line/40 bg-black/65 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                             {(["image", "prompt", "chat", "script", "campaign"] as CreativeNodeType[]).map(type => {
+                               const meta = CREATIVE_NODE_META[type];
+                               const Icon = meta.icon;
+                               return (
+                                 <button key={type} onClick={() => addCanvasNode(type)} className="flex flex-col items-center gap-1 rounded-lg p-2 transition-colors hover:bg-brand/10 group">
+                                   <Icon size={14} className="text-muted group-hover:text-brand" />
+                                   <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted group-hover:text-brand">{meta.label}</span>
+                                 </button>
+                               );
+                             })}
                            </div>
 
-                           {/* Controles de Zoom */}
                            <div className="absolute bottom-4 right-4 flex gap-1 z-20">
                              <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomIn size={12} /></button>
                              <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomOut size={12} /></button>
                            </div>
+
+                           <aside className="relative z-20 hidden min-h-0 border-l border-line/40 bg-black/55 p-4 backdrop-blur-xl lg:block">
+                             {selectedCanvasNode ? (
+                               <div className="flex h-full flex-col">
+                                 <div className="flex items-start justify-between gap-3 border-b border-line/20 pb-4">
+                                   <div>
+                                     <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Detailed Node Inspector</p>
+                                     <h2 className="mt-2 text-lg font-black leading-tight text-foreground">{selectedCanvasNode.title}</h2>
+                                   </div>
+                                   <span className={`rounded-lg border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${CREATIVE_NODE_META[selectedCanvasNode.type].tone}`}>
+                                     {CREATIVE_NODE_META[selectedCanvasNode.type].label}
+                                   </span>
+                                 </div>
+
+                                 <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
+                                   {selectedCanvasNode.type === "image" ? (
+                                     <div className="grid h-32 place-items-center rounded-xl border border-brand/20 bg-[radial-gradient(circle,rgba(245,158,11,0.24),rgba(0,0,0,0.65))]">
+                                       <ImageIcon size={34} className="text-brand" />
+                                     </div>
+                                   ) : null}
+                                   {selectedCanvasNode.type === "video" ? (
+                                     <div className="grid h-32 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/20">
+                                       <Play size={34} className="text-rose-300" />
+                                     </div>
+                                   ) : null}
+                                   {selectedCanvasNode.type === "chat" ? (
+                                     <div className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-3">
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-sky-300">{selectedCanvasNode.meta.persona ?? "IA"}</p>
+                                       <p className="mt-2 text-xs leading-relaxed text-muted">{selectedCanvasNode.content}</p>
+                                     </div>
+                                   ) : null}
+                                   {selectedCanvasNode.type === "campaign" || selectedCanvasNode.type === "project" ? (
+                                     <div className="rounded-xl border border-brand/20 bg-brand/5 p-3">
+                                       <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted">
+                                         <span>Progresso</span>
+                                         <span className="text-brand">{selectedCanvasNode.meta.progress ?? 48}%</span>
+                                       </div>
+                                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                         <div className="h-full rounded-full bg-brand" style={{ width: `${selectedCanvasNode.meta.progress ?? 48}%` }} />
+                                       </div>
+                                       <p className="mt-2 text-[10px] font-semibold text-muted">Prazo: {selectedCanvasNode.meta.deadline ?? "sem data definida"}</p>
+                                     </div>
+                                   ) : null}
+
+                                   <section>
+                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Contexto</p>
+                                     <p className="mt-2 rounded-xl border border-line/30 bg-surface/20 p-3 text-xs leading-relaxed text-muted">{selectedCanvasNode.content}</p>
+                                   </section>
+
+                                   <section>
+                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Metadados</p>
+                                     <div className="mt-2 grid gap-2 text-[11px] font-semibold text-muted">
+                                       <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Origem</span><span className="text-foreground">{selectedCanvasNode.source}</span></div>
+                                       <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Status</span><span className="text-foreground">{selectedCanvasNode.status}</span></div>
+                                       {selectedCanvasNode.meta.model ? <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Modelo</span><span className="text-foreground">{selectedCanvasNode.meta.model}</span></div> : null}
+                                       {selectedCanvasNode.meta.platform ? <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Plataforma</span><span className="text-foreground">{selectedCanvasNode.meta.platform}</span></div> : null}
+                                     </div>
+                                   </section>
+
+                                   <section>
+                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Tags</p>
+                                     <div className="mt-2 flex flex-wrap gap-1.5">
+                                       {selectedCanvasNode.tags.map(tag => <span key={tag} className="rounded-lg border border-line/25 bg-surface/20 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-brand">{tag}</span>)}
+                                     </div>
+                                   </section>
+
+                                   <section>
+                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Conexões ({selectedCanvasConnections.length})</p>
+                                     <div className="mt-2 space-y-2">
+                                       {selectedCanvasConnections.map(node => (
+                                         <button key={node.id} type="button" onClick={() => setSelectedCanvasNodeId(node.id)} className="flex w-full items-center gap-2 rounded-lg border border-line/25 bg-surface/15 px-3 py-2 text-left text-xs font-semibold text-muted transition hover:border-brand/35 hover:text-foreground">
+                                           {(() => {
+                                             const Icon = CREATIVE_NODE_META[node.type].icon;
+                                             return <Icon size={13} className="text-brand" />;
+                                           })()}
+                                           {node.title}
+                                         </button>
+                                       ))}
+                                     </div>
+                                   </section>
+                                 </div>
+
+                                 <div className="grid gap-2 border-t border-line/20 pt-4">
+                                   {["Abrir no Obsidian", "Enviar para n8n", "Duplicar nó", "Adicionar conexão", selectedCanvasNode.type === "chat" ? "Continuar conversa" : "Reutilizar ativo"].map(action => (
+                                     <button key={action} type="button" className="flex h-9 items-center justify-between rounded-lg border border-line/35 bg-surface/20 px-3 text-[10px] font-black uppercase tracking-wide text-muted transition hover:border-brand/45 hover:text-brand">
+                                       {action}
+                                       <ChevronRight size={12} />
+                                     </button>
+                                   ))}
+                                 </div>
+                               </div>
+                             ) : (
+                               <div className="grid h-full place-items-center text-center">
+                                 <div>
+                                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand">Nenhum nó selecionado</p>
+                                   <p className="mt-2 text-xs text-muted">Selecione uma memória criativa para inspecionar contexto e relações.</p>
+                                 </div>
+                               </div>
+                             )}
+                           </aside>
                         </div>
                       )}
                     </div>
@@ -1081,7 +1286,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               <section className="glowing-panel relative overflow-hidden rounded-2xl border-2 border-line/40 bg-surface/30 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-700 hover:border-brand/30 hover:shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
                 {/* Motion Poetics Ambient Glow */}
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 via-brand/0 to-brand/5 opacity-0 transition-opacity duration-700 hover:opacity-100 pointer-events-none" />
-                
+
                 <div className="relative z-10 flex items-center justify-between border-b border-line/10 pb-4">
                   <div className="flex items-center gap-2.5">
                     <div className="grid size-8 place-items-center rounded-lg bg-rose-500/10 border border-rose-500/20">
@@ -1120,8 +1325,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 {/* Progress Visualizer */}
                 {(videoStatus !== "idle" && videoStatus !== "exporting") && (
                   <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 h-1.5 rounded-full transition-all duration-500" 
+                    <div
+                      className="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 h-1.5 rounded-full transition-all duration-500"
                       style={{ width: `${progressVal}%` }}
                     />
                   </div>
@@ -1132,7 +1337,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <div className="space-y-4">
                     <div>
                       <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Preset de Vídeo</label>
-                      <select 
+                      <select
                         className="h-10 w-full rounded-lg border border-line bg-black/40 px-3 text-xs text-white outline-none focus:border-brand/40 transition font-semibold"
                         value={videoStyle}
                         onChange={(e) => setVideoStyle(e.target.value)}
@@ -1147,15 +1352,15 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       <div>
                         <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Formato</label>
                         <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 border border-line rounded-lg">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setVideoAspect("916")}
                             className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
                           >
                             9:16
                           </button>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => setVideoAspect("169")}
                             className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
                           >
@@ -1190,7 +1395,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 <div className="grid gap-6 sm:grid-cols-12 border-t border-line/10 pt-5">
                   <div className="sm:col-span-4 flex flex-col items-center justify-start border-r border-line/10 pr-4">
                     <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider block mb-3 relative z-10">Simulação 4K HDR</span>
-                    
+
                     <div className={`relative group/video overflow-hidden border border-white/10 bg-black rounded-xl flex flex-col items-center justify-center transition-all duration-700 hover:border-brand/40 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] hover:scale-[1.02] ${
                       videoAspect === "916" ? "h-[190px] w-[110px]" : "h-[110px] w-[190px]"
                     }`}>
@@ -1200,7 +1405,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           <span className="text-[8px] text-rose-300 font-mono tracking-widest">RENDER...</span>
                         </div>
                       ) : null}
-                      
+
                       <div className="absolute inset-0 border border-dashed border-white/5 grid grid-cols-3 grid-rows-3 pointer-events-none" />
                       <Video className="text-rose-500/20 size-7 transition-colors duration-700 group-hover/video:text-brand/40" />
                       <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-white/40 truncate transition-colors duration-700 group-hover/video:text-brand/80">
@@ -1212,11 +1417,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <div className="sm:col-span-8 space-y-4">
                     <div className="relative z-10 space-y-2">
                       <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Cortes Estruturados</span>
-                      
+
                       <div className="flex border border-line/40 bg-surface/40 backdrop-blur-md rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar shadow-inner">
                         {videoTimeline.map((clip, idx) => (
-                          <div 
-                            key={clip.id} 
+                          <div
+                            key={clip.id}
                             className="group/clip flex-grow min-w-[100px] rounded-lg border border-line/40 bg-surface p-2.5 text-center relative overflow-hidden transition-all duration-500 hover:border-brand/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:-translate-y-0.5 cursor-pointer"
                           >
                             <div className="absolute inset-0 bg-gradient-to-t from-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover/clip:opacity-100 pointer-events-none" />
@@ -1254,9 +1459,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 {/* Upload Section inside Videos tab */}
                 <div className="relative z-10 border-t border-line/10 pt-5 space-y-4">
                   <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Arquivos de Ingestão de Referência</span>
-                  
+
                   <div className="grid grid-cols-4 gap-2">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleSimulateAssetUpload("image")}
                       className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
@@ -1265,7 +1470,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       <ImageIcon size={15} className="text-amber-400 transition-transform duration-500 group-hover:scale-125" />
                       <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Quadro de Estilo</span>
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleSimulateAssetUpload("video")}
                       className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
@@ -1274,7 +1479,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       <Play size={15} className="text-rose-400 transition-transform duration-500 group-hover:scale-125" />
                       <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Corte Bruto</span>
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleSimulateAssetUpload("audio")}
                       className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
@@ -1283,7 +1488,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       <Music size={15} className="text-sky-400 transition-transform duration-500 group-hover:scale-125" />
                       <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Voz/Música</span>
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleSimulateAssetUpload("doc")}
                       className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
@@ -1308,15 +1513,15 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                               <span className="text-[8px] text-muted block">{asset.size}</span>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             {asset.status === "uploading" ? (
                               <span className="text-[9px] text-brand font-mono font-bold animate-pulse">{asset.progress}%</span>
                             ) : (
                               <span className="text-[8px] font-extrabold uppercase text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded">Pronto</span>
                             )}
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => handleRemoveAsset(asset.id)}
                               className="text-muted hover:text-rose-400 text-xs px-1"
                             >
@@ -1333,9 +1538,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 {videoStatus === "completed" && (
                   <div className="relative z-10 border-t border-line/15 pt-5 space-y-4">
                     <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Exportação ProRes &amp; Distribuição</span>
-                    
+
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <button 
+                      <button
                         onClick={() => triggerPlatformPublish("4k")}
                         className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-brand/20 bg-brand/5 hover:border-brand/40 hover:bg-brand/10 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)] cursor-pointer"
                       >
@@ -1344,7 +1549,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500">Render ProRes 4K</span>
                         <span className="text-[8px] text-muted block">Ultra HD Local</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => triggerPlatformPublish("tiktok")}
                         className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
@@ -1353,7 +1558,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-pink-400">Subir TikTok</span>
                         <span className="text-[8px] text-muted block">API Direta Original</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => triggerPlatformPublish("reels")}
                         className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
@@ -1362,7 +1567,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-rose-400">Agendar Reels</span>
                         <span className="text-[8px] text-muted block">Instagram HDR 4K</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => triggerPlatformPublish("shorts")}
                         className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
@@ -1410,7 +1615,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       </div>
 
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => {
                             setVideoStatus("idle");
                             showToast("Vídeo aceito e salvo no Acervo!");
@@ -1419,7 +1624,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                         >
                           Aceitar Corte
                         </button>
-                        <button 
+                        <button
                           onClick={() => setVideoStatus("rejected")}
                           className="px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition"
                         >
@@ -1483,7 +1688,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
           {/* COLUMN 3: Sintonia Fina & Odin Supervisor (Right - 4 Cols) */}
           <div className="lg:col-span-4 space-y-6">
-            
+
             {/* Painel de Controle de Temperatura Isolado (Premium mas sutil) */}
             <section className="rounded-2xl border border-line/10 bg-surface/40 p-6 backdrop-blur-xl space-y-6 transition-all duration-500 hover:border-line/30">
               <div className="flex items-center gap-2.5 pb-4 border-b border-line/10">
@@ -1502,19 +1707,19 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <span className="text-brand/80 uppercase tracking-widest">Temperatura Local</span>
                   <span className="text-brand font-mono text-xs bg-brand/10 px-2 py-0.5 rounded border border-brand/20">{learningMargin}%</span>
                 </div>
-                
+
                 <div className="relative pt-2">
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
                     value={learningMargin}
                     onChange={(e) => setLearningMargin(Number(e.target.value))}
                     className="w-full h-1.5 bg-neutral-900 rounded-full appearance-none cursor-pointer accent-brand shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand/20 to-transparent pointer-events-none blur-md mix-blend-screen" />
                 </div>
-                
+
                 <div className="flex justify-between text-[9px] text-muted/80 font-mono font-black uppercase tracking-widest">
                   <span>Modo Fiel</span>
                   <span>Alucinação Criativa</span>
@@ -1526,7 +1731,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <span className="text-[11px] font-black text-white block uppercase tracking-wider">Cota Grátis Llama 3.3</span>
                   <span className="text-[9px] text-muted font-semibold block leading-tight mt-1">Ative para não gastar credits OpenRouter.</span>
                 </div>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     setAutoFreeTier(!autoFreeTier);
@@ -1580,7 +1785,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         {activeTab !== "videos" && (
           <div className="mt-8">
             <section className="glowing-panel rounded-2xl border border-line bg-surface/30 p-6 shadow-sm backdrop-blur-xl">
-              
+
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line/10 pb-4 mb-6 gap-4">
                 <div>
@@ -1615,20 +1820,33 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     <button
                       key={f}
                       type="button"
-                      onClick={() => setAcervoFilter(f)}
+                      onClick={() => { setAcervoFilter(f); setShowArchive(false); }}
                       className={`rounded-lg px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider border transition shrink-0 ${
-                        acervoFilter === f 
-                          ? "border-brand bg-brand/10 text-brand font-black" 
+                        acervoFilter === f
+                          ? "border-brand bg-brand/10 text-brand font-black"
                           : "border-line bg-black/20 text-muted hover:text-white"
                       }`}
                     >
                       {f.replace("_", " ")}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowArchive(!showArchive)}
+                    className={`rounded-lg px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider border transition shrink-0 flex items-center gap-1.5 ${
+                      showArchive
+                        ? "border-indigo-500/50 bg-indigo-950/30 text-indigo-300 font-black"
+                        : "border-line bg-black/20 text-muted hover:text-white"
+                    }`}
+                  >
+                    <Archive size={11} />
+                    <span>Arquivo de Sombras</span>
+                  </button>
                 </div>
               </div>
 
               {/* Lista Ultra-Compacta */}
+              {!showArchive && (
               <div className="flex flex-col rounded-xl overflow-hidden border border-line bg-black/20">
                 {/* Header Table */}
                 <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-line/20 bg-black/40 text-[9px] font-black uppercase tracking-widest text-muted">
@@ -1638,15 +1856,15 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   <div className="col-span-2">Plataforma</div>
                   <div className="col-span-1 text-right">Ação</div>
                 </div>
-                
+
                 {filteredContents.length > 0 ? (
                   filteredContents.map((item) => {
                     const normalizedStatus = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
                     const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG["rascunho"];
 
                     return (
-                      <div 
-                        key={item.id} 
+                      <div
+                        key={item.id}
                         className="group grid grid-cols-12 gap-4 items-center px-5 py-3 border-b border-line/10 last:border-0 hover:bg-surface/30 transition-colors cursor-pointer"
                         onClick={() => {
                           setManualTitle(item.title);
@@ -1659,27 +1877,27 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           <span className="text-[11px] font-bold text-foreground group-hover:text-brand transition block truncate">{item.title}</span>
                           <span className="text-[9px] text-muted truncate block">{item.idea.substring(0, 45)}...</span>
                         </div>
-                        
+
                         {/* Status Label Compact */}
                         <div className="col-span-3">
                           <span className={`inline-flex items-center justify-center rounded border px-2 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wider ${config.color} border-current/25 bg-current/5`}>
                             {config.label}
                           </span>
                         </div>
-                        
+
                         {/* Format */}
                         <div className="col-span-2">
                           <span className="text-[10px] font-semibold text-neutral-300">{item.content_type || "Pauta"}</span>
                         </div>
-                        
+
                         {/* Platform */}
                         <div className="col-span-2">
                           <span className="text-[10px] font-bold text-brand/80 truncate block">{item.platform || "Multicanais"}</span>
                         </div>
-                        
+
                         {/* Quick Menu Actions */}
                         <div className="col-span-1 flex justify-end">
-                          <button 
+                          <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1695,12 +1913,77 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       </div>
                     );
                   })
-                ) : (
+                ) : !showArchive ? (
                   <div className="py-8 text-center">
                     <p className="text-xs text-muted font-bold">Nenhuma pauta no Acervo.</p>
                   </div>
-                )}
+                ) : null}
               </div>
+              )}
+
+              {showArchive && (
+                <div className="flex flex-col rounded-xl overflow-hidden border border-indigo-500/20 bg-black/20">
+                  <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-indigo-500/20 bg-indigo-950/20 text-[9px] font-black uppercase tracking-widest text-indigo-300/80">
+                    <div className="col-span-4 flex items-center gap-2">
+                      <Archive size={11} />
+                      <span>Arquivo de Sombras</span>
+                    </div>
+                    <div className="col-span-2">Tipo</div>
+                    <div className="col-span-2">Data</div>
+                    <div className="col-span-4 text-right">Ações</div>
+                  </div>
+                  {archivedItems.length > 0 ? (
+                    archivedItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="group grid grid-cols-12 gap-4 items-center px-5 py-3 border-b border-indigo-500/5 last:border-0 hover:bg-indigo-950/15 transition-colors opacity-50 hover:opacity-80"
+                      >
+                        <div className="col-span-4 truncate">
+                          <span className="text-[11px] font-bold text-indigo-300/70 group-hover:text-indigo-200 transition block truncate">{item.title}</span>
+                          <span className="text-[9px] text-indigo-400/40 truncate block">{item.idea.substring(0, 45)}...</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-[10px] font-semibold text-indigo-400/60">{item.content_type || "---"}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-[9px] text-indigo-400/50 font-mono">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                        </div>
+                        <div className="col-span-4 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setArchivedItems(prev => prev.filter(i => i.id !== item.id));
+                              setContents(prev => [{ ...item, status: "rascunho" }, ...prev]);
+                              showToast("Item restaurado do Arquivo de Sombras!");
+                            }}
+                            className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-400/70 hover:text-emerald-300 hover:border-emerald-500/40 transition opacity-0 group-hover:opacity-100"
+                            title="Restaurar"
+                          >
+                            <RefreshCw size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setArchivedItems(prev => prev.filter(i => i.id !== item.id));
+                              showToast("Item eliminado permanentemente.");
+                            }}
+                            className="rounded-lg border border-rose-500/20 bg-rose-950/20 px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wider text-rose-400/70 hover:text-rose-300 hover:border-rose-500/40 transition opacity-0 group-hover:opacity-100"
+                            title="Deletar Permanentemente"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center">
+                      <Archive size={24} className="mx-auto text-indigo-500/30 mb-2" />
+                      <p className="text-xs text-indigo-400/60 font-bold">Arquivo de Sombras vazio.</p>
+                      <p className="text-[10px] text-indigo-400/40 mt-1">Itens descartados aparecerão aqui antes da eliminação definitiva.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
             </section>
           </div>

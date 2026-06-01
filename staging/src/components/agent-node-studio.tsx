@@ -1081,7 +1081,7 @@ export function AgentNodeStudio() {
 
       {/* STUNNING WEB SANDBOX PIPELINE SIMULATOR MODAL */}
       {showSandbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="relative w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl border border-line bg-surface-strong shadow-xl text-foreground overflow-hidden">
             
             {/* Modal Header */}

@@ -169,7 +169,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2.5 z-50 w-[355px] rounded-xl border border-line bg-surface-strong/95 backdrop-blur-xl shadow-xl overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2.5 z-[var(--z-dropdown)] w-[355px] rounded-xl border border-line bg-surface-strong/95 backdrop-blur-xl shadow-xl overflow-hidden">
           {/* Header & Sector Context */}
           <div className="border-b border-line px-4.5 py-3.5 bg-surface/50">
             <div className="flex items-center justify-between">
