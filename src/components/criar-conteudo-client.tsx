@@ -77,14 +77,14 @@ const CHANNELS = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  rascunho:    { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
-  na_fila:     { label: "Na fila",      color: "text-brand",   bg: "bg-amber-500/10 border-amber-500/20" },
-  processando: { label: "Processando",  color: "text-sky-500",     bg: "bg-sky-500/10 border-sky-500/20" },
-  em_revisao:  { label: "Em revisão",   color: "text-orange-500",  bg: "bg-orange-500/10 border-orange-500/20" },
-  pronto:      { label: "Pronto",       color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
-  erro:        { label: "Erro",         color: "text-rose-500",    bg: "bg-rose-500/10 border-rose-500/20" },
-  idea:        { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
-  Pendente:    { label: "Rascunho",     color: "text-muted", bg: "bg-surface border-line" },
+  rascunho:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
+  na_fila:     { label: "Na fila",      color: "text-amber-400",   bg: "bg-amber-950/20 border-amber-500/20" },
+  processando: { label: "Processando",  color: "text-sky-400",     bg: "bg-sky-950/20 border-sky-500/20" },
+  em_revisao:  { label: "Em revisão",   color: "text-orange-400",  bg: "bg-orange-950/20 border-orange-500/20" },
+  pronto:      { label: "Pronto",       color: "text-emerald-400", bg: "bg-emerald-950/20 border-emerald-500/20" },
+  erro:        { label: "Erro",         color: "text-rose-400",    bg: "bg-rose-950/20 border-rose-500/20" },
+  idea:        { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
+  Pendente:    { label: "Rascunho",     color: "text-neutral-400", bg: "bg-neutral-900/60 border-neutral-800" },
 };
 
 const ETAPA_CONFIG: Record<string, { label: string; icon: typeof Lightbulb }> = {
@@ -595,7 +595,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </span>
               <span className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-brand leading-none">Studio de Criação Neuronal</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground leading-tight">YGGNAROK Creation Hub</h1>
+            <h1 className="text-3xl font-black tracking-tighter text-foreground leading-tight sm:text-4xl">YGGNAROK Creation Hub</h1>
             <p className="text-xs text-muted mt-1 max-w-xl">Configure pautas, gerencie o conselho de IAs de custo livre e acelere sua produção de mídias de alta retenção.</p>
           </div>
 
@@ -634,7 +634,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
             
             {activeTab !== "videos" ? (
               /* console de criação de conteúdo */
-              <section className="glowing-panel rounded-2xl border border-line bg-surface/30 p-6 shadow-sm backdrop-blur-xl space-y-6">
+              <section className="glowing-panel rounded-2xl border-2 border-line bg-surface/30 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-300 focus-within:border-brand/40 focus-within:shadow-[0_0_60px_-15px_rgba(234,179,8,0.2)]">
                 
                 {/* Panel Header */}
                 <div className="flex items-center justify-between border-b border-line/10 pb-4">
@@ -744,9 +744,9 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                             key={ch}
                             type="button"
                             onClick={() => toggleChannel(ch)}
-                            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg border transition duration-200 ${
+                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all duration-200 ${
                               isSelected
-                                ? "border-brand bg-brand/10 text-brand font-black"
+                                ? "border-brand bg-brand text-neutral-950 shadow-[0_0_15px_rgba(234,179,8,0.3)] scale-105"
                                 : "border-line bg-black/20 text-muted hover:text-neutral-200 hover:border-line/60"
                             }`}
                           >
@@ -836,9 +836,11 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
               </section>
             ) : (
               /* Estúdio de Vídeo Colaborativo */
-              <section className="glowing-panel rounded-2xl border border-line bg-neutral-900/40 p-6 backdrop-blur-xl space-y-6">
+              <section className="glowing-panel relative overflow-hidden rounded-2xl border-2 border-line/40 bg-surface/30 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-700 hover:border-brand/30 hover:shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
+                {/* Motion Poetics Ambient Glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 via-brand/0 to-brand/5 opacity-0 transition-opacity duration-700 hover:opacity-100 pointer-events-none" />
                 
-                <div className="flex items-center justify-between border-b border-line/10 pb-4">
+                <div className="relative z-10 flex items-center justify-between border-b border-line/10 pb-4">
                   <div className="flex items-center gap-2.5">
                     <div className="grid size-8 place-items-center rounded-lg bg-rose-500/10 border border-rose-500/20">
                       <Film size={15} className="text-rose-400 animate-pulse" />
@@ -902,18 +904,18 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Formato</label>
-                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-surface border border-line rounded-lg">
+                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 border border-line rounded-lg">
                           <button 
                             type="button" 
                             onClick={() => setVideoAspect("916")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-foreground"}`}
+                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
                           >
                             9:16
                           </button>
                           <button 
                             type="button" 
                             onClick={() => setVideoAspect("169")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-foreground"}`}
+                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
                           >
                             16:9
                           </button>
@@ -921,7 +923,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Duração</label>
-                        <div className="py-2 bg-surface border border-line rounded-lg text-xs font-bold text-center text-rose-400 font-mono">
+                        <div className="py-2 bg-black/40 border border-line rounded-lg text-xs font-bold text-center text-rose-400 font-mono">
                           {activePreset.duration}
                         </div>
                       </div>
@@ -929,7 +931,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   </div>
 
                   {/* Right side styling logs */}
-                  <div className="rounded-xl border border-line bg-surface/50 p-4 flex flex-col justify-between">
+                  <div className="rounded-xl border border-line bg-black/20 p-4 flex flex-col justify-between">
                     <div>
                       <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest block mb-1">Diretivas do Preset</span>
                       <p className="text-[10px] text-muted leading-relaxed font-semibold">{activePreset.baseDirectives}</p>
@@ -945,39 +947,40 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 {/* Grid Visual Timeline Preview */}
                 <div className="grid gap-6 sm:grid-cols-12 border-t border-line/10 pt-5">
                   <div className="sm:col-span-4 flex flex-col items-center justify-start border-r border-line/10 pr-4">
-                    <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider block mb-3">Simulação 4K HDR</span>
+                    <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider block mb-3 relative z-10">Simulação 4K HDR</span>
                     
-                    <div className={`relative border border-line bg-surface-strong rounded-xl flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
+                    <div className={`relative group/video overflow-hidden border border-white/10 bg-black rounded-xl flex flex-col items-center justify-center transition-all duration-700 hover:border-brand/40 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] hover:scale-[1.02] ${
                       videoAspect === "916" ? "h-[190px] w-[110px]" : "h-[110px] w-[190px]"
                     }`}>
                       {videoStatus === "rendering" || videoStatus === "analyzing" ? (
-                        <div className="absolute inset-0 bg-surface-strong/80 flex flex-col items-center justify-center gap-2 z-20">
+                        <div className="absolute inset-0 bg-neutral-950/80 flex flex-col items-center justify-center gap-2 z-20">
                           <Loader2 size={20} className="text-rose-400 animate-spin" />
                           <span className="text-[8px] text-rose-300 font-mono tracking-widest">RENDER...</span>
                         </div>
                       ) : null}
                       
-                      <div className="absolute inset-0 border border-dashed border-line/40 grid grid-cols-3 grid-rows-3 pointer-events-none" />
-                      <Video className="text-rose-500/20 size-7" />
-                      <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-foreground/45 truncate">
+                      <div className="absolute inset-0 border border-dashed border-white/5 grid grid-cols-3 grid-rows-3 pointer-events-none" />
+                      <Video className="text-rose-500/20 size-7 transition-colors duration-700 group-hover/video:text-brand/40" />
+                      <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-white/40 truncate transition-colors duration-700 group-hover/video:text-brand/80">
                         {videoScriptTitle}
                       </div>
                     </div>
                   </div>
 
                   <div className="sm:col-span-8 space-y-4">
-                    <div className="space-y-2">
+                    <div className="relative z-10 space-y-2">
                       <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Cortes Estruturados</span>
                       
-                      <div className="flex border border-line bg-surface rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar">
+                      <div className="flex border border-line/40 bg-surface/40 backdrop-blur-md rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar shadow-inner">
                         {videoTimeline.map((clip, idx) => (
                           <div 
                             key={clip.id} 
-                            className="flex-grow min-w-[100px] rounded-lg border border-line bg-surface-strong/50 p-2.5 text-center relative"
+                            className="group/clip flex-grow min-w-[100px] rounded-lg border border-line/40 bg-surface p-2.5 text-center relative overflow-hidden transition-all duration-500 hover:border-brand/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:-translate-y-0.5 cursor-pointer"
                           >
-                            <span className="text-[7px] font-black uppercase text-rose-400 block tracking-widest">{clip.type}</span>
-                            <span className="text-xs font-black text-foreground block mt-0.5">{clip.dur}</span>
-                            <span className="text-[8px] text-muted block truncate mt-1">Corte #{idx+1}</span>
+                            <div className="absolute inset-0 bg-gradient-to-t from-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover/clip:opacity-100 pointer-events-none" />
+                            <span className="relative z-10 text-[7px] font-black uppercase text-rose-400 block tracking-widest transition-colors duration-500 group-hover/clip:text-brand">{clip.type}</span>
+                            <span className="relative z-10 text-xs font-black text-foreground block mt-0.5">{clip.dur}</span>
+                            <span className="relative z-10 text-[8px] text-muted block truncate mt-1">Corte #{idx+1}</span>
                           </div>
                         ))}
                       </div>
@@ -987,12 +990,12 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     {(videoStatus === "council_review" || videoStatus === "completed") && (
                       <div className="space-y-2">
                         <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Ata do Conselho de IA</span>
-                        <div className="space-y-2 bg-surface rounded-xl p-3 border border-line max-h-[140px] overflow-y-auto custom-scrollbar">
+                        <div className="space-y-2 bg-black/40 rounded-xl p-3 border border-line max-h-[140px] overflow-y-auto custom-scrollbar">
                           {councilMessages.map((msg, idx) => (
                             <div key={idx} className="text-[10px] leading-normal flex items-start gap-2 border-b border-line/5 pb-1.5 last:border-0 last:pb-0">
-                              <span className="size-5 rounded-full bg-surface border border-line/30 grid place-items-center text-xs shrink-0">{msg.avatar}</span>
+                              <span className="size-5 rounded-full bg-neutral-800 border border-line/30 grid place-items-center text-xs shrink-0">{msg.avatar}</span>
                               <div className="flex-grow">
-                                <span className="font-extrabold text-foreground block">{msg.agent}</span>
+                                <span className="font-extrabold text-neutral-200 block">{msg.agent}</span>
                                 <p className="text-muted mt-0.5">{msg.message}</p>
                               </div>
                               <span className={`text-[8px] font-extrabold uppercase shrink-0 px-1.5 py-0.5 rounded ${msg.status === "approved" ? "text-emerald-400 bg-emerald-500/5 border border-emerald-500/10" : "text-amber-400 bg-amber-500/5 animate-pulse"}`}>
@@ -1007,41 +1010,45 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                 </div>
 
                 {/* Upload Section inside Videos tab */}
-                <div className="border-t border-line/10 pt-5 space-y-4">
+                <div className="relative z-10 border-t border-line/10 pt-5 space-y-4">
                   <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Arquivos de Ingestão de Referência</span>
                   
                   <div className="grid grid-cols-4 gap-2">
                     <button 
                       type="button"
                       onClick={() => handleSimulateAssetUpload("image")}
-                      className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-900 transition rounded-xl gap-1.5"
+                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                     >
-                      <Image size={15} className="text-amber-400" />
-                      <span className="text-[9px] font-bold text-muted">Quadro de Estilo</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                      <Image size={15} className="text-amber-400 transition-transform duration-500 group-hover:scale-125" />
+                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Quadro de Estilo</span>
                     </button>
                     <button 
                       type="button"
                       onClick={() => handleSimulateAssetUpload("video")}
-                      className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-900 transition rounded-xl gap-1.5"
+                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                     >
-                      <Play size={15} className="text-rose-400" />
-                      <span className="text-[9px] font-bold text-muted">Corte Bruto</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                      <Play size={15} className="text-rose-400 transition-transform duration-500 group-hover:scale-125" />
+                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Corte Bruto</span>
                     </button>
                     <button 
                       type="button"
                       onClick={() => handleSimulateAssetUpload("audio")}
-                      className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-900 transition rounded-xl gap-1.5"
+                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                     >
-                      <Music size={15} className="text-sky-400" />
-                      <span className="text-[9px] font-bold text-muted">Voz/Música</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                      <Music size={15} className="text-sky-400 transition-transform duration-500 group-hover:scale-125" />
+                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Voz/Música</span>
                     </button>
                     <button 
                       type="button"
                       onClick={() => handleSimulateAssetUpload("doc")}
-                      className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-900 transition rounded-xl gap-1.5"
+                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                     >
-                      <FileText size={15} className="text-emerald-400" />
-                      <span className="text-[9px] font-bold text-muted">Roteiro PDF</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                      <FileText size={15} className="text-emerald-400 transition-transform duration-500 group-hover:scale-125" />
+                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Roteiro PDF</span>
                     </button>
                   </div>
 
@@ -1082,40 +1089,44 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
 
                 {/* Export Hub */}
                 {videoStatus === "completed" && (
-                  <div className="border-t border-line/15 pt-5 space-y-4">
+                  <div className="relative z-10 border-t border-line/15 pt-5 space-y-4">
                     <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Exportação ProRes &amp; Distribuição</span>
                     
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <button 
                         onClick={() => triggerPlatformPublish("4k")}
-                        className="flex flex-col items-center justify-center p-3 border border-brand/20 bg-brand/5 hover:border-brand/40 hover:bg-brand/10 rounded-xl transition gap-1 text-center"
+                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-brand/20 bg-brand/5 hover:border-brand/40 hover:bg-brand/10 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)] cursor-pointer"
                       >
-                        <Film size={15} className="text-brand animate-pulse" />
-                        <span className="text-[10px] font-bold text-foreground block">Render ProRes 4K</span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                        <Film size={15} className="text-brand animate-pulse transition-transform duration-500 group-hover:scale-125" />
+                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500">Render ProRes 4K</span>
                         <span className="text-[8px] text-muted block">Ultra HD Local</span>
                       </button>
                       <button 
                         onClick={() => triggerPlatformPublish("tiktok")}
-                        className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-800 transition rounded-xl gap-1 text-center"
+                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
-                        <MessageSquare size={15} className="text-pink-400" />
-                        <span className="text-[10px] font-bold text-foreground block">Subir TikTok</span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                        <MessageSquare size={15} className="text-pink-400 transition-transform duration-500 group-hover:scale-125" />
+                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-pink-400">Subir TikTok</span>
                         <span className="text-[8px] text-muted block">API Direta Original</span>
                       </button>
                       <button 
                         onClick={() => triggerPlatformPublish("reels")}
-                        className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-800 transition rounded-xl gap-1 text-center"
+                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
-                        <Heart size={15} className="text-rose-400" />
-                        <span className="text-[10px] font-bold text-foreground block">Agendar Reels</span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                        <Heart size={15} className="text-rose-400 transition-transform duration-500 group-hover:scale-125" />
+                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-rose-400">Agendar Reels</span>
                         <span className="text-[8px] text-muted block">Instagram HDR 4K</span>
                       </button>
                       <button 
                         onClick={() => triggerPlatformPublish("shorts")}
-                        className="flex flex-col items-center justify-center p-3 border border-line bg-black/20 hover:border-brand/40 hover:bg-neutral-800 transition rounded-xl gap-1 text-center"
+                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
                       >
-                        <Play size={15} className="text-red-400" />
-                        <span className="text-[10px] font-bold text-foreground block">YouTube Shorts</span>
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                        <Play size={15} className="text-red-400 transition-transform duration-500 group-hover:scale-125" />
+                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-red-400">YouTube Shorts</span>
                         <span className="text-[8px] text-muted block">Sem compactação</span>
                       </button>
                     </div>
