@@ -4,7 +4,8 @@ import { createManualPostingItem, markManualPostAsPublished } from "@/server/act
 import { getContentItems, getManualPostingItems, getProfiles } from "@/server/data/dashboard";
 import { PostagemManualClient } from "@/components/postagem-manual-client";
 
-export default async function PostagemManualPage() {
+export default async function PostagemManualPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams; // Resolve searchParams
   const [profiles, contents, queue] = await Promise.all([getProfiles(), getContentItems(), getManualPostingItems()]);
 
   return (

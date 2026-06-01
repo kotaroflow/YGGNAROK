@@ -21,7 +21,9 @@ const colorMap = {
   message: "bg-brand/10 text-brand",
 };
 
-export default function NotificacoesPage() {
+export default async function NotificacoesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams; // Resolve searchParams
+
   return (
     <AppShell>
       <main className="min-h-screen text-foreground">

@@ -9,7 +9,8 @@ const MOCK_FALLBACKS = [
   { id: "mock-2", title: "Pauta de Conteúdo: Inteligência Artificial no Cotidiano", type: "Ideia", body: "Uma pauta abordando como a IA otimiza tarefas diárias e maximiza escala nos negócios.", deleted_at: new Date(MOCK_NOW - 86400000 * 5).toISOString() },
 ];
 
-export default async function LixeiraInteligentePage() {
+export default async function LixeiraInteligentePage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  await searchParams; // Resolve searchParams
   const deletedItems = await getDeletedLibraryItems();
 
   const displayItems = deletedItems.length > 0 
