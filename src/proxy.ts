@@ -12,6 +12,17 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // THEME HANDLING - Retire o script inline
+  const themeCookie = request.cookies.get("ygn-theme")?.value;
+  if (!themeCookie) {
+    const systemPrefersDark = request.headers.get("sec-ch-prefers-color-scheme") === "dark";
+    const newTheme = systemPrefersDark ? "dark" : "light";
+    response.cookies.set("ygn-theme", newTheme, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/"
+    });
+  }
+
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("example.supabase.co")) {
     // Bypass auth se as variaveis nao existirem no ambiente local ou se for o template
     // Isso permite testar a UI do Dashboard vazio.

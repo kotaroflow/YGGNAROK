@@ -1,74 +1,113 @@
 "use client";
- 
+
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useSyncExternalStore, useCallback } from "react";
- 
+import { useCallback, useState, useEffect } from "react";
+import { clsx, getLocalStorage, logger } from "@/lib/utils";
+
 export type Theme = "light" | "dark";
- 
-const storageKey = "ygn-theme";
-const themeChangeEvent = "ygn-theme-change";
- 
+
+const STORAGE_KEY = "ygn-theme";
+const THEME_CHANGE_EVENT = "ygn-theme-change";
+
 function applyTheme(theme: Theme) {
+  if (typeof document === "undefined") return;
   document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.dataset.theme = theme;
-}
- 
-function getThemeSnapshot(): Theme {
-  if (typeof window === "undefined") return "light";
-  const saved = window.localStorage.getItem(storageKey);
-  if (saved === "dark" || saved === "light") return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
- 
-function subscribeToTheme(callback: () => void) {
-  window.addEventListener(themeChangeEvent, callback);
-  window.addEventListener("storage", callback);
- 
-  return () => {
-    window.removeEventListener(themeChangeEvent, callback);
-    window.removeEventListener("storage", callback);
-  };
+  document.documentElement.setAttribute("data-theme", theme);
+  logger.debug("Theme applied:", theme);
 }
 
-export function useTheme() {
-  const theme = useSyncExternalStore<Theme>(subscribeToTheme, getThemeSnapshot, () => "light");
+/**
+ * Hook customizado para gerenciar tema com localStorage e sincronização
+ * MAIS SIMPLES que useSyncExternalStore e sem duplicação de aplicação
+ */
+export function useTheme(): [Theme, (t: Theme) => void] {
+  const [theme, setThemeState] = useState<Theme>("light");
 
-  const setTheme = useCallback((nextTheme: Theme) => {
-    window.localStorage.setItem(storageKey, nextTheme);
-    applyTheme(nextTheme);
-    window.dispatchEvent(new Event(themeChangeEvent));
+  // Initialize from localStorage or system preference
+  useEffect(() => {
+    const saved = getLocalStorage()?.getItem(STORAGE_KEY);
+    const systemIsDark = typeof window !== "undefined" && 
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    
+    const initialTheme = saved === "dark" || saved === "light" 
+      ? saved 
+      : systemIsDark ? "dark" : "light";
+    
+    setThemeState(initialTheme as Theme);
+    applyTheme(initialTheme as Theme);
   }, []);
 
+  // Listen for theme changes from other tabs
   useEffect(() => {
-    applyTheme(theme);
+    if (typeof window === "undefined") return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        const newTheme = (e.newValue || "light") as Theme;
+        setThemeState(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+
+    const handleThemeChange = () => {
+      const saved = getLocalStorage()?.getItem(STORAGE_KEY) as Theme;
+      if (saved && saved !== theme) {
+        setThemeState(saved);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+    };
   }, [theme]);
 
-  return [theme, setTheme] as const;
+  const setTheme = useCallback((nextTheme: Theme) => {
+    getLocalStorage()?.setItem(STORAGE_KEY, nextTheme);
+    setThemeState(nextTheme);
+    applyTheme(nextTheme);
+    
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+    }
+  }, []);
+
+  return [theme, setTheme];
 }
- 
+
+/**
+ * Theme toggle button with compact/full variants
+ * 
+ * @param compact - Show icon only without label
+ */
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const [theme, setTheme] = useTheme();
- 
-  function toggleTheme() {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }
- 
+
+  const handleToggle = useCallback(() => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    logger.debug("Theme toggled:", nextTheme);
+  }, [theme, setTheme]);
+
   const Icon = theme === "dark" ? Moon : Sun;
-  const label = theme === "dark" ? "Void" : "Ambar";
- 
+  const label = theme === "dark" ? "Void" : "Amber"; // Voltando ao nome original
+
   return (
     <button
       type="button"
-      className={[
+      className={clsx(
         "inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-900/70 dark:text-stone-200 dark:hover:bg-neutral-900",
-        compact ? "w-10 px-0" : "px-4",
-      ].join(" ")}
-      onClick={toggleTheme}
+        compact ? "w-10 px-0" : "px-4"
+      )}
+      onClick={handleToggle}
       aria-label={`Trocar tema. Atual: ${label}`}
       title={`Trocar tema. Atual: ${label}`}
     >
       <Icon size={18} />
-      {compact ? null : <span>{label}</span>}
+      {!compact && <span>{label}</span>}
     </button>
   );
 }

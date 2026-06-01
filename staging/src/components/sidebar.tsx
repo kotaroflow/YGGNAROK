@@ -1,5 +1,6 @@
 "use client";
 
+import { useTheme } from "./theme-toggle";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
@@ -247,10 +248,6 @@ const RecentsTab = memo(function RecentsTab() {
     return <p className="px-3 py-2 text-[12px] text-sidebar-text-muted">Carregando…</p>;
   }
 
-  if (!mounted) {
-    return null;
-  }
-
   if (chats.length === 0) {
     return <p className="px-3 py-2 text-[12px] text-sidebar-text-muted">Nenhum chat recente.</p>;
   }
@@ -390,7 +387,7 @@ const ProjectsSection = memo(function ProjectsSection({ collapsed }: { collapsed
   );
 });
 
-import { useTheme } from "./theme-toggle";
+// ─── Theme Toggle Inline ──────────────────────────────────────────────────
 
 function ThemeToggleInline() {
   const [theme, setTheme] = useTheme();
@@ -449,7 +446,6 @@ export function Sidebar({
     ],
     profileIds: ["mock-profile-id"],
   };
-  console.log("Sidebar received user permissions:", user.permissions);
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -648,7 +644,7 @@ export function Sidebar({
         width: collapsed ? "4.5rem" : `${sidebarWidth}px`,
         transition: (isResizing || !transitionsEnabled) ? "none" : "width 0.2s"
       }}
-      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted rounded-xl select-none"
+      className="relative flex h-[calc(100%-16px)] my-2 ml-2 flex-col bg-sidebar text-sidebar-text-muted rounded-xl select-none z-[var(--z-sidebar)]"
     >
       {/* Resizer Handle */}
       {!collapsed && (

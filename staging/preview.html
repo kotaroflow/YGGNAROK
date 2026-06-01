@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview - YGGNAROK Design System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#f5c400',
+            'brand-strong': '#d69b00',
+            'background': '#f7f4ee',
+            'foreground': '#181510'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --background: #f7f4ee;
+      --foreground: #181510;
+      --surface: rgba(255, 255, 255, 0.78);
+      --surface-strong: rgba(255, 255, 255, 0.92);
+      --line: rgba(120, 113, 108, 0.18);
+      --muted: #746d65;
+      --brand: #f5c400;
+      --brand-strong: #d69b00;
+    }
+    
+    body {
+      background: var(--background);
+      color: var(--foreground);
+    }
+    
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    
+    .btn-primary {
+      background: var(--brand);
+      color: #171717;
+      height: 36px;
+      border-radius: 16px;
+      font-weight: 500;
+    }
+    
+    input {
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div>
+      <h1 class="text-3xl font-bold mb-2">YGGNAROK Design System Preview</h1>
+      <p class="text-muted">Sistema de design atualizado com 4-tier surface elevation</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card">
+        <h2 class="text-xl font-semibold mb-4">Campos de Entrada</h2>
+        <div class="space-y-4">
+          <input type="text" placeholder="Nome do usuário" class="w-full px-4" />
+          <input type="email" placeholder="Email" class="w-full px-4" />
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2 class="text-xl font-semibold mb-4">Botões</h2>
+        <div class="space-y-4">
+          <button class="btn-primary px-6 w-full">Ação Primária</button>
+          <button class="btn-primary px-6 w-full opacity-50 cursor-not-allowed">Desativado</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-4">Cards de Conteúdo</h2>
+      <p class="text-muted mb-4">Cards com borda sutil e fundo elevado para criar hierarquia visual clara.</p>
+      <div class="grid grid-cols-3 gap-4">
+        <div class="card! bg-white/50">
+          <div class="text-3xl font-bold text-brand">47</div>
+          <div class="text-sm text-muted">Perfis Ativos</div>
+        </div>
+        <div class="card! bg-white/50">
+          <div class="text-3xl font-bold text-brand">12</div>
+          <div class="text-sm text-muted">Agentes IA</div>
+        </div>
+        <div class="card! bg-white/50">
+          <div class="text-3xl font-bold text-brand">89%</div>
+          <div class="text-sm text-muted">Taxa de Sucesso</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

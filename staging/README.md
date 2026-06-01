@@ -1,36 +1,57 @@
-# Demo de Transições Suaves
+# YGGNAROK / YGN V1
 
-Este diretório **staging** contém um pequeno protótipo HTML que demonstra transições suaves usando CSS puro e JavaScript mínimo.
+V1 limpa do YGGNAROK para perfis, criação de conteúdo, vendas, biblioteca, postagem manual, jobs assíncronos, mídia no Cloudflare R2, logs e relatórios básicos.
 
-## Estrutura
+## Stack
 
-- `index.html` – página de demonstração com três exemplos (fade, slide‑up e scale). Cada exemplo possui um botão que alterna a animação.
-- `transition.css` – classes reutilizáveis para efeitos de entrada/saída. Segue a convenção **.fade-enter**, **.fade-enter-active**, etc., facilitando a composição em projetos reais.
-- `README.md` – este arquivo.
+- Next.js + TypeScript + Tailwind CSS
+- Supabase Auth, PostgreSQL, RLS e Realtime
+- Cloudflare R2 para mídia pesada
+- Worker TypeScript separado da Vercel
+- Vercel para frontend inicial
+- Hetzner + Coolify preparado para worker 24/7
 
-## Como usar
+## Comandos
 
-1. Abra `staging/index.html` em um navegador moderno.
-2. Clique nos botões **Alternar Fade**, **Alternar Slide** ou **Alternar Scale** para observar as transições.
-3. Copie as classes de `transition.css` para seu projeto (por exemplo, dentro de um arquivo Tailwind *@layer utilities* ou CSS módulo) e adapte‑as às suas necessidades.
-
-## Integração no Next.js
-
-Para reutilizar estas transições em componentes React/Next.js:
-```tsx
-import '@/staging/transition.css'; // ajuste o caminho conforme sua configuração
-
-function MyComponent({show}: {show: boolean}) {
-  return (
-    <div className={show ? 'fade-enter-active' : 'fade-exit-active'}>
-      {/* conteúdo */}
-    </div>
-  );
-}
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run worker:once
+npm run worker:dev
 ```
 
-> **Nota**: Mantivemos o exemplo totalmente autônomo (HTML + CSS) para que você possa avaliar rapidamente o efeito antes de integrá‑lo ao código‑base. Quando migrar para o projeto Next.js, substitua o script de toggling por estado React e use `className` dinamicamente.
+## Variáveis
 
----
+Copie `.env.example` para `.env.local` no ambiente local e preencha sem commitar segredos reais.
 
-**Placeholder**: As caixas cinza (`.placeholder`) representam áreas onde você deve inserir seu conteúdo real ou imagens de marca. Substitua‑as pelos componentes ou assets do seu produto.
+Frontend usa apenas:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+Worker/backend privado usa service role, R2 e chaves de IA. Nenhuma chave privada deve ir ao frontend.
+
+## Banco
+
+As migrations ficam em `supabase/migrations`. A migration inicial cria tabelas V1, índices, roles, permissões, RLS, funções de permissão e funções de worker para claim/recovery de jobs.
+
+## Worker
+
+O worker fica em `worker/` e processa `ai_jobs` por polling:
+
+1. Recupera zombie jobs.
+2. Chama `claim_next_ai_job()` no Postgres.
+3. Processa fora da transação.
+4. Salva `agent_runs`.
+5. Marca o job como `completed`, `pending` ou `failed`.
+
+## Regras V1
+
+- Sem Firebase.
+- Sem fragmentos.
+- Sem modos MATHEUS, KOTARO ou MOMONGA.
+- Sem publicação automática.
+- Sem base64 no banco.
+- Sem service role ou chaves R2/IA no frontend.
