@@ -1,6 +1,11 @@
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
-import { ConfiguracoesClient } from "./client";
+
+const ConfiguracoesClient = dynamic(() => import("./client").then(mod => mod.ConfiguracoesClient), {
+  ssr: false,
+  loading: () => <div className="min-h-screen flex items-center justify-center">Carregando configurações...</div>
+});
 
 export default function ConfiguracoesPage() {
   return (
