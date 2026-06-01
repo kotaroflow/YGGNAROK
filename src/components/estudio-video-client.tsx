@@ -578,7 +578,7 @@ export function EstudioVideoClient() {
                 <select 
                   className={`${inputClass} border-line bg-surface-strong text-xs font-semibold`}
                   value={videoGenre}
-                  onChange={(e) => setVideoGenre(e.target.value as any)}
+                  onChange={(e) => setVideoGenre(e.target.value as "viral" | "educational" | "comedy" | "documentary" | "serious" | "sales")}
                 >
                   <option value="viral">Trends &amp; Virais</option>
                   <option value="educational">Educativos / Tutoriais</option>
