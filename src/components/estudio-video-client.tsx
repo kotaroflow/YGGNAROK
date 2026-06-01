@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from "react";
 import {
   Film, Play, AlertTriangle, CheckCircle, RefreshCw, Plus, X, FileText, Image, Video,
   Wand2, Brain, Radio, Music, Scissors, Star, Cpu, Award, Heart, MessageSquare,
@@ -48,6 +48,8 @@ type TimelineClip = {
   type: "Hook" | "Content" | "Visual" | "CTA" | "Intro";
   thumbnail?: string;
 };
+
+type VideoStatus = "idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PLATFORM CONFIG
@@ -132,8 +134,10 @@ export function EstudioVideoClient() {
 
   // ── Export Popover State ──
   const [showExportPopover, setShowExportPopover] = useState(false);
+  const [exportPopoverStyle, setExportPopoverStyle] = useState<CSSProperties>({ bottom: "5.25rem", right: "1rem" });
   const exportBtnRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const assetIdCounterRef = useRef(0);
 
   // ── Top Zone State ──
   const [referenceLink, setReferenceLink] = useState("");
@@ -152,7 +156,7 @@ export function EstudioVideoClient() {
   const [customStyleTransitions, setCustomStyleTransitions] = useState("");
   const [customStyleDirectives, setCustomStyleDirectives] = useState("");
 
-  const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
+  const [videoStatus, setVideoStatus] = useState<VideoStatus>("idle");
   const [progressVal, setProgressVal] = useState(0);
   const [exportLogs, setExportLogs] = useState<string[]>([]);
   const [, setExportStep] = useState(0);
@@ -175,6 +179,17 @@ export function EstudioVideoClient() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const toggleExportPopover = useCallback(() => {
+    if (!showExportPopover && exportBtnRef.current) {
+      const rect = exportBtnRef.current.getBoundingClientRect();
+      setExportPopoverStyle({
+        bottom: `${window.innerHeight - rect.top + 8}px`,
+        right: `${window.innerWidth - rect.right}px`,
+      });
+    }
+    setShowExportPopover((open) => !open);
+  }, [showExportPopover]);
 
   // ── Export Popover click-outside + Escape ──
   useEffect(() => {
@@ -253,7 +268,8 @@ export function EstudioVideoClient() {
 
   const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
     const fileNamesMap = { image: "referencia_estilo_moodboard.png", video: "corte_exemplo_referencia.mp4", audio: "efeito_sonoro_swoosh.mp3", doc: "roteiro_planejado_vendas.pdf" };
-    const nextAsset: ReferenceAsset = { id: `asset_${Date.now()}`, name: fileNamesMap[type], type, size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB", status: "uploading", progress: 0 };
+    assetIdCounterRef.current += 1;
+    const nextAsset: ReferenceAsset = { id: `asset_${assetIdCounterRef.current}`, name: fileNamesMap[type], type, size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB", status: "uploading", progress: 0 };
     setReferenceAssets(prev => [...prev, nextAsset]);
     let prog = 0;
     const interval = setInterval(() => { prog += 25; setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, progress: prog } : a)); if (prog >= 100) { clearInterval(interval); setReferenceAssets(prev => prev.map(a => a.id === nextAsset.id ? { ...a, status: "completed" } : a)); } }, 400);
@@ -489,7 +505,7 @@ export function EstudioVideoClient() {
                 {aiAnalysisResults.length > 0 ? aiAnalysisResults.map((r, i) => (
                   <p key={i} className="text-[9px] text-muted leading-tight">{r}</p>
                 )) : (
-                  <p className="text-[9px] text-muted/50 italic">Clique em "Analisar" para otimização para {platform.label}.</p>
+                  <p className="text-[9px] text-muted/50 italic">Clique em &quot;Analisar&quot; para otimização para {platform.label}.</p>
                 )}
               </div>
             </section>
@@ -521,7 +537,7 @@ export function EstudioVideoClient() {
               <button
                 ref={exportBtnRef}
                 type="button"
-                onClick={() => setShowExportPopover(!showExportPopover)}
+                onClick={toggleExportPopover}
                 className="px-3 py-1.5 rounded-lg bg-brand text-neutral-950 text-[9px] font-black hover:bg-brand-strong transition flex items-center gap-1 shadow-lg shadow-brand/20"
               >
                 <Send size={11} /> ENVIAR
@@ -645,7 +661,7 @@ export function EstudioVideoClient() {
 
         {/* ── ENVIAR EXPORT POPOVER ── */}
         {showExportPopover && (
-          <div ref={popoverRef} className="fixed z-[var(--z-popover)] w-[280px] rounded-xl border border-brand/30 bg-black/90 backdrop-blur-xl shadow-2xl shadow-brand/10 animate-alert-pop" style={{ bottom: exportBtnRef.current ? window.innerHeight - exportBtnRef.current.getBoundingClientRect().top + 8 + exportBtnRef.current.offsetHeight : "auto", right: exportBtnRef.current ? window.innerWidth - exportBtnRef.current.getBoundingClientRect().right : "auto" }}>
+          <div ref={popoverRef} className="fixed z-[var(--z-popover)] w-[280px] rounded-xl border border-brand/30 bg-black/90 backdrop-blur-xl shadow-2xl shadow-brand/10 animate-alert-pop" style={exportPopoverStyle}>
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-line/20 pb-2">
                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-brand flex items-center gap-1.5">
@@ -837,7 +853,7 @@ function PipelineSection({
   councilMessages: { agent: string; avatar: string; message: string; status: string }[];
   rejectionError: string; setRejectionError: (v: string) => void;
   handleRejectVideo: (e: React.FormEvent) => void;
-  absorbedFeedback: string[]; setVideoStatus: (v: any) => void;
+  absorbedFeedback: string[]; setVideoStatus: (v: VideoStatus) => void;
   exportLogs: string[]; showToast: (msg: string, type?: "success" | "error") => void;
 }) {
   return (

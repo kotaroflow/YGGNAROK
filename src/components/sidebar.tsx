@@ -3,13 +3,14 @@
 import { useTheme } from "./theme-toggle";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef, useCallback, memo } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { signOut } from "@/server/actions/auth";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
 import { YggSidebarEmblem } from "@/components/layout/YggSidebarEmblem";
+import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton";
 import type { RecentChat } from "@/lib/use-recent-chats";
 
 const storageKey = "ygn-sidebar-state";
@@ -448,6 +449,8 @@ export function Sidebar({
   };
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
+  const [theme] = useTheme();
+  const toggleThemeMode = theme === "dark" ? "void" : "amber";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const handleNewChat = useCallback(async () => {
@@ -658,22 +661,18 @@ export function Sidebar({
            {!collapsed ? (
              <>
                <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-brand font-divine">YGGNAROK</div>
-               <button
-                 onClick={() => setCollapsed(true)}
-                 className="grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
-                 title="Recolher Sidebar"
-               >
-                 <Menu size={16} />
-               </button>
+               <SidebarToggleButton
+                 isOpen={!collapsed}
+                 onToggle={() => setCollapsed(true)}
+                 themeMode={toggleThemeMode}
+               />
              </>
            ) : (
-             <button
-               onClick={() => setCollapsed(false)}
-               className="mx-auto grid size-8 place-items-center rounded-lg hover:bg-sidebar-hover text-sidebar-text-muted hover:text-sidebar-text transition"
-               title="Expandir Sidebar"
-             >
-               <Menu size={16} />
-             </button>
+             <SidebarToggleButton
+               isOpen={!collapsed}
+               onToggle={() => setCollapsed(false)}
+               themeMode={toggleThemeMode}
+             />
            )}
       </div>
 
@@ -842,14 +841,13 @@ export function Sidebar({
 
   return (
     <>
-      <button
-        type="button"
-        className="fixed left-3 top-3 z-[var(--z-mobile-hamburger)] grid size-10 place-items-center rounded-full border border-slate-200/80 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/85 lg:hidden"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Abrir navegacao"
-      >
-        <Menu size={20} />
-      </button>
+      <div className="fixed left-3 top-3 z-[var(--z-mobile-hamburger)] grid size-10 place-items-center lg:hidden">
+        <SidebarToggleButton
+          isOpen={mobileOpen}
+          onToggle={() => setMobileOpen((open) => !open)}
+          themeMode={toggleThemeMode}
+        />
+      </div>
 
       {/* Desktop sidebar — fixed to viewport as OS shell layer */}
       <div className="hidden lg:block fixed inset-y-0 left-0 z-[var(--z-sidebar)]">

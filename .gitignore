@@ -47,3 +47,7 @@ next-env.d.ts
 # local scratch / tooling output
 /temp_design/
 eslint-output.txt
+
+# local multi-terminal staging workspace; never deploy or commit
+/staging/
+/.agent/

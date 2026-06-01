@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
  * Throttle: limita a execução de uma função a uma vez a cada `delay` milissegundos
  * Útil para eventos de mouse, scroll, resize que disparam muitas vezes
  */
-export function throttle<T extends (...args: any[]) => void>(
+export function throttle<T extends (...args: never[]) => void>(
   fn: T,
   delay: number = 50
 ): T {
@@ -73,18 +73,18 @@ export function clsx(...classes: Array<string | false | null | undefined>): stri
  * Logger semântico que pode ser desligado em produção
  */
 export const logger = {
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (process.env.NODE_ENV === "development") {
       console.debug(...args);
     }
   },
-  log: (...args: any[]) => {
+  log: (...args: unknown[]) => {
     if (process.env.NODE_ENV === "development") {
       console.log(...args);
     }
   },
-  warn: (...args: any[]) => console.warn(...args),
-  error: (...args: any[]) => console.error(...args)
+  warn: (...args: unknown[]) => console.warn(...args),
+  error: (...args: unknown[]) => console.error(...args)
 };
 
 /**
