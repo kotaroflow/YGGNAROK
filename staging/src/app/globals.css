@@ -1,6 +1,17 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;600&family=Cinzel:wght@400;600;700;800;// a "Divine" font for YGGNAROK&display=swap');
 
 :root {
   --background: #FAFAFA;
@@ -12,6 +23,12 @@
   --brand: #B45309; /* âmbar queimado no light */
   --brand-strong: #92400e;
   
+  /* YGGNAROK Thematic Typography */
+  --font-divine: 'Cinzel', serif; /* Divine/Ancient style for Brand */
+  --font-heading: 'Playfair Display', serif; /* Elegant High-class style */
+  --font-body: 'Inter', sans-serif; /* Modern, Clean and Readable */
+  --font-mono: 'JetBrains Mono', monospace; /* Technical/System style */
+  
   /* Void & Amber - Sidebar Tokens */
   --sidebar-bg: #F5F5F5;
   --sidebar-hover: #EBEBEB;
@@ -20,19 +37,19 @@
 }
 
 .dark {
-  --background: #0e0d10;
-  --foreground: #f4f0e8;
-  --surface: rgba(23, 22, 21, 0.76);
-  --surface-strong: rgba(28, 27, 25, 0.92);
-  --line: rgba(255, 255, 255, 0.10);
-  --muted: #a9a29a;
+  --background: #121214;
+  --foreground: #F5F5F5;
+  --surface: rgba(30, 30, 32, 0.65);
+  --surface-strong: rgba(36, 36, 38, 0.85);
+  --line: rgba(255, 255, 255, 0.12);
+  --muted: #A3A3A3;
   --brand: #F59E0B; /* âmbar brilhante no dark */
   --brand-strong: #D97706;
 
   /* Void & Amber - Sidebar Tokens */
-  --sidebar-bg: #0D0D0D;
-  --sidebar-hover: #1A1107;
-  --sidebar-active-bg: rgba(245, 158, 11, 0.15);
+  --sidebar-bg: #141416;
+  --sidebar-hover: #1F1B16;
+  --sidebar-active-bg: rgba(245, 158, 11, 0.18);
   --sidebar-active-text: #F59E0B;
 }
 
@@ -50,14 +67,17 @@
   --color-line: var(--line);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 body::before {
@@ -66,16 +86,17 @@ body::before {
   z-index: -1;
   content: "";
   background:
-    radial-gradient(circle at 16% 12%, rgba(245, 158, 11, 0.03) 0%, transparent 25%),
-    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.03) 0%, transparent 30%),
+    radial-gradient(circle at 16% 12%, rgba(245, 158, 11, 0.05) 0%, transparent 35%),
+    radial-gradient(circle at 84% 10%, rgba(86, 157, 255, 0.05) 0%, transparent 40%),
     linear-gradient(135deg, #fdfdfd 0%, #f9f9f9 44%, #fcfcfc 100%);
 }
 
 .dark body::before {
   background:
-    radial-gradient(circle at 16% 12%, rgba(245, 196, 0, 0.10) 0%, transparent 30%),
-    radial-gradient(circle at 84% 10%, rgba(87, 71, 170, 0.22) 0%, transparent 34%),
-    linear-gradient(135deg, #111016 0%, #15120f 52%, #0d1718 100%);
+    radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 80% 85%, rgba(245, 158, 11, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(87, 71, 170, 0.18) 0%, transparent 45%),
+    linear-gradient(135deg, #141318 0%, #171512 52%, #111819 100%);
 }
 
 button,
