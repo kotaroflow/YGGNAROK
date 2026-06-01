@@ -29,7 +29,7 @@ export function YggSidebarEmblem({ collapsed }: YggSidebarEmblemProps) {
               alt=""
               width={72}
               height={72}
-              preload
+              priority
               sizes={collapsed ? "50px" : "64px"}
               className={styles.image}
             />

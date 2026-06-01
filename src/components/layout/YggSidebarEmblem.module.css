@@ -71,21 +71,24 @@
 .glow {
   inset: 2px;
   z-index: 0;
-  background: rgba(245, 158, 11, 0.2);
+  background: var(--brand, #F59E0B);
+  opacity: 0.22;
   filter: blur(14px);
-  opacity: 0.74;
   transition:
     opacity 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
-    transform 980ms cubic-bezier(0.2, 0.72, 0.18, 1);
+    transform 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    background 600ms ease;
 }
 
 .ambient {
   inset: -8px;
   z-index: 0;
-  background: rgba(253, 230, 138, 0.1);
+  background: var(--brand, #F59E0B);
+  opacity: 0.10;
   filter: blur(24px);
-  opacity: 0.56;
-  transition: opacity 980ms cubic-bezier(0.2, 0.72, 0.18, 1);
+  transition:
+    opacity 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    background 600ms ease;
 }
 
 .lighting {
@@ -102,7 +105,7 @@
 
 .root:hover .stage,
 .root:focus-visible .stage {
-  filter: drop-shadow(0 18px 24px rgba(245, 158, 11, 0.18));
+  filter: drop-shadow(0 18px 24px rgba(139, 92, 246, 0.18));
   transform: translate3d(0, -1px, 22px) scale(1.035);
 }
 
@@ -113,19 +116,24 @@
 
 .root:hover .glow,
 .root:focus-visible .glow {
-  opacity: 0.95;
+  opacity: 0.42;
   transform: scale(1.08);
 }
 
 .root:hover .ambient,
 .root:focus-visible .ambient {
-  opacity: 0.74;
+  opacity: 0.22;
 }
 
 .root:hover .lighting,
 .root:focus-visible .lighting {
   opacity: 0.32;
   transform: translateX(32%) rotateZ(-8deg);
+}
+
+:global(.dark) .root:hover .stage,
+:global(.dark) .root:focus-visible .stage {
+  filter: drop-shadow(0 18px 24px rgba(245, 158, 11, 0.22));
 }
 
 .collapsed {
