@@ -153,6 +153,54 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
   const [briefingMode, setBriefingMode] = useState<"text" | "canvas">("text");
   const [carouselIdx, setCarouselIdx] = useState(0);
+
+  // === Neural Canvas Drag & Drop State ===
+  const [canvasNodes, setCanvasNodes] = useState([
+    { id: "raw-input", type: "input", title: "Input Raw", x: 32, y: 48, content: "" },
+    { id: "council", type: "agent", title: "Conselho I.A", x: 300, y: 176, content: "> Mapeando ganchos...\n> Otimizando SEO", agent: "Odin" },
+    { id: "output", type: "output", title: "Saída Neural", x: 600, y: 300, content: "Aguardando disparo..." }
+  ]);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
+    e.preventDefault();
+    const nodeElement = e.currentTarget as HTMLDivElement;
+    const rect = nodeElement.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    setDraggingNodeId(nodeId);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingNodeId) return;
+    const canvasElement = e.currentTarget as HTMLDivElement;
+    const rect = canvasElement.getBoundingClientRect();
+    
+    let newX = e.clientX - rect.left - dragOffset.x;
+    let newY = e.clientY - rect.top - dragOffset.y;
+
+    // Boundaries check
+    if (newX < 0) newX = 0;
+    if (newY < 0) newY = 0;
+    if (newX > rect.width - 200) newX = rect.width - 200;
+    if (newY > rect.height - 100) newY = rect.height - 100;
+
+    setCanvasNodes(prev => prev.map(node => 
+      node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
+    ));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (draggingNodeId) {
+      setDraggingNodeId(null);
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+  // ==========================================
   
   const [contentType, setContentType] = useState("ideia");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
@@ -803,52 +851,84 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           )}
                         </>
                       ) : (
-                        <div className="relative w-full h-[528px] bg-black/60 overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(245,158,11,0.15) 1px, transparent 0)', backgroundSize: '32px 32px' }}>
-                           {/* Linhas de conexão decorativas simuladas com SVG */}
+                        <div 
+                          className="relative w-full h-[528px] bg-black/60 overflow-hidden cursor-crosshair" 
+                          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(245,158,11,0.15) 1px, transparent 0)', backgroundSize: '32px 32px' }}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                          onPointerLeave={handlePointerUp}
+                        >
+                           {/* Linhas de conexão dinâmicas (Futuro: Calcular curva Bezier real) */}
                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
-                             <path d="M 160 160 Q 300 160 380 280 T 520 280" fill="none" stroke="rgba(245,158,11,0.2)" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" />
+                             {canvasNodes.length >= 2 && (
+                               <path 
+                                 d={`M ${canvasNodes[0].x + 240} ${canvasNodes[0].y + 40} C ${canvasNodes[0].x + 300} ${canvasNodes[0].y + 40}, ${canvasNodes[1].x - 60} ${canvasNodes[1].y + 40}, ${canvasNodes[1].x} ${canvasNodes[1].y + 40}`} 
+                                 fill="none" stroke="rgba(245,158,11,0.3)" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" 
+                               />
+                             )}
+                             {canvasNodes.length >= 3 && (
+                               <path 
+                                 d={`M ${canvasNodes[1].x + 260} ${canvasNodes[1].y + 40} C ${canvasNodes[1].x + 320} ${canvasNodes[1].y + 40}, ${canvasNodes[2].x - 60} ${canvasNodes[2].y + 40}, ${canvasNodes[2].x} ${canvasNodes[2].y + 40}`} 
+                                 fill="none" stroke="rgba(16,185,129,0.3)" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" 
+                               />
+                             )}
                            </svg>
                            
-                           {/* Nó 1: Pauta Bruta */}
-                           <div className="absolute top-12 left-8 w-[240px] bg-surface/80 backdrop-blur-xl border border-line/30 rounded-xl p-4 shadow-xl hover:border-brand/40 transition-colors cursor-grab active:cursor-grabbing z-10 group">
-                             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-line/10">
-                               <div className="size-2 rounded-full bg-brand group-hover:animate-ping" />
-                               <span className="text-[10px] font-black uppercase text-white tracking-widest">Input Raw</span>
-                             </div>
-                             <p className="text-xs text-muted font-medium line-clamp-3">
-                               {manualIdea || "O Canvas aguarda o início do seu briefing. Escreva algo no modo texto para refletir aqui."}
-                             </p>
-                             <div className="mt-3 flex justify-end">
-                               <button className="text-[9px] text-brand/60 hover:text-brand font-bold uppercase tracking-wider">Editar</button>
-                             </div>
-                           </div>
+                           {/* Renderização Dinâmica dos Nós */}
+                           {canvasNodes.map(node => {
+                             // Cores Baseadas no Tipo
+                             let borderColor = "border-line/30";
+                             let hoverColor = "hover:border-brand/40";
+                             let bgColor = "bg-surface/80";
+                             let TitleIcon = FileText;
+                             let iconColor = "text-white";
+                             let shadowColor = "shadow-xl";
 
-                           {/* Nó 2: Conselho de IAs Ativo */}
-                           <div className="absolute top-44 left-1/3 w-[260px] bg-brand/10 backdrop-blur-xl border border-brand/30 rounded-xl p-4 shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)] hover:border-brand/60 transition-colors cursor-grab active:cursor-grabbing z-10">
-                             <div className="flex items-center justify-between mb-2 pb-2 border-b border-brand/20">
-                               <div className="flex items-center gap-2">
-                                 <Cpu size={12} className="text-brand animate-spin-slow" />
-                                 <span className="text-[10px] font-black uppercase text-brand tracking-widest">Conselho I.A</span>
+                             if (node.type === "agent") {
+                               borderColor = "border-brand/30";
+                               hoverColor = "hover:border-brand/60";
+                               bgColor = "bg-brand/10";
+                               TitleIcon = Cpu;
+                               iconColor = "text-brand";
+                               shadowColor = "shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]";
+                             } else if (node.type === "output") {
+                               borderColor = "border-emerald-500/30";
+                               hoverColor = "hover:border-emerald-500/50";
+                               bgColor = "bg-emerald-950/40";
+                               TitleIcon = CheckCircle;
+                               iconColor = "text-emerald-400";
+                             }
+
+                             return (
+                               <div 
+                                 key={node.id}
+                                 onPointerDown={(e) => handlePointerDown(e, node.id)}
+                                 className={`absolute w-[260px] ${bgColor} backdrop-blur-xl border ${borderColor} rounded-xl p-4 ${shadowColor} ${hoverColor} transition-colors z-10 select-none ${draggingNodeId === node.id ? "cursor-grabbing scale-105 z-50 ring-2 ring-brand/50" : "cursor-grab"}`}
+                                 style={{ 
+                                   left: `${node.x}px`, 
+                                   top: `${node.y}px`,
+                                   touchAction: 'none' 
+                                 }}
+                               >
+                                 <div className={`flex items-center justify-between mb-2 pb-2 border-b ${node.type === "agent" ? "border-brand/20" : node.type === "output" ? "border-emerald-500/20" : "border-line/10"}`}>
+                                   <div className="flex items-center gap-2">
+                                     <TitleIcon size={12} className={`${iconColor} ${node.type === "agent" ? "animate-spin-slow" : ""}`} />
+                                     <span className={`text-[10px] font-black uppercase ${iconColor} tracking-widest`}>{node.title}</span>
+                                   </div>
+                                   {node.type === "agent" && (
+                                     <span className="text-[8px] bg-brand/20 text-brand px-1.5 py-0.5 rounded font-black uppercase">{selectedAgent || node.agent}</span>
+                                   )}
+                                 </div>
+                                 <p className={`text-xs font-medium leading-relaxed ${node.type === "agent" ? "text-brand/80 font-mono text-[10px]" : node.type === "output" ? "text-emerald-300/60 font-mono text-[10px]" : "text-muted line-clamp-3"}`}>
+                                   {node.type === "input" ? (manualIdea || "O Canvas aguarda o início do seu briefing. Escreva algo no modo texto ou cole arquivos aqui.") : node.content}
+                                 </p>
+                                 
+                                 {/* Fake Connection Ports */}
+                                 <div className={`absolute top-1/2 -left-1.5 w-3 h-3 rounded-full border-2 border-black ${node.type === "input" ? "hidden" : "bg-brand/50"} -translate-y-1/2`} />
+                                 <div className={`absolute top-1/2 -right-1.5 w-3 h-3 rounded-full border-2 border-black ${node.type === "output" ? "hidden" : "bg-brand/50"} -translate-y-1/2`} />
                                </div>
-                               <span className="text-[8px] bg-brand/20 text-brand px-1.5 py-0.5 rounded font-black uppercase">{selectedAgent}</span>
-                             </div>
-                             <p className="text-[10px] text-brand/80 font-mono leading-relaxed">
-                               &gt; Mapeando ganchos de retenção<br/>
-                               &gt; Otimizando keywords de SEO<br/>
-                               &gt; Sincronizando modelo mental
-                             </p>
-                           </div>
-
-                           {/* Nó 3: Saída Gerada (Output) */}
-                           <div className="absolute bottom-16 right-16 w-[240px] bg-emerald-950/40 backdrop-blur-xl border border-emerald-500/30 rounded-xl p-4 shadow-xl hover:border-emerald-500/50 transition-colors cursor-grab active:cursor-grabbing z-10">
-                             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-500/20">
-                               <CheckCircle size={12} className="text-emerald-400" />
-                               <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Saída Neural</span>
-                             </div>
-                             <p className="text-[10px] text-emerald-300/60 font-mono">
-                               Aguardando o gatilho final no console para iniciar a compilação do rascunho de alta conversão.
-                             </p>
-                           </div>
+                             );
+                           })}
                            
                            {/* Controles de Canvas */}
                            <div className="absolute bottom-4 right-4 flex gap-1 z-20">
