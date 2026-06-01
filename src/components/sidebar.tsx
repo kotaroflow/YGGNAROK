@@ -450,7 +450,7 @@ export function Sidebar({
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
   const [theme] = useTheme();
-  const toggleThemeMode = theme === "dark" ? "void" : "amber";
+  const toggleThemeMode = theme === "dark" ? "amber" : "void";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const handleNewChat = useCallback(async () => {
@@ -479,7 +479,13 @@ export function Sidebar({
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSidebarClick = () => {
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    // Nunca interceptar cliques em elementos interativos (botoes, links, inputs)
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, select, [role="button"]')) {
+      return;
+    }
+
     // Triple click detector: opens/expands the sidebar
     clickCountRef.current += 1;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);

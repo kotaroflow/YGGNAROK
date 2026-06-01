@@ -3,7 +3,6 @@
 V1 limpa do YGGNAROK para perfis, criação de conteúdo, vendas, biblioteca, postagem manual, jobs assíncronos, mídia no Cloudflare R2, logs e relatórios básicos.
 
 ## Stack
-
 - Next.js + TypeScript + Tailwind CSS
 - Supabase Auth, PostgreSQL, RLS e Realtime
 - Cloudflare R2 para mídia pesada
@@ -24,6 +23,9 @@ npm run worker:dev
 ## Variáveis
 
 Copie `.env.example` para `.env.local` no ambiente local e preencha sem commitar segredos reais.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
 
 Frontend usa apenas:
 
@@ -40,7 +42,6 @@ As migrations ficam em `supabase/migrations`. A migration inicial cria tabelas V
 ## Worker
 
 O worker fica em `worker/` e processa `ai_jobs` por polling:
-
 1. Recupera zombie jobs.
 2. Chama `claim_next_ai_job()` no Postgres.
 3. Processa fora da transação.
@@ -55,3 +56,41 @@ O worker fica em `worker/` e processa `ai_jobs` por polling:
 - Sem publicação automática.
 - Sem base64 no banco.
 - Sem service role ou chaves R2/IA no frontend.
+
+## Persistência de Memória das IAs
+
+Este projeto agora suporta memória persistente por sessão para as IAs iniciadas nos terminais.
+
+### Estrutura de Arquivos
+- `memory/` - diretório onde são armazenados arquivos JSON com o histórico de cada sessão.
+- Cada sessão recebe um identificador único, por exemplo `session_20240601_183000_1234.json`.
+
+### Como Iniciar uma Sessão
+Execute o script `scripts\run-ia.ps1`:
+```powershell
+.\scripts\run-ia.ps1
+```
+O script gerará um `sessionId` único e iniciará a IA com essa sessão. O histórico será salvo automaticamente em `memory\<sessionId>.json`.
+
+### Como Retomar uma Sessão Existente
+Se você deseja retomar uma sessão anterior, copie o identificador da sessão (encontrado no nome do arquivo JSON) e execute:
+```powershell
+.\scripts\run-ia.ps1 -sessionId session_20240601_183000_1234
+```
+
+### Estrutura do Arquivo de Memória
+```json
+{
+  "sessionId": "session_20240601_183000_1234",
+  "createdAt": "2026-06-01T18:30:00.000Z",
+  "messages": [
+    {"role":"user","content":"..."},
+    {"role":"assistant","content":"..."}
+  ]
+}
+```
+
+### Notas
+- Cada terminal/IA tem seu próprio arquivo de memória, garantindo isolamento.
+- O histórico é salvo após cada resposta, assegurando persistência entre sessões.
+- Caso queira limpar o histórico, basta excluir o respectivo arquivo JSON na pasta `memory/`.

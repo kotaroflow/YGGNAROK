@@ -60,7 +60,6 @@ export default async function RootLayout({
     >
       <head></head>
       <body className="min-h-full bg-background text-foreground antialiased">
-        <AmberCursorTracker />
         {children}
         <SpeedInsights />
       </body>
