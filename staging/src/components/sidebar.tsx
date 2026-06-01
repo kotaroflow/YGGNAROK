@@ -741,9 +741,14 @@ export function Sidebar({
                       backgroundSize: '220%' 
                     }}
                   />
-                  <span className="text-[13px] font-medium text-sidebar-text truncate max-w-[130px]">
-                    {emailName} <span className="text-sidebar-text-muted opacity-80">· {planTag}</span>
-                  </span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[13px] font-semibold text-sidebar-text truncate max-w-[90px]">
+                      {emailName}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold tracking-widest uppercase bg-brand/10 text-brand border border-brand/25 select-none leading-none shrink-0">
+                      {planTag}
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div 

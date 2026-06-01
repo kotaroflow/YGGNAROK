@@ -627,7 +627,7 @@ export function ChatClient() {
 
   const renderInputBox = (centered: boolean) => (
     <div className={`mx-auto w-full ${centered ? "max-w-2xl" : "max-w-3xl"}`}>
-      <div className={`relative flex flex-col rounded-2xl border-2 border-line/35 shadow-md hover:shadow-lg transition-all duration-300 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15 ${centered ? "bg-surface-strong/60 backdrop-blur-md" : "bg-surface-strong"}`}>
+      <div className={`relative flex flex-col rounded-2xl border-2 border-line/35 shadow-md hover:shadow-lg transition-all duration-300 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)] ${centered ? "bg-surface-strong/60 backdrop-blur-md" : "bg-surface-strong"}`}>
         <input
           type="file"
           ref={fileInputRef}
@@ -757,12 +757,12 @@ export function ChatClient() {
 
   if (isEmpty) {
     return (
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto animate-[pulse_20s_infinite]">
         <div className="w-full max-w-2xl text-center space-y-8 my-auto">
           {/* Header */}
           <div>
             <h2
-              className="bg-gradient-to-r from-foreground to-muted bg-clip-text text-2xl font-extrabold tracking-tight text-transparent transition-all duration-300 sm:text-4xl"
+              className="bg-gradient-to-r from-foreground to-muted bg-clip-text text-2xl font-extrabold tracking-tighter text-transparent transition-all duration-300 sm:text-4xl"
               style={{ opacity: fading ? 0.3 : 1, transform: fading ? "translateY(4px)" : "translateY(0)" }}
             >
               {phrases[phraseIndex]}
