@@ -12,11 +12,13 @@ import { useEffect } from "react";
  */
 export default function AmberAuraBackground() {
   useEffect(() => {
+  // Respect reduced‑motion preference – disable animation if the user prefers it.
+  const prefersReduced = typeof window !== "undefined" && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Detect coarse pointer devices early.
     const isCoarse = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
-    // On mobile we simply centre the glow – the CSS @media rule provides a breathing animation.
-    if (isCoarse) {
+    // On mobile or when reduced motion is preferred, centre the glow – the CSS @media rule provides a breathing animation.
+    if (isCoarse || prefersReduced) {
       document.documentElement.style.setProperty("--mouse-x", "50%");
       document.documentElement.style.setProperty("--mouse-y", "50%");
       return;
