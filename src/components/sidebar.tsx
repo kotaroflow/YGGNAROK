@@ -733,9 +733,11 @@ export function Sidebar({
               {!collapsed ? (
                 <div className="flex items-center gap-2">
                   <div 
-                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black bg-center bg-no-repeat bg-contain"
+                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black"
                     style={{ 
                       backgroundImage: 'url(/ygn-coin.png)', 
+                      backgroundPosition: '4.5% 50%', 
+                      backgroundSize: '220%' 
                     }}
                   />
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -749,9 +751,11 @@ export function Sidebar({
                 </div>
               ) : (
                 <div 
-                  className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black bg-center bg-no-repeat bg-contain transition-transform hover:scale-105"
+                  className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/35 bg-black transition-transform hover:scale-105"
                   style={{ 
                     backgroundImage: 'url(/ygn-coin.png)', 
+                    backgroundPosition: '95.5% 50%', 
+                    backgroundSize: '220%' 
                   }}
                 />
               )}
