@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { AmberCursorTracker } from "@/components/amber-cursor-tracker";
 import "./globals.css";
 
 const geistSans = Geist({
