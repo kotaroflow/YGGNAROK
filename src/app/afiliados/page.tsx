@@ -1,8 +1,8 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 
-export default function AfiliadosPage() {
+async function AfiliadosContent() {
   return (
-    <AppShell>
       <main className="min-h-screen px-4 py-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -14,5 +14,13 @@ export default function AfiliadosPage() {
         </div>
       </main>
     </AppShell>
+  );
+}
+
+export default async function AfiliadosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <AfiliadosContent />
+    </Suspense>
   );
 }
