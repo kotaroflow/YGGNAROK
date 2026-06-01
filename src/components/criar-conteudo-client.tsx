@@ -388,24 +388,49 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const handleGenerateContent = async () => {
     if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
     setActionLoading("generate");
-    await new Promise(r => setTimeout(r, 1800));
-    const newItem: ContentItem = {
-      id: `local-${Date.now()}`,
-      profile_id: profiles[0]?.id || "",
+    
+    const payload = {
+      id: `n8n-${Date.now()}`,
       title: manualTitle.trim(),
       content_type: contentType,
       platform: selectedChannels.join(", ") || "Multicanal",
       idea: manualIdea.trim(),
-      status: "processando",
-      created_at: new Date().toISOString(),
-      etapa_fluxo: "ideia",
-      origem: selectedAgent as ContentOrigem,
       agente_executor: selectedAgent,
+      timestamp: new Date().toISOString()
     };
-    setContents(prev => [newItem, ...prev]);
-    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
-    setActionLoading(null);
-    showToast("Pipeline de geração por IA acionado!");
+
+    try {
+      const res = await fetch("/api/n8n", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Falha na ponte com o n8n");
+
+      const newItem: ContentItem = {
+        id: payload.id,
+        profile_id: profiles[0]?.id || "",
+        title: payload.title,
+        content_type: payload.content_type,
+        platform: payload.platform,
+        idea: payload.idea,
+        status: "processando",
+        created_at: payload.timestamp,
+        etapa_fluxo: "ideia",
+        origem: payload.agente_executor as ContentOrigem,
+        agente_executor: payload.agente_executor,
+      };
+      setContents(prev => [newItem, ...prev]);
+      setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
+      showToast(data.message || "Pipeline de geração (n8n) acionado!");
+    } catch (err: any) {
+      showToast(err.message, "error");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const getNextAction = (item: ContentItem) => {
