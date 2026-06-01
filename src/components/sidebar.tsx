@@ -2,19 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2, AlertTriangle } from "lucide-react";
-import { Suspense, useEffect, useMemo, useState, useRef, useCallback, memo } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback, memo } from "react";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { signOut } from "@/server/actions/auth";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
+import { YggSidebarEmblem } from "@/components/layout/YggSidebarEmblem";
 import type { RecentChat } from "@/lib/use-recent-chats";
 
 const storageKey = "ygn-sidebar-state";
 const mobileStorageKey = "ygn-sidebar-mobile-open";
-
-const criacaoHrefs = ["/criar-conteudo", "/estudio-video", "/postagem-manual", "/biblioteca", "/midias", "/agentes-ia", "/continuidade-ia", "/ideias", "/roteiros", "/prompts", "/legendas", "/hashtags", "/lixeira-inteligente"];
-const mercadoHrefs = ["/comercial", "/vendas", "/produtos", "/afiliados", "/links", "/campanhas", "/comissoes", "/oportunidades", "/relatorios-comerciais"];
 
 const defaultExpandedGroups: Record<string, boolean> = {
   iriguchi: true,
@@ -585,17 +583,18 @@ export function Sidebar({
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
-  const pathname = usePathname();
   const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
   const [animKey, setAnimKey] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const timer = window.setTimeout(() => {
       const saved = window.localStorage.getItem("ygn-sidebar-tab");
       if (saved === "chat" || saved === "criacao" || saved === "mercado") {
         setActiveTabRaw(saved);
       }
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
@@ -746,43 +745,35 @@ export function Sidebar({
       {(() => {
         const email = user?.email ?? "visitante@yggnarok.com";
         const emailName = email.split("@")[0];
-        const userInitial = emailName.charAt(0).toUpperCase();
         const isOwner = user?.roles.includes("owner");
-        const planTag = isOwner ? "Admin" : "Free";
+        const planTag = isOwner ? "ADMIN" : "FREE";
+        const roleLabel = isOwner ? "Administrador Master" : "Membro YGN";
 
         return (
           <div className="mt-auto p-3">
-            <div className="group relative flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-lg hover:bg-sidebar-hover transition">
+            <div className="group relative flex items-center justify-center rounded-lg px-2 py-2 transition hover:bg-sidebar-hover">
               {!collapsed ? (
-                  <div className="flex items-center gap-2">
-                  <div 
-                    className="size-6 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/40 bg-black overflow-hidden relative"
-                    style={{ 
-                      backgroundImage: 'url(/ygn-coin.png)', 
-                      backgroundPosition: '4.5% 50%', 
-                      backgroundSize: '220%' 
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-transparent pointer-events-none" />
-                  </div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[13px] font-bold text-sidebar-text truncate max-w-[90px] tracking-tight">
-                      {emailName}
-                    </span>
-                    <span data-plan={planTag} className="px-1.5 py-0.5 rounded-md text-[8px] font-black tracking-widest uppercase bg-brand text-neutral-950 border border-brand/20 select-none leading-none shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
-                      {planTag}
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <YggSidebarEmblem collapsed={collapsed} />
+                  <div className="flex min-w-0 flex-col gap-1 opacity-100 transition-opacity duration-[260ms] ease-out">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="max-w-[92px] truncate text-[13px] font-bold tracking-tight text-sidebar-text">
+                        {emailName}
+                      </span>
+                      <span
+                        data-plan={planTag}
+                        className="shrink-0 select-none rounded-md border border-brand/20 bg-brand px-1.5 py-0.5 text-[8px] font-black uppercase leading-none tracking-widest text-neutral-950 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
+                      >
+                        {planTag}
+                      </span>
+                    </div>
+                    <span className="truncate text-[9px] font-mono uppercase tracking-[0.16em] text-muted">
+                      {roleLabel}
                     </span>
                   </div>
                 </div>
               ) : (
-                <div 
-                  className="mx-auto size-7 shrink-0 rounded-full shadow-sm shadow-brand/20 border border-brand/30 bg-black transition-transform hover:scale-105"
-                  style={{ 
-                    backgroundImage: 'url(/ygn-coin.png)', 
-                    backgroundPosition: '95.5% 50%', 
-                    backgroundSize: '220%' 
-                  }}
-                />
+                <YggSidebarEmblem collapsed={collapsed} />
               )}
               
               {/* Profile Menu Popover - opens to the RIGHT with a gorgeous zoom-in spring micro-animation */}
