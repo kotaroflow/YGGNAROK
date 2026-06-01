@@ -108,6 +108,34 @@ export function ChatClient() {
     });
   };
 
+  const [feedbackTextId, setFeedbackTextId] = useState<string | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+
+  const handleFeedbackCommentSubmit = (messageId: string) => {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem("yggnarok.chat-feedback.v1");
+      let list: any[] = [];
+      if (raw) {
+        try { list = JSON.parse(raw); } catch (_) {}
+      }
+      
+      list = list.map(item => {
+        if (item.messageId === messageId) {
+          return { 
+            ...item, 
+            comment: feedbackComment, 
+            commentTimestamp: new Date().toISOString() 
+          };
+        }
+        return item;
+      });
+      
+      localStorage.setItem("yggnarok.chat-feedback.v1", JSON.stringify(list));
+    }
+    setFeedbackTextId(null);
+    setFeedbackComment("");
+  };
+
   const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; type: string; url?: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -987,6 +1015,44 @@ export function ChatClient() {
                         </span>
                       )}
                     </div>
+
+                    {/* Conditional Suggestion Input Box */}
+                    {feedbacks[m.id] === 'dislike' && (
+                      <div className="animate-fade-in mt-2 p-3 rounded-xl border border-line bg-surface/40 backdrop-blur-sm space-y-2 max-w-md shadow-sm">
+                        <div className="text-[10px] font-bold text-muted uppercase tracking-wider select-none">
+                          Como podemos melhorar esta resposta?
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={feedbackTextId === m.id ? feedbackComment : ""}
+                          onChange={(e) => {
+                            setFeedbackTextId(m.id);
+                            setFeedbackComment(e.target.value);
+                          }}
+                          placeholder="Ex: Erro no código, tom inadequado, informação incorreta..."
+                          className="w-full text-xs bg-surface-strong border border-line rounded-lg p-2.5 focus:border-brand focus:ring-1 focus:ring-brand/35 text-foreground placeholder:text-muted/60 outline-none resize-none"
+                        />
+                        <div className="flex items-center gap-2 select-none">
+                          <button
+                            type="button"
+                            onClick={() => handleFeedbackCommentSubmit(m.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-brand hover:bg-brand-strong text-neutral-950 text-[10px] font-extrabold transition-all duration-200 cursor-pointer shadow-sm shadow-brand/10 hover:shadow-brand/20"
+                          >
+                            Enviar Sugestão
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFeedbackTextId(null);
+                              setFeedbackComment("");
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-transparent text-muted hover:text-foreground text-[10px] font-semibold transition-all duration-200 cursor-pointer"
+                          >
+                            Ignorar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
