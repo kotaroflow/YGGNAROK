@@ -450,7 +450,7 @@ export function Sidebar({
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
   const [theme] = useTheme();
-  const toggleThemeMode = theme === "dark" ? "void" : "amber";
+  const toggleThemeMode = theme === "dark" ? "amber" : "void";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const handleNewChat = useCallback(async () => {
