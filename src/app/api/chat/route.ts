@@ -1,9 +1,12 @@
 export const dynamic = "force-dynamic";
 
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
 type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
 };
+
 
 type OpenRouterResponse = {
   choices?: Array<{
@@ -46,6 +49,13 @@ function normalizeMessage(msg: unknown): ChatMessage | null {
 }
 
 export async function POST(req: Request) {
+  // Verifica autenticação do usuário via Supabase
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return Response.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
   const apiKey = (process.env.OPENROUTER_API_KEY || "").trim();
   if (!apiKey) {
     if (process.env.NODE_ENV === "development") {

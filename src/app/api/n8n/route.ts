@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
+    // Autenticação Supabase
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
     const payload = await request.json();
 
     const n8nWebhookUrl = "https://kotaroflow.app.n8n.cloud/webhook-test/yggnarok-hub";

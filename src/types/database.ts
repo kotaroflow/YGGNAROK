@@ -91,15 +91,14 @@ export type Database = {
           type: string;
           status?: JobStatus;
           payload?: Json;
-          max_attempts?: number;
-        };
-        Update: Partial<Database["public"]["Tables"]["ai_jobs"]["Insert"]> & {
           result?: Json | null;
           error_message?: string | null;
           attempts?: number;
+          max_attempts?: number;
           started_at?: string | null;
           completed_at?: string | null;
         };
+        Update: Partial<Database["public"]["Tables"]["ai_jobs"]["Insert"]>;
         Relationships: [];
       };
       media_assets: {
@@ -246,16 +245,287 @@ export type Database = {
         };
         Relationships: [];
       };
-      health_logs: {
-        Row: Record<string, Json>;
-        Insert: Record<string, Json | undefined>;
-        Update: Record<string, Json | undefined>;
+       agent_runs: {
+        Row: {
+          id: string;
+          job_id: string | null;
+          user_id: string;
+          profile_id: string | null;
+          agent_key: string;
+          module: string;
+          input: Json;
+          output: Json;
+          status: string;
+          error_message: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id?: string | null;
+          user_id: string;
+          profile_id?: string | null;
+          agent_key: string;
+          module: string;
+          input?: Json;
+          output?: Json;
+          status?: string;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["agent_runs"]["Insert"]>;
         Relationships: [];
       };
-      agent_runs: {
-        Row: Record<string, Json>;
-        Insert: Record<string, Json | undefined>;
-        Update: Record<string, Json | undefined>;
+      chat_projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          path_label: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          path_label?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_projects"]["Insert"]> & { updated_at?: string };
+        Relationships: [];
+      };
+      chat_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string | null;
+          title: string;
+          last_message_preview: string | null;
+          model_id: string | null;
+          pinned: boolean;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id?: string | null;
+          title?: string;
+          model_id?: string | null;
+          pinned?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_conversations"]["Insert"]> & {
+          last_message_preview?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          user_id: string;
+          role: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          user_id: string;
+          role: string;
+          content: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      health_logs: {
+        Row: {
+          id: string;
+          source: string;
+          status: string;
+          message: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          source: string;
+          status: string;
+          message: string;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["health_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_council_agents: {
+        Row: {
+          key: string;
+          name: string;
+          role: string;
+          status: string;
+          risk_level: string;
+          paused_reason: string | null;
+          last_seen_at: string | null;
+          provider_preference: Json;
+          config: Json;
+          created_at: string;
+        };
+        Insert: {
+          key: string;
+          name: string;
+          role: string;
+          status?: string;
+          risk_level?: string;
+          paused_reason?: string | null;
+          last_seen_at?: string | null;
+          provider_preference?: Json;
+          config?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_council_agents"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_provider_status: {
+        Row: {
+          provider: string;
+          status: string;
+          last_checked_at: string | null;
+          latency_ms: number | null;
+          error_message: string | null;
+          metadata: Json;
+        };
+        Insert: {
+          provider: string;
+          status?: string;
+          last_checked_at?: string | null;
+          latency_ms?: number | null;
+          error_message?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_provider_status"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_council_decisions: {
+        Row: {
+          id: string;
+          job_id: string | null;
+          user_id: string | null;
+          profile_id: string | null;
+          decision_type: string;
+          status: string;
+          risk: string;
+          authority: string;
+          summary: string;
+          payload: Json;
+          result: Json;
+          approved_by: string | null;
+          created_at: string;
+          approved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          job_id?: string | null;
+          user_id?: string | null;
+          profile_id?: string | null;
+          decision_type: string;
+          status?: string;
+          risk?: string;
+          authority?: string;
+          summary: string;
+          payload?: Json;
+          result?: Json;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_council_decisions"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_automations: {
+        Row: {
+          key: string;
+          name: string;
+          status: string;
+          interval_ms: number;
+          last_run_at: string | null;
+          next_run_at: string | null;
+          metadata: Json;
+        };
+        Insert: {
+          key: string;
+          name: string;
+          status?: string;
+          interval_ms: number;
+          last_run_at?: string | null;
+          next_run_at?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_automations"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_memory_candidates: {
+        Row: {
+          id: string;
+          library_item_id: string | null;
+          job_id: string | null;
+          user_id: string | null;
+          profile_id: string | null;
+          content: string;
+          origin: string;
+          agent_key: string;
+          model: string;
+          scope: string;
+          risk: string;
+          status: string;
+          confidence: number | null;
+          justification: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          library_item_id?: string | null;
+          job_id?: string | null;
+          user_id?: string | null;
+          profile_id?: string | null;
+          content: string;
+          origin: string;
+          agent_key: string;
+          model: string;
+          scope: string;
+          risk: string;
+          status?: string;
+          confidence?: number | null;
+          justification: string;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_memory_candidates"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_cost_ledger: {
+        Row: {
+          id: string;
+          job_id: string | null;
+          provider: string;
+          model: string | null;
+          estimated_cost: number;
+          currency: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id?: string | null;
+          provider: string;
+          model?: string | null;
+          estimated_cost: number;
+          currency?: string;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_cost_ledger"]["Insert"]>;
         Relationships: [];
       };
     };

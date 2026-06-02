@@ -304,7 +304,7 @@ async function requestOpenRouter(env: Env, provider: string, model: string, mess
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
-  return fetch(endpoint, {
+  const response = await fetch(endpoint, {
     method: "POST",
     signal: AbortSignal.timeout(30_000),
     headers: {
@@ -320,6 +320,8 @@ async function requestOpenRouter(env: Env, provider: string, model: string, mess
       messages,
     }),
   });
+
+  return response;
 }
 
 async function parseOpenRouterResponse(response: Response) {

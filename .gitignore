@@ -48,6 +48,5 @@ next-env.d.ts
 /temp_design/
 eslint-output.txt
 
-# local multi-terminal staging workspace; never deploy or commit
-/staging/
+# local agent workspace
 /.agent/

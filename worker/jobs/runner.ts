@@ -16,10 +16,18 @@ type ClaimedJob = {
   max_attempts: number;
 };
 
+type LaxRpc = {
+  rpc: (name: string, params?: Record<string, unknown>) => {
+    then: <T>(onfulfilled?: (value: { data: T | null; error: { message: string } | null }) => T | null) => Promise<T | null>;
+  };
+};
+
+const supabaseLax = supabaseAdmin as unknown as LaxRpc;
+
 export async function recoverZombieJobs() {
-  const { data, error } = await supabaseAdmin.rpc("recover_zombie_ai_jobs" as never, {
+  const { data, error } = await supabaseLax.rpc("recover_zombie_ai_jobs", {
     p_timeout: `${workerConfig.zombieTimeoutMinutes} minutes`,
-  } as never);
+  });
 
   if (error) {
     await writeHealthLog("error", "Failed to recover zombie jobs", { error: error.message });
@@ -30,7 +38,7 @@ export async function recoverZombieJobs() {
 }
 
 export async function claimNextJob() {
-  const { data, error } = await supabaseAdmin.rpc("claim_next_ai_job" as never);
+  const { data, error } = await supabaseLax.rpc("claim_next_ai_job");
 
   if (error) {
     await writeHealthLog("error", "Failed to claim next job", { error: error.message });
@@ -59,20 +67,20 @@ export async function processJob(job: ClaimedJob) {
     });
     agentResult.output = await maybeRunMediaGeneration(job.type, job.payload, agentResult.output);
 
-    const { data: runData } = await supabaseAdmin.from("agent_runs" as never).insert({
+    const { data: runData } = await supabaseAdmin.from("agent_runs").insert({
       job_id: job.id,
       user_id: job.user_id,
       profile_id: job.profile_id,
       agent_key: agentResult.agent_key,
       module: job.type,
-      input: job.payload,
+      input: job.payload as Json,
       output: agentResult.output,
       status: "completed",
       started_at: startedAt,
       completed_at: new Date().toISOString(),
-    } as never).select("id").single();
+    }).select("id").single();
 
-    runId = (runData as { id?: string } | null)?.id ?? null;
+    runId = runData?.id ?? null;
 
     await supabaseAdmin
       .from("ai_jobs")
@@ -92,19 +100,19 @@ export async function processJob(job: ClaimedJob) {
     const message = error instanceof Error ? error.message : "Unknown worker error";
     const failedPermanently = job.attempts >= job.max_attempts;
 
-    await supabaseAdmin.from("agent_runs" as never).insert({
+    await supabaseAdmin.from("agent_runs").insert({
       job_id: job.id,
       user_id: job.user_id,
       profile_id: job.profile_id,
       agent_key: readAgentKey(job.payload),
       module: job.type,
-      input: job.payload,
+      input: job.payload as Json,
       output: null,
       status: "failed",
       error_message: message,
       started_at: startedAt,
       completed_at: new Date().toISOString(),
-    } as never);
+    });
 
     await supabaseAdmin
       .from("ai_jobs")
@@ -259,14 +267,14 @@ async function writeCouncilDecision(job: ClaimedJob, output: Json, runId: string
   const risk = String(result.risk ?? "low").toLowerCase();
   const status = risk === "high" ? "pending" : risk === "medium" ? "approved" : "executed";
 
-  await supabaseAdmin.from("ai_council_decisions" as never).insert({
+  await supabaseAdmin.from("ai_council_decisions").insert({
     job_id: job.id,
     user_id: job.user_id,
     profile_id: job.profile_id,
     decision_type: job.type,
     status,
     risk,
-    authority: orchestration.decision_authority ?? "council_auto",
+     authority: (orchestration.decision_authority as string) ?? "council_auto",
     summary: String(result.summary ?? "").slice(0, 4000),
     payload: toJson({
       job_payload: job.payload,
@@ -274,14 +282,14 @@ async function writeCouncilDecision(job: ClaimedJob, output: Json, runId: string
       orchestration,
     }),
     result: toJson(result),
-  } as never);
+  });
 }
 
 async function writeMemoryCandidate(
   job: ClaimedJob,
   input: { libraryItemId: string | null; content: string; risk: string; status: string; learning: unknown },
 ) {
-  await supabaseAdmin.from("ai_memory_candidates" as never).insert({
+  await supabaseAdmin.from("ai_memory_candidates").insert({
     library_item_id: input.libraryItemId,
     job_id: job.id,
     user_id: job.user_id,
@@ -296,7 +304,7 @@ async function writeMemoryCandidate(
     confidence: readConfidence(input.learning),
     justification: "Extraido pelo Memory Agent a partir de resultado, debate e sintese.",
     metadata: toJson({ learning: input.learning }),
-  } as never);
+  });
 }
 
 async function writeCostLedger(job: ClaimedJob, output: Json) {
@@ -319,22 +327,22 @@ async function writeCostLedger(job: ClaimedJob, output: Json) {
 
   for (const entry of entries) {
     const provider = String(entry.model).split(":")[0] || "unknown";
-    await supabaseAdmin.from("ai_cost_ledger" as never).insert({
+    await supabaseAdmin.from("ai_cost_ledger").insert({
       job_id: job.id,
       provider,
       model: entry.model,
       estimated_cost: 0,
       currency: "USD",
       metadata: toJson({ estimate_status: "pending_pricing_table" }),
-    } as never);
+    });
   }
 }
 
 async function getAutomationState() {
   const { data } = await supabaseAdmin
-    .from("ai_automations" as never)
-    .select("key,status,metadata" as never)
-    .in("key" as never, ["worker_loop", "kill_switch", "safe_mode", "chaos_mode"] as never);
+    .from("ai_automations")
+    .select("key,status,metadata")
+    .in("key", ["worker_loop", "kill_switch", "safe_mode", "chaos_mode"]);
 
   const rows = Array.isArray(data) ? data as Array<{ key?: string; status?: string; metadata?: unknown }> : [];
   const killSwitch = rows.some((row) => row.key === "kill_switch" && row.status === "active");

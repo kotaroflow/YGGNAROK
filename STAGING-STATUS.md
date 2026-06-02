@@ -113,8 +113,55 @@ npm run lint           # ✅ Sem warnings
 **Deploy:** Vercel  
 **Repositório:** staging branch
 
+
 ---
 
-**Status Final:** ✅ **SEM ERROS - PRONTO PARA PRODUÇÃO**
+## 🚀 YGGNAROK CREATION NEXUS — STAGING UPDATE (2026-06-01)
+
+### Novos Problemas Críticos Corrigidos
+
+#### 5. **Sidebar Click Interception** ✅
+**Arquivo:** `src/components/sidebar.tsx`  
+**Problema:** Detector de triple-click interceptava todos os cliques filhos (`button`, `a`, `input`, etc.), quebrando Chat e New Chat.  
+**Correção:** Adicionado `event.target.closest('button, a, input, ...')` early-return.  
+**Linha:** ~530
+
+#### 6. **Sidebar Header Icon Jump** ✅
+**Arquivo:** `src/components/sidebar.tsx`  
+**Problema:** Ícones do header pulavam durante expandir/colapsar por causa de mount/unmount condicional do React.  
+**Correção:** DOM estável + transições CSS (`opacity`, `max-w`, `translate-x`).  
+**Linhas:** ~666-681
+
+#### 7. **Agent Node Studio Reescrito** ✅
+**Arquivo:** `src/components/agent-node-studio.tsx`  
+**Problema:** 1262 linhas de Three.js legado, pesado e difícil de manter.  
+**Correção:** Reescrito como export proxy para `YggNexusCanvas` — canvas 2D modular com pan, zoom, grid, edges ortogonais, undo/redo, e integração com n8n/Obsidian (stubs).  
+**Arquivos novos:** `YggNexusCanvas.tsx`, `NodeCard.tsx`, `NodeInspector.tsx`, `EdgeLayer.tsx`, `useNodeGraph.ts`, `useCanvasInteraction.ts`, `orthogonalPathfinding.ts`, `gridCalculator.ts`, `nodeTypeRegistry.ts`, `yggnarok.ts` (types), integração stubs (`n8n.ts`, `obsidian.ts`).
+
+#### 8. **Z-Index Tokens Restaurados** ✅
+**Arquivo:** `src/app/globals.css`  
+**Problema:** Bloco de `--z-sidebar`, `--z-dropdown`, etc. foi removido acidentalmente em hotfix anterior (`fe5f288`).  
+**Correção:** Restaurado bloco completo de 13 tokens.  
+**Linhas:** 24-41
+
+#### 9. **Theme Toggle Anti-Pattern Removido** ✅
+**Arquivo:** `src/components/theme-toggle.tsx`  
+**Problema:** `useState` + `useEffect` causava warning `react-hooks/set-state-in-effect`.  
+**Correção:** Refatorado para `useSyncExternalStore` (recomendado pelo React).  
+**Impacto:** Zero warnings de lint.
+
+### Testes Executados
+- ✅ `npx tsc --noEmit` — 0 novos erros  
+- ✅ `npm run lint --max-warnings=0` — limpo nos novos arquivos  
+- ✅ `npx next build` — sucesso (53 rotas, ~3.2s compile)
+
+### Próximos Passos
+1. **Commit** staging com mensagem descritiva deste audit (`AUDIT-README.md`).
+2. **Wire-up real:** n8n e Obsidian assim que URLs/keys estiverem disponíveis (env vars).  
+3. **Refactor anti-pattern:** Trocar `setState` dentro de updater em `useNodeGraph` por `useReducer` + `historyRef` (React 19 safety).  
+4. **QA manual:** triple-click, resize sidebar, criação de nodes, edges, undo/redo, zoom shortcuts (`Ctrl +`, `Ctrl -`, `Ctrl 0`).
+
+---
+
 
 *Documento gerado automaticamente após correções de bugs críticos.*

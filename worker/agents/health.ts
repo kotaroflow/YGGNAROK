@@ -1,5 +1,6 @@
 import { workerConfig } from "../src/config";
 import { supabaseAdmin } from "../src/supabase";
+import type { Json } from "../../src/types/database";
 
 type ProviderHealth = {
   provider: string;
@@ -86,12 +87,12 @@ function offline(provider: string, errorMessage: string, latencyMs: number | nul
 }
 
 async function saveProviderHealth(health: ProviderHealth) {
-  await supabaseAdmin.from("ai_provider_status" as never).upsert({
-    provider: health.provider,
-    status: health.status,
-    last_checked_at: new Date().toISOString(),
-    latency_ms: health.latencyMs,
-    error_message: health.errorMessage,
-    metadata: health.metadata ?? {},
-  } as never);
-}
+   await supabaseAdmin.from("ai_provider_status").upsert({
+     provider: health.provider,
+     status: health.status,
+     last_checked_at: new Date().toISOString(),
+     latency_ms: health.latencyMs,
+     error_message: health.errorMessage,
+     metadata: (health.metadata ?? {}) as Json,
+   });
+ }

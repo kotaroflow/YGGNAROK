@@ -1,0 +1,156 @@
+.root {
+  --ygg-emblem-size: 64px;
+  width: var(--ygg-emblem-size);
+  height: var(--ygg-emblem-size);
+  perspective: 780px;
+  perspective-origin: 50% 45%;
+  contain: layout paint;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-style: preserve-3d;
+  transition:
+    transform 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    filter 980ms cubic-bezier(0.2, 0.72, 0.18, 1);
+  will-change: transform;
+}
+
+.coin {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  transform: rotateY(0deg) translateZ(0);
+  transform-style: preserve-3d;
+  transition: transform 1120ms cubic-bezier(0.2, 0.72, 0.18, 1);
+  will-change: transform;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-backface-visibility: hidden;
+}
+
+.front { transform: rotateY(0deg) translateZ(0.8px); }
+.back { transform: rotateY(180deg) translateZ(0.8px); }
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.28));
+  transform: translateZ(0);
+}
+
+.glow,
+.ambient,
+.lighting {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+.glow {
+  inset: 2px;
+  z-index: 0;
+  background: var(--brand, #7c3aed);
+  opacity: 0.14;
+  filter: blur(12px);
+  transition:
+    opacity 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    transform 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    background 600ms ease;
+}
+
+.ambient {
+  inset: -8px;
+  z-index: 0;
+  background: var(--brand, #7c3aed);
+  opacity: 0.06;
+  filter: blur(20px);
+  transition:
+    opacity 980ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    background 600ms ease;
+}
+
+.lighting {
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(115deg, transparent 16%, rgba(255, 244, 196, 0.24) 42%, transparent 62%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(-36%) rotateZ(-8deg);
+  transition:
+    opacity 900ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    transform 1120ms cubic-bezier(0.2, 0.72, 0.18, 1);
+}
+
+.root:hover .stage,
+.root:focus-visible .stage {
+  filter: drop-shadow(0 14px 20px rgba(139, 92, 246, 0.10));
+  transform: translate3d(0, -1px, 22px) scale(1.035);
+}
+
+.root:hover .coin,
+.root:focus-visible .coin {
+  transform: rotateY(180deg) translateZ(0);
+}
+
+.root:hover .glow,
+.root:focus-visible .glow {
+  opacity: 0.28;
+  transform: scale(1.08);
+}
+
+.root:hover .ambient,
+.root:focus-visible .ambient {
+  opacity: 0.14;
+}
+
+.root:hover .lighting,
+.root:focus-visible .lighting {
+  opacity: 0.22;
+  transform: translateX(32%) rotateZ(-8deg);
+}
+
+:global(.dark) .root:hover .stage,
+:global(.dark) .root:focus-visible .stage {
+  filter: drop-shadow(0 14px 20px rgba(245, 158, 11, 0.12));
+}
+
+.collapsed {
+  --ygg-emblem-size: 50px;
+  perspective: 680px;
+}
+
+.collapsed .stage {
+  transition-duration: 900ms;
+}
+
+.collapsed:hover .stage,
+.collapsed:focus-visible .stage {
+  transform: translate3d(0, -0.5px, 16px) scale(1.025);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .coin,
+  .glow,
+  .ambient,
+  .lighting {
+    transition-duration: 1ms;
+  }
+}
