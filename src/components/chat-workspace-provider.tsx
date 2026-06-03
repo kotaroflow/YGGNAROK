@@ -458,7 +458,11 @@ export function ChatWorkspaceProvider({ children }: { children: ReactNode }) {
             project_id: input?.projectId ?? null,
           }),
         });
-        const payload = (await res.json()) as { conversation: { id: string; title: string } };
+        const payload = await res.json();
+        if (!res.ok || !payload.conversation?.id) {
+          console.error('Failed to create conversation:', payload);
+          throw new Error('Failed to create conversation');
+        }
         const id = payload.conversation.id;
         addChat({
           id,

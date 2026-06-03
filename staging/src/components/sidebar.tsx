@@ -453,18 +453,40 @@ export function Sidebar({
   const toggleThemeMode = theme === "dark" ? "amber" : "void";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
+  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
+  const [animKey, setAnimKey] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const saved = window.localStorage.getItem("ygn-sidebar-tab");
+      if (saved === "chat" || saved === "criacao" || saved === "mercado") {
+        setActiveTabRaw(saved);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
+    if (tab === activeTab) return;
+    setAnimKey((k) => k + 1);
+    setActiveTabRaw(tab);
+    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
+  }, [activeTab]);
+
   const handleNewChat = useCallback(async () => {
     if (isCreatingChat) return;
     setIsCreatingChat(true);
     try {
       const id = await createConversation({ title: "Nova conversa" });
+      setActiveTab("chat"); // Force switch to Chat tab when creating a new chat
       router.push(`/chat?conv=${id}`);
     } catch (err) {
       console.error(err);
     } finally {
       setIsCreatingChat(false);
     }
-  }, [isCreatingChat, createConversation, router]);
+  }, [isCreatingChat, createConversation, router, setActiveTab]);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -588,27 +610,6 @@ export function Sidebar({
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
 
-  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
-  const [animKey, setAnimKey] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const saved = window.localStorage.getItem("ygn-sidebar-tab");
-      if (saved === "chat" || saved === "criacao" || saved === "mercado") {
-        setActiveTabRaw(saved);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
-    if (tab === activeTab) return;
-    setAnimKey((k) => k + 1);
-    setActiveTabRaw(tab);
-    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
-  }, [activeTab]);
-
   const resolvedTab = isMounted ? activeTab : "chat";
 
   const tabItems = useMemo(() => {
@@ -709,23 +710,27 @@ export function Sidebar({
             </div>
           </div>
 
+          {/* Global Action: Novo Chat */}
+          <div className="px-3 mb-2">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={isCreatingChat}
+              className="w-full flex h-9 items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand/10 px-3 mx-0 text-[13px] font-medium text-brand hover:bg-brand/20 hover:border-brand/40 transition disabled:opacity-50"
+            >
+              {isCreatingChat ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Plus size={16} />
+              )}
+              Novo chat
+            </button>
+          </div>
+
           {/* Recents / Dynamic List */}
-          <div className="mt-4 flex-1 overflow-y-auto px-2 overscroll-contain">
+          <div className="flex-1 overflow-y-auto px-2 overscroll-contain">
             {resolvedTab === "chat" && (
               <div className="mb-4 space-y-0.5 pb-3 border-b border-sidebar-hover/40">
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  disabled={isCreatingChat}
-                  className="w-full flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition disabled:opacity-50"
-                >
-                  {isCreatingChat ? (
-                    <Loader2 size={15} className="animate-spin text-brand" />
-                  ) : (
-                    <Plus size={16} className="text-muted" />
-                  )}
-                  Novo chat
-                </button>
                 <ProjectsSection collapsed={collapsed} />
               </div>
             )}

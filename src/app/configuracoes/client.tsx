@@ -436,7 +436,7 @@ export default function ConfiguracoesClient() {
               </div>
               <div className="p-3 rounded-xl border border-line bg-surface-strong/50">
                 <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Tema Atual</p>
-                <p className="text-sm font-bold text-foreground font-mono capitalize">{theme === "dark" ? "Void" : "Ambar"}</p>
+                <p className="text-sm font-bold text-foreground font-mono capitalize">{theme === "dark" ? "Void" : "Amber"}</p>
               </div>
             </div>
           </section>
@@ -466,7 +466,7 @@ export default function ConfiguracoesClient() {
                 className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition ${theme === "light" ? "border-brand bg-brand/10 text-brand" : "border-line bg-surface text-muted hover:text-foreground"}`}
               >
                 <Sun size={16} />
-                <span className="text-[9px] font-bold uppercase tracking-wider">Ambar</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider">Amber</span>
               </button>
             </div>
 
@@ -506,7 +506,7 @@ export default function ConfiguracoesClient() {
             </div>
 
             <p className="mt-2 text-[10px] text-muted text-center">
-              Prévia ao vivo &mdash; {theme === "dark" ? "Void (escuro)" : "Ambar (claro)"}
+              Prévia ao vivo &mdash; {theme === "dark" ? "Void (escuro)" : "Amber (claro)"}
             </p>
           </section>
 

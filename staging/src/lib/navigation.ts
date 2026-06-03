@@ -31,7 +31,6 @@ export const sidebarGroups: SidebarGroup[] = [
     purpose: "Entrada do sistema e visao geral.",
     items: [
       { label: "Início", description: "Chat e atalhos", href: "/", icon: Home },
-      { label: "Painel operacional", description: "Jobs e metricas", href: "/painel", permission: "profiles.view", icon: FileBarChart },
       { label: "Chat IA", description: "Assistente", href: "/chat", permission: "ai_jobs.view_own", icon: MessageSquare },
       { label: "Perfis", description: "Perfis permitidos", href: "/perfis", permission: "profiles.view", icon: Users },
       { label: "Integrações", description: "APIs e serviços", href: "/integracoes", permission: "admin.access", icon: Link2 },
