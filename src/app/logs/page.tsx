@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminListPage } from "@/components/admin-list";
 import { getAgentRuns } from "@/server/data/dashboard";
+import type { AgentRun } from "@/types/dashboard";
 
 export default async function LogsPage({ searchParams }: { searchParams: Promise<{ status?: string; agent?: string }> }) {
   const params = await searchParams;
@@ -24,7 +25,7 @@ export default async function LogsPage({ searchParams }: { searchParams: Promise
             </div>
             {run.job_id ? <Link className="mt-1 block text-sm text-amber-700 dark:text-amber-300" href={`/jobs/${run.job_id}`}>Abrir job {run.job_id}</Link> : null}
             {run.error_message ? <p className="mt-2 text-sm text-red-700 dark:text-red-300">{run.error_message}</p> : null}
-            <p className="mt-1 text-xs text-stone-500">{new Date(run.created_at).toLocaleString("pt-BR")}</p>
+            <p className="mt-1 text-xs text-stone-500">{new Date(run.created_at || '').toLocaleString("pt-BR")}</p>
           </article>
         ))}
       </div>

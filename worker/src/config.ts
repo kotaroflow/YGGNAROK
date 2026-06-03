@@ -1,6 +1,4 @@
-import nextEnv from "@next/env";
-
-const { loadEnvConfig } = nextEnv;
+import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 export const workerConfig = {
@@ -9,9 +7,12 @@ export const workerConfig = {
   pollIntervalMs: Number(process.env.WORKER_POLL_INTERVAL_MS ?? 5000),
   zombieTimeoutMinutes: Number(process.env.WORKER_ZOMBIE_TIMEOUT_MINUTES ?? 15),
   ai: {
-    provider: process.env.AI_PROVIDER ?? "openrouter",
+    provider: process.env.AI_PROVIDER ?? "ollama",
+    ollamaEnabled: flag("ENABLE_OLLAMA", true),
     openAiEnabled: flag("ENABLE_OPENAI_GPT", false),
     openRouterEnabled: flag("ENABLE_OPENROUTER_FALLBACK", true),
+    openClawEnabled: flag("ENABLE_OPENCLAW", true),
+    mstyEnabled: flag("ENABLE_MSTY", true),
     multiModelEnabled: flag("ENABLE_MULTI_MODEL_GENERATION", process.env.AI_MULTI_MODEL_ENABLED !== "false"),
     multiAgentDebateEnabled: flag("ENABLE_MULTI_AGENT_DEBATE", true),
     supervisorSynthesisEnabled: flag("ENABLE_SUPERVISOR_SYNTHESIS", true),
@@ -35,18 +36,24 @@ export const workerConfig = {
     maxDailyExternalCost: process.env.MAX_DAILY_EXTERNAL_AI_COST ?? "defined_by_admin",
     openAiKey: process.env.OPENAI_API_KEY ?? "",
     openRouterKey: process.env.OPENROUTER_API_KEY ?? "",
+    ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+    openClawUrl: process.env.OPENCLAW_URL ?? "http://localhost:3334",
+    mstyUrl: process.env.MSTY_URL ?? "",
     models: {
-      fast: process.env.AI_MODEL_FAST ?? "openrouter:openrouter/free",
-      general: process.env.AI_MODEL_GENERAL ?? "openrouter:openrouter/free",
-      creative: process.env.AI_MODEL_CREATIVE ?? "openrouter:openrouter/free",
-      alternative: process.env.AI_MODEL_ALTERNATIVE ?? "openrouter:openrouter/free",
-      critic: process.env.AI_MODEL_CRITIC ?? "openrouter:openrouter/free",
-      styleCritic: process.env.AI_MODEL_STYLE_CRITIC ?? "openrouter:openrouter/free",
-      consolidator: process.env.AI_MODEL_CONSOLIDATOR ?? "openrouter:openrouter/free",
-      code: process.env.AI_MODEL_CODE ?? "openrouter:openrouter/free",
-      safety: process.env.AI_MODEL_SAFETY ?? "openrouter:openrouter/free",
-      research: process.env.AI_MODEL_RESEARCH ?? "openrouter:openrouter/free",
-      premium: process.env.AI_MODEL_PREMIUM ?? "openrouter:openrouter/free",
+      fast: process.env.AI_MODEL_FAST ?? "ollama:qwen2.5-coder:7b",
+      general: process.env.AI_MODEL_GENERAL ?? "ollama:gemma4:latest",
+      creative: process.env.AI_MODEL_CREATIVE ?? "ollama:gemma4:latest",
+      alternative: process.env.AI_MODEL_ALTERNATIVE ?? "ollama:gemma4:latest",
+      critic: process.env.AI_MODEL_CRITIC ?? "ollama:gemma4:latest",
+      styleCritic: process.env.AI_MODEL_STYLE_CRITIC ?? "ollama:gemma4:latest",
+      consolidator: process.env.AI_MODEL_CONSOLIDATOR ?? "ollama:gemma4:latest",
+      code: process.env.AI_MODEL_CODE ?? "ollama:qwen2.5-coder:14b",
+      safety: process.env.AI_MODEL_SAFETY ?? "ollama:gemma4:latest",
+      research: process.env.AI_MODEL_RESEARCH ?? "ollama:gemma4:latest",
+      premium: process.env.AI_MODEL_PREMIUM ?? "ollama:gemma4:31b-cloud",
+    },
+    embeddings: {
+      model: process.env.AI_EMBEDDING_MODEL ?? "ollama:nomic-embed-text",
     },
   },
   r2: {

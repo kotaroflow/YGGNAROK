@@ -68,8 +68,6 @@
   --sidebar-text-muted: #737373;
 
   /* Light mode ambient colors */
-  --amber-core-opacity: 0.22;
-  --amber-ambient-opacity: 0.06;
   --ambient-bg-start: rgba(255, 240, 200, 0.08);
   --ambient-bg-end: rgba(255, 225, 165, 0.04);
   --ambient-pulse-from: 0.03;
@@ -99,8 +97,6 @@
   --sidebar-text: #E5E5E5;
   --sidebar-text-muted: #A3A3A3;
 
-  --amber-core-opacity: 0.35;
-  --amber-ambient-opacity: 0.12;
   --ambient-bg-start: rgba(30, 20, 0, 0.12);
   --ambient-bg-end: rgba(45, 30, 5, 0.08);
   --ambient-pulse-from: 0.04;
@@ -137,35 +133,8 @@ body {
   line-height: 1.6;
 }
 
-body::before {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  content: "";
-  /* Large ambient glow */
-  z-index: var(--z-amber-ambient);
-  background:
-    radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-ambient-opacity)) 0%, transparent 80%),
-    linear-gradient(135deg, var(--ambient-bg-start) 0%, var(--ambient-bg-end) 100%);
-  filter: blur(120px);
-}
+/* EFEITO DE GLOW REMOVIDO - Anteriormente: body::before e body::after com radial-gradient que seguia o mouse */
 
-body::after {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  content: "";
-  /* Core aura – follows cursor, more vivid */
-  z-index: var(--z-amber-aura);
-  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, var(--amber-core-opacity)) 0%, transparent 45%);
-  filter: blur(80px);
-}
-
-@media (pointer: coarse) {
-  body::before {
-    animation: amber-pulse 12s ease-in-out infinite alternate;
-  }
-}
 
 @keyframes amber-pulse {
   from { opacity: var(--ambient-pulse-from); }

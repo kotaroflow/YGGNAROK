@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isAllowedUrl } from "@/lib/urlValidator";
+import { rateLimitByIp } from "@/lib/rate-limit";
+
 
 interface AuditRequest {
   url: string;
@@ -230,7 +234,7 @@ function analyzeSecurity(html: string): BugReport[] {
 
   $("form").each((i, el) => {
     const action = $(el).attr("action") || "";
-    if (action.startsWith("http://") && !action.startsWith(window?.location?.origin)) {
+    if (action.startsWith("http://")) {
       bugs.push({
         type: "security",
         severity: "warning",
@@ -256,8 +260,18 @@ function analyzeSecurity(html: string): BugReport[] {
 }
 
 export async function POST(request: Request) {
+  const { allowed } = rateLimitByIp(request, 10, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
     const { url, adminAuth, agents = ["hermes", "atlas", "pixel"] }: AuditRequest = body;
 
     if (!url) {

@@ -44,17 +44,17 @@ async function MomongaContent() {
         <Panel title="Agentes do conselho">
           <div className="grid gap-2 sm:grid-cols-2">
             {overview.agents.length ? overview.agents.map((agent) => (
-              <div key={agent.key} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
+              <div key={String(agent.key)} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium">{agent.name}</p>
-                    <p className="mt-1 text-xs text-muted">{agent.role} / {agent.risk_level}</p>
+                    <p className="text-sm font-medium">{String(agent.name)}</p>
+                    <p className="mt-1 text-xs text-muted">{String(agent.role)} / {String(agent.risk_level)}</p>
                   </div>
-                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{agent.status}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{String(agent.status)}</span>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <SmallAction action={pauseAgent} hiddenName="key" hiddenValue={agent.key} icon={<CirclePause size={14} />} label="Pausar" />
-                  <SmallAction action={reactivateAgent} hiddenName="key" hiddenValue={agent.key} icon={<CirclePlay size={14} />} label="Ativar" />
+                  <SmallAction action={pauseAgent} hiddenName="key" hiddenValue={String(agent.key)} icon={<CirclePause size={14} />} label="Pausar" />
+                  <SmallAction action={reactivateAgent} hiddenName="key" hiddenValue={String(agent.key)} icon={<CirclePlay size={14} />} label="Ativar" />
                 </div>
               </div>
             )) : <FallbackAgents />}
@@ -64,14 +64,14 @@ async function MomongaContent() {
         <Panel title="Provedores e modelos">
           <div className="space-y-3">
             {overview.providerStatus.length ? overview.providerStatus.map((provider) => (
-              <div key={provider.provider} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
+              <div key={String(provider.provider)} className="rounded-lg border border-line bg-surface-strong p-3 shadow-sm backdrop-blur ">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">{provider.provider}</span>
-                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{provider.status}</span>
+                  <span className="text-sm font-medium">{String(provider.provider)}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{String(provider.status)}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  {provider.latency_ms ? `${provider.latency_ms}ms` : "latencia nao medida"}
-                  {provider.error_message ? ` / ${provider.error_message}` : ""}
+                  {provider.latency_ms ? `${String(provider.latency_ms)}ms` : "latencia nao medida"}
+                  {provider.error_message ? ` / ${String(provider.error_message)}` : ""}
                 </p>
               </div>
             )) : <p className="text-sm text-muted">Status sera preenchido pelo worker.</p>}
@@ -89,20 +89,20 @@ async function MomongaContent() {
         <Panel title="Decisoes recentes">
           <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
             {overview.decisions.length ? overview.decisions.slice(0, 10).map((decision) => (
-              <article key={decision.id} className="py-3">
+              <article key={String(decision.id)} className="py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium">{decision.decision_type}</p>
-                    {decision.job_id ? <Link className="mt-1 block text-xs text-amber-700 dark:text-amber-300" href={`/jobs/${decision.job_id}`}>Abrir job</Link> : null}
+                    <p className="font-medium">{String(decision.decision_type)}</p>
+                    {decision.job_id ? <Link className="mt-1 block text-xs text-amber-700 dark:text-amber-300" href={`/jobs/${String(decision.job_id)}`}>Abrir job</Link> : null}
                   </div>
-                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{decision.status} / {decision.risk}</span>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{String(decision.status)} / {String(decision.risk)}</span>
                 </div>
-                <p className="mt-2 text-sm text-muted">{decision.summary || "Sem resumo."}</p>
-                <p className="mt-1 text-xs text-muted">Autoridade: {decision.authority}</p>
+                <p className="mt-2 text-sm text-muted">{String(decision.summary || "Sem resumo.")}</p>
+                <p className="mt-1 text-xs text-muted">Autoridade: {String(decision.authority)}</p>
                 {decision.status === "pending" ? (
                   <div className="mt-3 flex gap-2">
-                    <SmallAction action={approveDecision} hiddenName="id" hiddenValue={decision.id} icon={<ShieldCheck size={14} />} label="Aprovar" />
-                    <SmallAction action={rejectDecision} hiddenName="id" hiddenValue={decision.id} icon={<AlertTriangle size={14} />} label="Rejeitar" />
+                    <SmallAction action={approveDecision} hiddenName="id" hiddenValue={String(decision.id)} icon={<ShieldCheck size={14} />} label="Aprovar" />
+                    <SmallAction action={rejectDecision} hiddenName="id" hiddenValue={String(decision.id)} icon={<AlertTriangle size={14} />} label="Rejeitar" />
                   </div>
                 ) : null}
               </article>
@@ -113,16 +113,16 @@ async function MomongaContent() {
         <Panel title="Memorias e aprendizado">
           <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
             {overview.memories.length ? overview.memories.slice(0, 10).map((memory) => (
-              <article key={memory.id} className="py-3">
+              <article key={String(memory.id)} className="py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-medium">{memory.title}</p>
-                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{memory.status}</span>
+                  <p className="font-medium">{String(memory.title)}</p>
+                  <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{String(memory.status)}</span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-muted">{memory.body}</p>
+                <p className="mt-2 line-clamp-2 text-sm text-muted">{String(memory.body)}</p>
                 {memory.status === "pending" ? (
                   <div className="mt-3 flex gap-2">
-                    <SmallAction action={approveMemory} hiddenName="id" hiddenValue={memory.id} icon={<Brain size={14} />} label="Aprovar" />
-                    <SmallAction action={rejectMemory} hiddenName="id" hiddenValue={memory.id} icon={<AlertTriangle size={14} />} label="Rejeitar" />
+                    <SmallAction action={approveMemory} hiddenName="id" hiddenValue={String(memory.id)} icon={<Brain size={14} />} label="Aprovar" />
+                    <SmallAction action={rejectMemory} hiddenName="id" hiddenValue={String(memory.id)} icon={<AlertTriangle size={14} />} label="Rejeitar" />
                   </div>
                 ) : null}
               </article>
@@ -135,12 +135,12 @@ async function MomongaContent() {
         <Panel title="Custos estimados">
           <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
             {overview.costs.length ? overview.costs.slice(0, 8).map((cost) => (
-              <article key={cost.id} className="flex items-center justify-between gap-3 py-3">
+              <article key={String(cost.id)} className="flex items-center justify-between gap-3 py-3">
                 <div>
-                  <p className="font-medium">{cost.provider}</p>
-                  <p className="text-xs text-muted">{cost.model}</p>
+                  <p className="font-medium">{String(cost.provider)}</p>
+                  <p className="text-xs text-muted">{String(cost.model)}</p>
                 </div>
-                <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{cost.currency} {cost.estimated_cost}</span>
+                <span className="rounded-full bg-surface-strong px-3 py-1 text-xs text-slate-500 shadow-sm text-muted">{String(cost.currency)} {String(cost.estimated_cost)}</span>
               </article>
             )) : <p className="text-sm text-muted">Ledger sera preenchido apos jobs do Council.</p>}
           </div>
@@ -149,12 +149,12 @@ async function MomongaContent() {
         <Panel title="Alertas e conflitos">
           <div className="divide-y divide-slate-200/70 dark:divide-neutral-800">
             {overview.health.slice(0, 6).map((entry) => (
-              <article key={entry.id} className="py-3">
+              <article key={String(entry.id)} className="py-3">
                 <div className="flex items-center gap-2">
                   <Workflow size={16} />
-                  <p className="font-medium">{entry.status} - {entry.source}</p>
+                  <p className="font-medium">{String(entry.status)} - {String(entry.source)}</p>
                 </div>
-                <p className="mt-1 text-sm text-muted">{entry.message}</p>
+                <p className="mt-1 text-sm text-muted">{String(entry.message)}</p>
               </article>
             ))}
           </div>

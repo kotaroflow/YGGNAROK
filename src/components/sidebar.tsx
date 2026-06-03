@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, LogOut, MessageSquare, Briefcase, Plus, Library, Bot, RefreshCw, Settings, Globe, FolderOpen, FolderPlus, MoreHorizontal, Pin, Pencil, FolderSymlink, Trash2, Moon, Sun, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef, useCallback, memo } from "react";
+import { throttle } from "@/lib/utils";
 import { hasPermission, type PermissionContext } from "@/lib/permissions";
 import { sidebarGroups } from "@/lib/navigation";
 import { signOut } from "@/server/actions/auth";
@@ -450,7 +451,7 @@ export function Sidebar({
   const router = useRouter();
   const { createConversation } = useChatWorkspace();
   const [theme] = useTheme();
-  const toggleThemeMode = theme === "dark" ? "void" : "amber";
+  const toggleThemeMode = theme === "dark" ? "amber" : "void";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const handleNewChat = useCallback(async () => {
@@ -479,7 +480,13 @@ export function Sidebar({
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSidebarClick = () => {
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    // Nunca interceptar cliques em elementos interativos (botoes, links, inputs)
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, select, [role="button"]')) {
+      return;
+    }
+
     // Triple click detector: opens/expands the sidebar
     clickCountRef.current += 1;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
@@ -521,15 +528,16 @@ export function Sidebar({
   }, []);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const throttledHandler = throttle((e: MouseEvent) => {
       if (!isResizing) return;
       const newWidth = Math.max(220, Math.min(e.clientX, 500));
       setSidebarWidth(newWidth);
-    };
+    }, 16);
+
     const handleMouseUp = () => setIsResizing(false);
 
     if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mousemove", throttledHandler);
       document.addEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
@@ -538,7 +546,7 @@ export function Sidebar({
       document.body.style.userSelect = "";
     }
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mousemove", throttledHandler);
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing]);

@@ -1,9 +1,13 @@
 export const dynamic = "force-dynamic";
 
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimitByIp } from "@/lib/rate-limit";
+
 type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
 };
+
 
 type OpenRouterResponse = {
   choices?: Array<{
@@ -18,6 +22,14 @@ function pickModel(clientModel?: string) {
   const configured = (process.env.AI_MODEL || "").trim();
   if (!configured) return "meta-llama/llama-3.1-8b-instruct";
   return configured;
+}
+
+function stripProviderPrefix(value: string) {
+  const prefixes = ["ollama:", "openrouter:", "openai:", "openclaw:", "msty:"];
+  for (const prefix of prefixes) {
+    if (value.startsWith(prefix)) return value.slice(prefix.length);
+  }
+  return value;
 }
 
 function jsonError(message: string, status = 400) {
@@ -45,31 +57,68 @@ function normalizeMessage(msg: unknown): ChatMessage | null {
   return null;
 }
 
-export async function POST(req: Request) {
-  const apiKey = (process.env.OPENROUTER_API_KEY || "").trim();
-  if (!apiKey) {
-    if (process.env.NODE_ENV === "development") {
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream<Uint8Array>({
-        async start(controller) {
-          const text = "Você está em um ambiente de desenvolvimento local (Mock Mode). A chave da API do OpenRouter não foi encontrada.\n\nA interface de chat e o fluxo de resposta (streaming) estão funcionando perfeitamente! Para gerar respostas reais da inteligência artificial, você precisará configurar a variável `OPENROUTER_API_KEY` posteriormente.\n\nAté lá, sinta-se livre para testar a responsividade e o design da interface.";
-          const words = text.split(" ");
-          for (const word of words) {
-            controller.enqueue(encoder.encode(word + " "));
-            await new Promise((resolve) => setTimeout(resolve, 30));
+function proxyOllamaStream(upstream: Response) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = upstream.body!.getReader();
+      let buffer = "";
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            const data = line.slice(5).trim();
+            if (!data) continue;
+
+            try {
+              const parsed = JSON.parse(data) as { message?: { content?: string }; done?: boolean };
+              if (parsed.message?.content) {
+                controller.enqueue(encoder.encode(parsed.message.content));
+              }
+            } catch {
+              // skip malformed JSON
+            }
           }
-          controller.close();
-        },
-      });
-      return new Response(stream, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store, no-transform",
-        },
-      });
-    }
-    return jsonError("OPENROUTER_API_KEY ausente.", 500);
+        }
+      } catch (error) {
+        controller.error(error);
+      } finally {
+        try { reader.releaseLock(); } catch { /* ignore */ }
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+    },
+  });
+}
+
+export async function POST(req: Request) {
+  const { allowed, remaining } = rateLimitByIp(req, 20, 60000);
+  if (!allowed) {
+    return Response.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429, headers: { "X-RateLimit-Remaining": "0", "Retry-After": "60" } });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return Response.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   let body: unknown;
@@ -89,6 +138,52 @@ export async function POST(req: Request) {
     .filter((msg): msg is ChatMessage => msg !== null);
 
   if (!normalized.length) return jsonError("messages vazio apos normalizacao.", 400);
+
+  const ollamaBaseUrl = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
+  try {
+    const ollamaResponse = await fetch(`${ollamaBaseUrl}/api/chat`, {
+      method: "POST",
+      signal: AbortSignal.timeout(5000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: pickModel(clientModel).replace(/^ollama:/, ""),
+        messages: normalized,
+        stream: true,
+      }),
+    });
+
+    if (ollamaResponse.ok && ollamaResponse.body) {
+      return proxyOllamaStream(ollamaResponse);
+    }
+  } catch {
+    // Ollama not available, fall through to OpenRouter
+  }
+
+  const apiKey = (process.env.OPENROUTER_API_KEY || "").trim();
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "development") {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const text = "Você está em um ambiente de desenvolvimento local (Mock Mode). Nenhum provedor AI local (Ollama) ou remoto (OpenRouter) foi encontrado.\n\nA interface de chat e o fluxo de resposta (streaming) estão funcionando perfeitamente! Para gerar respostas reais, configure OLLAMA_BASE_URL ou OPENROUTER_API_KEY.";
+          const words = text.split(" ");
+          for (const word of words) {
+            controller.enqueue(encoder.encode(word + " "));
+            await new Promise((resolve) => setTimeout(resolve, 30));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store, no-transform",
+        },
+      });
+    }
+    return jsonError("OPENROUTER_API_KEY ausente e Ollama indisponivel.", 500);
+  }
 
   let finalMessages = normalized;
 
@@ -156,7 +251,7 @@ export async function POST(req: Request) {
       "X-Title": process.env.OPENROUTER_APP_NAME || "YGGNAROK",
     },
     body: JSON.stringify({
-      model: pickModel(clientModel),
+      model: stripProviderPrefix(pickModel(clientModel)),
       messages: finalMessages,
       stream: true,
     }),

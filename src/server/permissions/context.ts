@@ -3,44 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PermissionContext } from "@/lib/permissions";
 import type { PermissionKey, RoleKey } from "@/lib/permissions/keys";
 
-let cachedPermissionContext: Promise<PermissionContext | null> | null = null;
-
 export async function getCurrentPermissionContext(): Promise<PermissionContext | null> {
-  const ctx: PermissionContext = {
-    userId: "mock-user-id",
-    email: "kotaro@yggnarok.com",
-    roles: ["owner"],
-    permissions: [
-      "admin.access",
-      "ai_jobs.view_own",
-      "profiles.view",
-      "reports.view",
-      "content.create",
-      "ai_jobs.create",
-      "content.view",
-      "library.view",
-      "library.restore",
-      "posting.view",
-      "ai_jobs.manage_all",
-      "admin.manage_roles",
-      "admin.manage_permissions",
-      "admin.system_health",
-      "admin.view_logs",
-    ],
-    profileIds: ["mock-profile-id"],
-  };
-  console.log("[server:getCurrentPermissionContext]", ctx);
-  return ctx;
-
-  if (cachedPermissionContext) return cachedPermissionContext;
-
-  cachedPermissionContext = (async (): Promise<PermissionContext | null> => {
-    let supabase;
-    try {
-      supabase = await createSupabaseServerClient();
-    } catch {
-      return null;
-    }
+  try {
+    const supabase = await createSupabaseServerClient();
 
     const {
       data: { user },
@@ -94,7 +59,7 @@ export async function getCurrentPermissionContext(): Promise<PermissionContext |
       permissions,
       profileIds,
     };
-  })();
-
-  return cachedPermissionContext;
+  } catch {
+    return null;
+  }
 }

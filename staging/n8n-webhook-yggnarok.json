@@ -1,0 +1,61 @@
+{
+  "name": "YGGNAROK - Agente de Ingestão",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yggnarok-hub",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Recepção YGGNAROK",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "yggnarok-neural-link-001"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "recebido_com_sucesso"
+            },
+            {
+              "name": "mensagem_para_kotaro",
+              "value": "Mestre Kotaro, os dados chegaram no n8n. Aguardando próximos comandos da IA."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Simulação de Processamento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Recepção YGGNAROK": {
+      "main": [
+        [
+          {
+            "node": "Simulação de Processamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

@@ -3,18 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { assertPermission } from "@/server/permissions/assert";
-import type { Json } from "@/types/database";
+import type { Database, Json } from "@/types/database";
 
 export async function approveDecision(formData: FormData) {
   const id = requiredId(formData);
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  await admin.from("ai_council_decisions" as never).update({
+  await admin.from("ai_council_decisions").update({
     status: "approved",
     approved_by: user.id,
     approved_at: new Date().toISOString(),
-  } as never).eq("id" as never, id as never);
+  }).eq("id", id);
 
   await audit(user.id, "ai_council.decision.approved", "ai_council_decision", id);
   revalidateMomonga();
@@ -25,11 +25,11 @@ export async function rejectDecision(formData: FormData) {
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  await admin.from("ai_council_decisions" as never).update({
+  await admin.from("ai_council_decisions").update({
     status: "rejected",
     approved_by: user.id,
     approved_at: new Date().toISOString(),
-  } as never).eq("id" as never, id as never);
+  }).eq("id", id);
 
   await audit(user.id, "ai_council.decision.rejected", "ai_council_decision", id);
   revalidateMomonga();
@@ -40,10 +40,10 @@ export async function pauseAgent(formData: FormData) {
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  await admin.from("ai_council_agents" as never).update({
+  await admin.from("ai_council_agents").update({
     status: "paused",
     paused_reason: String(formData.get("reason") || "Pausado pelo Momonga."),
-  } as never).eq("key" as never, key as never);
+  }).eq("key", key);
 
   await audit(user.id, "ai_council.agent.paused", "ai_council_agent", key);
   revalidateMomonga();
@@ -54,11 +54,11 @@ export async function reactivateAgent(formData: FormData) {
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  await admin.from("ai_council_agents" as never).update({
+  await admin.from("ai_council_agents").update({
     status: "active",
     paused_reason: null,
     last_seen_at: new Date().toISOString(),
-  } as never).eq("key" as never, key as never);
+  }).eq("key", key);
 
   await audit(user.id, "ai_council.agent.reactivated", "ai_council_agent", key);
   revalidateMomonga();
@@ -69,13 +69,13 @@ export async function approveMemory(formData: FormData) {
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  const { data } = await admin.from("ai_memory_candidates" as never)
-    .select("library_item_id" as never)
-    .eq("id" as never, id as never)
+  const { data } = await admin.from("ai_memory_candidates")
+    .select("library_item_id")
+    .eq("id", id)
     .single();
-  const libraryItemId = (data as { library_item_id?: string | null } | null)?.library_item_id;
+  const libraryItemId = data?.library_item_id;
 
-  await admin.from("ai_memory_candidates" as never).update({ status: "approved" } as never).eq("id" as never, id as never);
+  await admin.from("ai_memory_candidates").update({ status: "approved" }).eq("id", id);
   if (libraryItemId) {
     await admin.from("library_items").update({ status: "active" }).eq("id", libraryItemId);
   }
@@ -89,13 +89,13 @@ export async function rejectMemory(formData: FormData) {
   const { user } = await assertPermission("admin.access");
   const admin = createSupabaseServiceClient();
 
-  const { data } = await admin.from("ai_memory_candidates" as never)
-    .select("library_item_id" as never)
-    .eq("id" as never, id as never)
+  const { data } = await admin.from("ai_memory_candidates")
+    .select("library_item_id")
+    .eq("id", id)
     .single();
-  const libraryItemId = (data as { library_item_id?: string | null } | null)?.library_item_id;
+  const libraryItemId = data?.library_item_id;
 
-  await admin.from("ai_memory_candidates" as never).update({ status: "rejected" } as never).eq("id" as never, id as never);
+  await admin.from("ai_memory_candidates").update({ status: "rejected" }).eq("id", id);
   if (libraryItemId) {
     await admin.from("library_items").update({ status: "archived" }).eq("id", libraryItemId);
   }
@@ -148,12 +148,13 @@ export async function releaseKillSwitch() {
 
 async function upsertAutomation(key: string, name: string, status: string, metadata: Json) {
   const admin = createSupabaseServiceClient();
-  await admin.from("ai_automations" as never).upsert({
+  await admin.from("ai_automations").upsert({
     key,
     name,
     status,
+    interval_ms: 0,
     metadata,
-  } as never);
+  });
 }
 
 async function audit(userId: string, action: string, resourceType: string, resourceId: string) {

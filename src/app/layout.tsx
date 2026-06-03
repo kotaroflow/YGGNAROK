@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { AmberCursorTracker } from "@/components/amber-cursor-tracker";
+import { ThemeInitializer } from "@/components/theme-initializer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,25 +41,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const theme = cookieStore.get("ygn-theme")?.value || null;
-  const initialTheme = theme || "light";
-  
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased ${initialTheme === "dark" ? "dark" : ""}`}
-      data-theme={initialTheme}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head></head>
+      <head>
+        <ThemeInitializer />
+      </head>
       <body className="min-h-full bg-background text-foreground antialiased">
-        <AmberCursorTracker />
         {children}
         <SpeedInsights />
       </body>

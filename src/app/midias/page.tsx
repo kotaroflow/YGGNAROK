@@ -4,13 +4,14 @@ import { Field, buttonClass, inputClass } from "@/components/field";
 import { MediaPreview } from "@/components/media-preview";
 import { uploadMediaAsset } from "@/server/actions/media";
 import { getMediaAssets, getProfiles } from "@/server/data/dashboard";
+import type { Profile, MediaAsset } from "@/types/dashboard";
 
-type ProfileOption = Awaited<ReturnType<typeof getProfiles>>[number];
-type MediaAsset = Awaited<ReturnType<typeof getMediaAssets>>[number];
+type ProfileOption = Profile;
+type MediaAssetOption = MediaAsset;
 
 export default async function MidiasPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const params = await searchParams;
-  const [profiles, assets] = await Promise.all([getProfiles(), getMediaAssets()]);
+  const [profiles, assets] = (await Promise.all([getProfiles(), getMediaAssets()])) as [ProfileOption[], MediaAssetOption[]];
   const filteredAssets = params.type ? assets.filter((asset) => asset.asset_type === params.type) : assets;
 
   return (
@@ -49,7 +50,7 @@ export default async function MidiasPage({ searchParams }: { searchParams: Promi
             <Link className="rounded-full border border-white/80 bg-white/55 px-4 py-2 text-sm text-slate-600 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-neutral-950/50 dark:text-stone-300 dark:hover:bg-neutral-900" href="/midias">Todos</Link>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredAssets.length ? filteredAssets.map((asset: MediaAsset) => (
+            {filteredAssets.length ? filteredAssets.map((asset: MediaAssetOption) => (
               <article key={asset.id} className="rounded-lg border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
                 <MediaPreview url={asset.public_url} mimeType={asset.mime_type} label={asset.r2_key} />
                 <h3 className="mt-3 truncate font-medium">{asset.r2_key}</h3>

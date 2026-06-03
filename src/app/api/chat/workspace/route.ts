@@ -7,6 +7,7 @@ import {
   replaceMessages,
   updateConversation,
 } from "@/server/chat/repository";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,11 @@ type ImportBody = {
 };
 
 export async function POST(req: Request) {
+  const { allowed } = rateLimitByIp(req, 10, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429 });
+  }
+
   try {
     if (process.env.NODE_ENV === "development" && (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("example.supabase.co"))) {
       return NextResponse.json({ mode: "local" as const }, { status: 200 });

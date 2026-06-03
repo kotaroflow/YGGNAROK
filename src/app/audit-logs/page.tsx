@@ -1,9 +1,10 @@
 import { AdminListPage } from "@/components/admin-list";
 import { getAuditLogs } from "@/server/data/dashboard";
+import type { AuditLog } from "@/types/dashboard";
 
 export default async function AuditLogsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   await searchParams;
-  const logs = await getAuditLogs();
+  const logs = await getAuditLogs() as AuditLog[];
 
   return (
     <AdminListPage eyebrow="作戦本部 — Sakusen Honbu" title="Audit Logs" empty={!logs.length}>
@@ -15,7 +16,7 @@ export default async function AuditLogsPage({ searchParams }: { searchParams: Pr
               <span className="rounded-full bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-sm dark:bg-neutral-900/70 dark:text-stone-300">{log.resource_type || "recurso"}</span>
             </div>
             <p className="mt-1 text-sm text-muted">{log.reason || "Sem motivo informado."}</p>
-            <p className="mt-1 text-xs text-stone-500">{new Date(String(log.created_at)).toLocaleString("pt-BR")}</p>
+            <p className="mt-1 text-xs text-stone-500">{new Date(String(log.created_at || '')).toLocaleString("pt-BR")}</p>
           </article>
         ))}
       </div>
