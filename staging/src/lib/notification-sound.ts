@@ -18,7 +18,7 @@ let cachedAudioContext: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   if (cachedAudioContext) return cachedAudioContext;
   if (typeof window === "undefined") return null;
-  const Constructor = window.AudioContext ?? (window as any).webkitAudioContext;
+  const Constructor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Constructor) return null;
   cachedAudioContext = new Constructor();
   return cachedAudioContext;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAllowedUrl } from "@/lib/urlValidator";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 
 interface AuditRequest {
@@ -259,9 +260,13 @@ function analyzeSecurity(html: string): BugReport[] {
 }
 
 export async function POST(request: Request) {
+  const { allowed } = rateLimitByIp(request, 10, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
-    // Autenticação Supabase
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

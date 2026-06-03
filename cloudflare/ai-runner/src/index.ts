@@ -18,6 +18,15 @@ type Env = {
   AI_FREE_FALLBACK_ONLY?: string;
   AI_DEFAULT_MODE?: string;
   RUNNER_TOKEN: string;
+  OLLAMA_BASE_URL?: string;
+  OLLAMA_MODEL?: string;
+  OLLAMA_CODE_MODEL?: string;
+  OLLAMA_FAST_MODEL?: string;
+  OPENCLAW_URL?: string;
+  MSTY_URL?: string;
+  ENABLE_OLLAMA?: string;
+  ENABLE_OPENCLAW?: string;
+  ENABLE_MSTY?: string;
   AI?: {
     run(model: string, input: Record<string, unknown>): Promise<unknown>;
   };
@@ -183,6 +192,14 @@ async function processJob(env: Env, job: ClaimedJob) {
 }
 
 async function complete(env: Env, system: string, payload: Record<string, unknown>) {
+  if (env.ENABLE_OLLAMA !== "false") {
+    try {
+      return await runOllama(env, system, payload);
+    } catch {
+      // Ollama not available, fall through
+    }
+  }
+
   const provider = env.AI_PROVIDER ?? "openrouter";
 
   if (provider === "workers-ai") {
@@ -366,16 +383,16 @@ function modelFor(env: Env, role: AiRole) {
 
 function defaultModelFor(role: AiRole) {
   const defaults: Record<AiRole, string> = {
-    fast: "qwen/qwen3-30b-a3b-instruct-2507",
-    general: "qwen/qwen3-235b-a22b-2507",
-    creative: "mistralai/mistral-small-3.2-24b-instruct",
-    alternative: "moonshotai/kimi-k2",
-    critic: "deepseek/deepseek-r1",
-    styleCritic: "qwen/qwen3-235b-a22b-2507",
-    consolidator: "qwen/qwen3-235b-a22b-2507",
-    code: "qwen/qwen3-coder",
-    safety: "deepseek/deepseek-r1",
-    research: "qwen/qwen3-235b-a22b-2507",
+    fast: "qwen2.5-coder:7b",
+    general: "gemma4:latest",
+    creative: "gemma4:latest",
+    alternative: "gemma4:latest",
+    critic: "gemma4:latest",
+    styleCritic: "gemma4:latest",
+    consolidator: "gemma4:latest",
+    code: "qwen2.5-coder:14b",
+    safety: "gemma4:latest",
+    research: "gemma4:latest",
   };
 
   return defaults[role];
@@ -464,6 +481,49 @@ function normalizeProviderOutput(output: Record<string, unknown>) {
   };
 }
 
+async function runOllama(env: Env, system: string, payload: Record<string, unknown>) {
+  const baseUrl = (env.OLLAMA_BASE_URL ?? "http://localhost:11434").replace(/\/$/, "");
+  const domain = inferDomain(String(payload.job_type ?? ""), payload.payload ?? payload);
+  const mode = inferMode(env, String(payload.job_type ?? ""), payload.payload ?? payload, domain);
+  const model = modelForOllama(env, domain, mode);
+
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    signal: AbortSignal.timeout(60_000),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: `${system} Responda em JSON valido.` },
+        { role: "user", content: JSON.stringify(payload) },
+      ],
+      stream: false,
+      format: "json",
+    }),
+  });
+
+  const body = await response.json().catch(() => null) as {
+    message?: { content?: string };
+    error?: string;
+  } | null;
+
+  if (!response.ok || !body?.message?.content) {
+    throw new Error(`Ollama failed: ${body?.error ?? response.statusText}`);
+  }
+
+  try {
+    return normalizeProviderOutput(JSON.parse(body.message.content) as Record<string, unknown>);
+  } catch {
+    return { summary: body.message.content, items: [], next_actions: [], risk: "unknown", metadata: { provider: "ollama", model } };
+  }
+}
+
+function modelForOllama(env: Env, domain: AiDomain, mode: AiMode) {
+  if (domain === "code") return env.OLLAMA_CODE_MODEL ?? "qwen2.5-coder:14b";
+  if (mode === "fast") return env.OLLAMA_FAST_MODEL ?? "qwen2.5-coder:7b";
+  return env.OLLAMA_MODEL ?? "gemma4:latest";
+}
+
 async function runWorkersAi(env: Env, system: string, payload: Record<string, unknown>) {
   if (!env.AI) {
     throw new Error("Cloudflare Workers AI binding is not configured.");
@@ -500,25 +560,12 @@ function isProviderQuotaError(error: unknown) {
 }
 
 function fallbackModelsFor(model: string) {
-  const roleFallback = model.includes("coder")
-    ? "qwen/qwen3-coder:free"
-    : model.includes("deepseek")
-      ? "deepseek/deepseek-v4-flash:free"
-      : model.includes("mistral")
-        ? "meta-llama/llama-3.3-70b-instruct:free"
-        : model.includes("kimi") || model.includes("moonshot")
-          ? "z-ai/glm-4.5-air:free"
-          : model.includes("qwen")
-            ? "qwen/qwen3-next-80b-a3b-instruct:free"
-            : "openai/gpt-oss-20b:free";
-
   return [
+    model,
+    "google/gemini-2.5-flash",
+    "meta-llama/llama-4-scout",
+    "mistral/mistral-small-3.1",
     "openrouter/free",
-    roleFallback,
-    "deepseek/deepseek-v4-flash:free",
-    "google/gemma-4-31b-it:free",
-    "openai/gpt-oss-20b:free",
-    "z-ai/glm-4.5-air:free",
   ];
 }
 

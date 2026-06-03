@@ -4,10 +4,11 @@ import { Field, buttonClass, inputClass, textareaClass } from "@/components/fiel
 import { JobsRealtime } from "@/components/jobs-realtime";
 import { createAiJob } from "@/server/actions/jobs";
 import { getJobs, getProfiles } from "@/server/data/dashboard";
+import type { Profile, Job } from "@/types/dashboard";
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   await searchParams;
-  const [profiles, jobs] = await Promise.all([getProfiles(), getJobs()]);
+  const [profiles, jobs] = (await Promise.all([getProfiles(), getJobs()])) as [Profile[], Job[]];
 
   return (
     <AppShell>

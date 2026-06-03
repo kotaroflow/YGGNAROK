@@ -421,6 +421,7 @@ export type Database = {
           payload: Json;
           result: Json;
           created_at: string;
+          approved_by: string | null;
           approved_at: string | null;
         };
         Insert: {
@@ -433,6 +434,7 @@ export type Database = {
           summary: string;
           payload?: Json;
           result?: Json;
+          approved_by?: string;
           approved_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["ai_council_decisions"]["Insert"]>;

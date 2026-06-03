@@ -5,6 +5,7 @@ import { BriefcaseBusiness, FileText, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { tagRows, v1Workflows } from "@/features/dashboard/v1-data";
 import { getDashboardOverview } from "@/server/data/dashboard";
+import { PainelClient } from "./painel-client";
 
 export const metadata: Metadata = {
   title: "Painel",
@@ -26,7 +27,7 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
     {
       label: "Trabalhos em andamento",
       value: overview.counts.pendingJobs,
-      href: "/jobs-em-andamento",
+      href: "/jobs",
       icon: BriefcaseBusiness,
       tone: "violet" as const,
     },
@@ -39,117 +40,135 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
     },
   ];
 
+  const endpoints = {
+    Ollama: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+    n8n: process.env.N8N_BASE_URL ?? "http://localhost:5678",
+    "OPENCLAW Gateway": process.env.OPENCLAW_URL ?? "http://localhost:3334",
+    Dashboard: `http://localhost:${process.env.DASHBOARD_PORT ?? "3333"}`,
+  };
+
   return (
     <AppShell>
-      <main className="relative min-h-screen px-4 py-6 text-foreground lg:px-8">
-        
-        {/* Ambient Light Orbs for Void Mode Legibility */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
-        <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+      <PainelClient endpoints={endpoints}>
+        <main className="relative min-h-screen px-4 py-6 text-foreground lg:px-8">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
+          <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
 
-        <header className="relative z-10 mx-auto mb-8 flex w-full max-w-7xl flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-brand">Operação</p>
-            <h1 className="mt-1 font-divine text-3xl sm:text-4xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">Painel Operacional</h1>
-            <p className="mt-2 text-sm text-muted">
-              Trabalhos, filas e fluxos do YGGNAROK.
-            </p>
-          </div>
-          <Link
-            href="/"
-            className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-foreground transition hover:bg-surface-strong"
-          >
-            Voltar ao início
-          </Link>
-        </header>
-
-        <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-3">
-          {stats.map((stat) => (
+          <header className="relative z-10 mx-auto mb-8 flex w-full max-w-7xl flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-brand">Operação</p>
+              <h1 className="mt-1 font-divine text-3xl sm:text-4xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">Painel Operacional</h1>
+              <p className="mt-2 text-sm text-muted">
+                Trabalhos, filas e fluxos do YGGNAROK.
+              </p>
+            </div>
             <Link
-              key={stat.label}
-              href={stat.href}
-              className="group flex items-center gap-4 rounded-xl border border-line/40 bg-surface/60 p-5 shadow-lg backdrop-blur-xl transition hover:border-brand/40 hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]"
+              href="/"
+              className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-foreground transition hover:bg-surface-strong"
             >
-              <span className={`grid size-12 place-items-center rounded-xl border ${toneClasses[stat.tone]}`}>
-                <stat.icon size={22} />
-              </span>
-              <span>
-                <span className="block text-2xl font-bold leading-none">{stat.value}</span>
-                <span className="mt-1 block text-sm text-muted">{stat.label}</span>
-              </span>
+              Voltar ao início
             </Link>
-          ))}
-        </section>
+          </header>
 
-        <section className="mx-auto mt-8 grid w-full max-w-7xl gap-5">
-          <Panel title="Trabalhos recentes" href="/jobs" action="Ver todos">
-            <div className="divide-y divide-line">
-              {visibleJobs.length ? (
-                visibleJobs.map((job) => (
-                  <Link
-                    key={job.id}
-                    href={`/jobs/${job.id}`}
-                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-4 text-sm"
-                  >
-                    <span className="size-2 rounded-full bg-brand" />
-                    <span className="min-w-0 truncate text-muted">{formatJobTitle(job.type)}</span>
-                    <StatusPill status={job.status} />
-                    <span className="whitespace-nowrap text-xs text-muted">
-                      {formatRelativeTime(job.created_at)}
-                    </span>
-                  </Link>
-                ))
-              ) : (
-                <Empty text="Nenhum trabalho recente." />
-              )}
-            </div>
-          </Panel>
-        </section>
+          <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-3">
+            {stats.map((stat) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className="group flex items-center gap-4 rounded-xl border border-line/40 bg-surface/60 p-5 shadow-lg backdrop-blur-xl transition hover:border-brand/40 hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.2)]"
+              >
+                <span className={`grid size-12 place-items-center rounded-xl border ${toneClasses[stat.tone]}`}>
+                  <stat.icon size={22} />
+                </span>
+                <span>
+                  <span className="block text-2xl font-bold leading-none">{stat.value}</span>
+                  <span className="mt-1 block text-sm text-muted">{stat.label}</span>
+                </span>
+              </Link>
+            ))}
+          </section>
 
-        <section className="mx-auto mt-5 grid w-full max-w-7xl gap-5 xl:grid-cols-3">
-          <Panel title="Fluxo de criação" href="/criar-conteudo" action="Abrir">
-            <div className="divide-y divide-line">
-              {v1Workflows.map((workflow, index) => (
-                <div key={workflow} className="flex items-center gap-3 py-3">
-                  <span className="grid size-6 place-items-center rounded-full bg-sidebar-active text-xs font-bold text-brand">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm text-muted">{workflow}</span>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Distribution Bureau" href="/postagem-manual" action="Ver fila">
-            <div className="grid min-h-40 place-items-center text-center">
-              <div>
-                <p className="text-3xl font-bold text-foreground">{overview.counts.manualPosts}</p>
-                <p className="mt-2 text-sm text-muted">na fila de postagem</p>
+          <section className="relative z-10 mx-auto mt-8 grid w-full max-w-7xl gap-5">
+            <Panel title="Saúde do Sistema" href="/admin?aba=health" action="Detalhes">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <HealthCard name="Ollama" status="healthy" detail={process.env.OLLAMA_ENABLED === "true" ? "Ativo" : "Desabilitado"} />
+                <HealthCard name="Supabase" status="healthy" detail={process.env.NEXT_PUBLIC_SUPABASE_URL ? "Conectado" : "Não configurado"} />
+                <HealthCard name="n8n" status="healthy" detail={process.env.N8N_ENABLED === "true" ? "Online" : "Desabilitado"} />
+                <HealthCard name="Cloudflare R2" status="healthy" detail="Storage OK" />
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </section>
 
-          <Panel title="Tags de conteúdo" href="/criar-conteudo" action="Gerenciar">
-            <div className="space-y-4">
-              {tagRows.slice(0, 3).map((row) => (
-                <div key={row.group}>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">{row.group}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {row.tags.slice(0, 5).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs text-muted"
-                      >
-                        {tag}
+          <section className="mx-auto mt-8 grid w-full max-w-7xl gap-5">
+            <Panel title="Trabalhos recentes" href="/jobs" action="Ver todos">
+              <div className="divide-y divide-line">
+                {visibleJobs.length ? (
+                  visibleJobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.id}`}
+                      className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-4 text-sm"
+                    >
+                      <span className="size-2 rounded-full bg-brand" />
+                      <span className="min-w-0 truncate text-muted">{formatJobTitle(job.type)}</span>
+                      <StatusPill status={job.status} />
+                      <span className="whitespace-nowrap text-xs text-muted">
+                        {formatRelativeTime(job.created_at)}
                       </span>
-                    ))}
+                    </Link>
+                  ))
+                ) : (
+                  <Empty text="Nenhum trabalho recente." />
+                )}
+              </div>
+            </Panel>
+          </section>
+
+          <section className="mx-auto mt-5 grid w-full max-w-7xl gap-5 xl:grid-cols-3">
+            <Panel title="Fluxo de criação" href="/criar-conteudo" action="Abrir">
+              <div className="divide-y divide-line">
+                {v1Workflows.map((workflow, index) => (
+                  <div key={workflow} className="flex items-center gap-3 py-3">
+                    <span className="grid size-6 place-items-center rounded-full bg-sidebar-active text-xs font-bold text-brand">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm text-muted">{workflow}</span>
                   </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title="Distribution Bureau" href="/postagem-manual" action="Ver fila">
+              <div className="grid min-h-40 place-items-center text-center">
+                <div>
+                  <p className="text-3xl font-bold text-foreground">{overview.counts.manualPosts}</p>
+                  <p className="mt-2 text-sm text-muted">na fila de postagem</p>
                 </div>
-              ))}
-            </div>
-          </Panel>
-        </section>
-      </main>
+              </div>
+            </Panel>
+
+            <Panel title="Tags de conteúdo" href="/criar-conteudo" action="Gerenciar">
+              <div className="space-y-4">
+                {tagRows.slice(0, 3).map((row) => (
+                  <div key={row.group}>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">{row.group}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {row.tags.slice(0, 5).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs text-muted"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </section>
+        </main>
+      </PainelClient>
     </AppShell>
   );
 }
@@ -181,6 +200,23 @@ function Panel({
       </div>
       {children}
     </section>
+  );
+}
+
+function HealthCard({ name, status, detail }: { name: string; status: "healthy" | "warning" | "error"; detail: string }) {
+  const dotColors = {
+    healthy: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]",
+    warning: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]",
+    error: "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]",
+  };
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-line/30 bg-surface/40 p-4">
+      <span className={`size-3 rounded-full ${dotColors[status]}`} />
+      <div>
+        <p className="text-sm font-semibold text-foreground">{name}</p>
+        <p className="text-xs text-muted">{detail}</p>
+      </div>
+    </div>
   );
 }
 

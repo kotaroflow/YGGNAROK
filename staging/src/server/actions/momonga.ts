@@ -146,7 +146,7 @@ export async function releaseKillSwitch() {
   revalidateMomonga();
 }
 
-async function upsertAutomation(key: string, name: string, status: string, metadata: Json) {
+async function upsertAutomation(key: string, name: string, status: string, metadata: Json | undefined) {
   const admin = createSupabaseServiceClient();
   await admin.from("ai_automations").upsert({
     key,

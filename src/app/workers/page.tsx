@@ -1,33 +1,17 @@
-import { AdminListPage } from "@/components/admin-list";
+import { AppShell } from "@/components/app-shell";
 import { getHealthLogs, getJobs } from "@/server/data/dashboard";
+import { WorkersClient } from "./client";
+import type { HealthLog, Job } from "@/types/dashboard";
 
 export default async function WorkersPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   await searchParams;
-  const [logs, jobs] = await Promise.all([getHealthLogs(), getJobs()]);
+  const [logs, jobs] = (await Promise.all([getHealthLogs(), getJobs()])) as [HealthLog[], Job[]];
   const pending = jobs.filter((job) => job.status === "pending").length;
   const processing = jobs.filter((job) => job.status === "processing").length;
-  const latest = logs[0];
 
   return (
-    <AdminListPage eyebrow="作戦本部 — Sakusen Honbu" title="Workers" empty={false}>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Metric label="Runner externo" value="Cloudflare Cron" />
-        <Metric label="Jobs pendentes" value={String(pending)} />
-        <Metric label="Jobs processando" value={String(processing)} />
-      </div>
-      <div className="mt-6 rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
-        <h2 className="font-medium">Último health log</h2>
-        <p className="mt-1 text-sm text-muted">{latest?.message ?? "Sem logs visíveis."}</p>
-      </div>
-    </AdminListPage>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-white/70 bg-white/45 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/35">
-      <p className="text-sm text-stone-500">{label}</p>
-      <p className="mt-2 text-xl font-semibold">{value}</p>
-    </div>
+    <AppShell>
+      <WorkersClient initialLogs={logs} initialPending={pending} initialProcessing={processing} />
+    </AppShell>
   );
 }

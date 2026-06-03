@@ -4,10 +4,11 @@ import { PageFrame, PagePanel } from "@/components/page-frame";
 import { operationalTags } from "@/lib/tags";
 import { createProfile } from "@/server/actions/profiles";
 import { getProfiles } from "@/server/data/dashboard";
+import type { Profile } from "@/types/dashboard";
 
 export default async function PerfisPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   await searchParams;
-  const profiles = await getProfiles();
+  const profiles = (await getProfiles()) as Profile[];
 
   return (
     <AppShell>

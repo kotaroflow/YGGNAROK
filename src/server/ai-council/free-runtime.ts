@@ -149,19 +149,53 @@ async function runSupervisor(input: { taskType: string; mode: string; prompt: st
 }
 
 async function runCompletion(agent: string, system: string, user: string, preferExternal: boolean): Promise<CouncilMessage> {
-  const externalModel = selectFreeModel(agent, preferExternal);
-  const canUseOpenRouter = Boolean(process.env.OPENROUTER_API_KEY);
+  const ollamaResult = await tryOllama(agent, system, user);
+  if (ollamaResult) return ollamaResult;
+
   const runnerResult = await tryAiRunner(agent, system, user);
+  if (runnerResult) return runnerResult;
 
-  if (runnerResult) {
-    return runnerResult;
-  }
-
-  if (!canUseOpenRouter) {
+  if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY ausente. Configure a chave para usar as IAs free integradas do YGGNAROK.");
   }
 
+  const externalModel = selectFreeModel(agent, preferExternal);
   return tryOpenRouter(agent, system, user, externalModel);
+}
+
+async function tryOllama(agent: string, system: string, user: string) {
+  const baseUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
+  const model = process.env.OLLAMA_MODEL ?? "gemma4:latest";
+
+  try {
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      signal: AbortSignal.timeout(30_000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        stream: false,
+        format: "json",
+      }),
+    });
+
+    const body = await response.json().catch(() => null) as {
+      message?: { content?: string };
+      error?: string;
+    } | null;
+
+    if (response.ok && body?.message?.content) {
+      return normalizeMessage(agent, "ollama", model, body.message.content);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function tryOpenRouter(agent: string, system: string, user: string, externalModel: string) {
@@ -248,24 +282,31 @@ function selectFreeModel(agent: string, preferExternal: boolean) {
         ? process.env.AI_MODEL_GENERAL
         : process.env.AI_MODEL_FAST;
 
-  return stripOpenRouterPrefix(configured || "openrouter:openrouter/free");
+  return stripProviderPrefix(configured || "openrouter:google/gemini-2.5-flash");
 }
 
 function freeModelFallbacks(preferredModel: string) {
   const preferred = normalizeFreeModel(preferredModel);
   return unique([
     preferred,
+    "google/gemini-2.5-flash",
+    "meta-llama/llama-4-scout",
+    "mistral/mistral-small-3.1",
     "openrouter/free",
   ]);
 }
 
-function stripOpenRouterPrefix(value: string) {
-  return value.startsWith("openrouter:") ? value.slice("openrouter:".length) : value;
+function stripProviderPrefix(value: string) {
+  const prefixes = ["ollama:", "openrouter:", "openai:", "openclaw:", "msty:"];
+  for (const prefix of prefixes) {
+    if (value.startsWith(prefix)) return value.slice(prefix.length);
+  }
+  return value;
 }
 
 function normalizeFreeModel(value: string) {
-  const model = stripOpenRouterPrefix(value.trim()) || "openrouter/free";
-  return model === "openrouter/free" || model.endsWith(":free") ? model : "openrouter/free";
+  const model = stripProviderPrefix(value.trim()) || "google/gemini-2.5-flash";
+  return model;
 }
 
 function unique(values: string[]) {

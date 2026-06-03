@@ -5,10 +5,16 @@ import {
   deleteConversation,
   updateConversation,
 } from "@/server/chat/repository";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const { allowed } = rateLimitByIp(req, 20, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429 });
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

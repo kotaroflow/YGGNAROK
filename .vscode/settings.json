@@ -1,1 +1,59 @@
-{}
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.fontFamily": "'Geist Mono', Consolas, 'Courier New', monospace",
+  "editor.fontLigatures": true,
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.tsx": "${capture}.test.tsx, ${capture}.stories.tsx, ${capture}.anim.tsx",
+    "layout.tsx": "page.tsx, loading.tsx, error.tsx",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc",
+    "hermes-daemon.ps1": "hermes-*.ps1"
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#0e0d10",
+    "activityBar.activeBorder": "#f5c400",
+    "titleBar.activeBackground": "#0e0d10",
+    "titleBar.activeForeground": "#f7f4ee",
+    "editor.background": "#0e0d10",
+    "editorCursor.foreground": "#f5c400",
+    "editorLineNumber.foreground": "#f5c40040",
+    "editorLineNumber.activeForeground": "#f5c400",
+    "editorIndentGuide.background": "#ffffff10",
+    "editorIndentGuide.activeBackground": "#f5c40060"
+  },
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": ["keyword", "storage.type", "storage.modifier"],
+        "settings": {
+          "foreground": "#f5c400",
+          "fontStyle": "bold"
+        }
+      },
+      {
+        "scope": ["entity.name.function", "support.function"],
+        "settings": {
+          "foreground": "#f7f4ee"
+        }
+      },
+      {
+        "scope": ["string"],
+        "settings": {
+          "foreground": "#a39c8e"
+        }
+      }
+    ]
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

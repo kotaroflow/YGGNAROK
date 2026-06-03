@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const { allowed } = rateLimitByIp(request, 15, 60000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Muitas requisições. Tente novamente em instantes." }, { status: 429 });
+  }
+
   try {
-    // Autenticação Supabase
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

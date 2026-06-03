@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "hq": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/menu.ps1",
     "dev:council": "node scripts/dev-council.mjs",
     "council:doctor": "node scripts/council-doctor.mjs",
     "build": "next build",

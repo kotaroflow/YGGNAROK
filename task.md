@@ -14,19 +14,19 @@
 
 ### Brand Personality
 
-**Tom:** preciso, acolhedor e confiável.
+**Tom:** Épico, acolhedor e preciso. Uma fusão entre uma Guilda de Aventureiros de Isekai e um Terminal Operacional de Mechas (como Evangelion/Ghost in the Shell).
 
-**Voz:** profissional mas humana; copy direto em português; nomenclatura com referências leves ao universo japonês/operacional nos grupos da sidebar (Entrada, Mercado, Criação, Operação), sem exagero temático.
+**Voz:** Profissional, mas com alma Otaku. A nomenclatura dos sistemas deve beber fortemente do universo de Anime e Mangá (ex: Arcos de História, Guildas, Seinen, Shonen), usando referências sutis à cultura japonesa, mas sem perder a clareza de uso.
 
-**Emoções alvo:** **calma e foco** para fluxos longos, com **confiança** de ferramenta séria de trabalho.
+**Emoções alvo:** **Ação e Foco**, a sensação de estar lendo um painel tático de um grande mangá Shonen.
 
-**Identidade visual existente:** marca **YGGNAROK** com destaque **âmbar** (`--brand` / amber-300 CTAs), fundos quentes cream/stone, superfícies em vidro (`bg-white/78`, `backdrop-blur`), gradientes radiais sutis no `body::before`. Tipografia **Geist Sans/Mono** (Next.js). Ícones **Lucide**. Sem biblioteca de componentes tipo shadcn — padrões Tailwind customizados em `src/components/`.
+**Identidade visual existente:** marca **YGGNAROK** (A Árvore do Mundo/Fim dos Tempos). Destaque **âmbar** (`--brand`), fundos escuros profundos (Void), interfaces com cortes diagonais sutis que lembram painéis de mangá, e "screentones" (retículas) se possível. Tipografia **Geist Sans/Mono** para clareza, contrastando com a energia explosiva dos animes.
 
 ### Aesthetic Direction
 
-**Direção:** painel operacional premium-discreto — quente, legível, com hierarquia clara; não “startup de IA genérica”.
+**Direção:** Painel Tático de Anime Premium. Deve remeter a interfaces Sci-Fi japonesas (Akira, Evangelion, Sword Art Online) misturadas com o minimalismo "Void & Amber".
 
-**Tema:** **claro e escuro com igual cuidado** (`.dark` + `localStorage` `ygn-theme`; tokens em `globals.css`).
+**Tema:** Predominantemente escuro (Dark Mode nativo absoluto), com acentos de luz neon âmbar e componentes sobrepostos que lembram a diagramação de um Mangá.
 
 **Referências implícitas no código:** dashboard com cards elevados, sidebar colapsável, top bar com busca e CTA âmbar, auth com arte por rota (`auth-frame`).
 
@@ -46,9 +46,9 @@
 
 3. **Confiança através da consistência** — reutilizar padrões de `AppShell`, cards `rounded-lg border … backdrop-blur`, tipografia `text-slate-*` / `dark:text-stone-*`, e tokens CSS antes de inventar novos estilos.
 
-4. **Acolhimento sem infantilizar** — tom quente (cream, âmbar) e copy em pt-BR; evitar gamificação, badges ruidosos ou metáforas visuais exageradas.
+4. **Acolhimento de Guilda** — O sistema deve parecer o "Quartel General" da equipe. Termos como "Missões", "Arcos", "Personagens" e "Estúdios" são bem-vindos.
 
-5. **Não parecer “mais um produto de IA”** — fugir de gradientes roxos dominantes, tipografia default sem intenção e layouts de marketing; o YGGNAROK é **ferramenta de trabalho**, não demo de chatbot.
+5. **A Alma Otaku Premium** — O design não pode parecer infantil. É um Mangá Seinen adulto. O "Void" representa o nanquim escuro, o "Amber" representa a energia/impacto visual. As imagens geradas pelo ComfyUI DEVEM ser no estilo Anime 2D/Cell-shaded (Niji/Animagine).
 
 ### Stack & tokens (referência técnica)
 

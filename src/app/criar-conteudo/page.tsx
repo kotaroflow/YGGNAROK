@@ -1,13 +1,13 @@
 import { AppShell } from "@/components/app-shell";
 import { getContentItems, getProfiles } from "@/server/data/dashboard";
 import { CriarConteudoClient } from "@/components/criar-conteudo-client";
+import type { Profile, ContentItem } from "@/types/dashboard";
 
 export default async function CriarConteudoPage({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
-  const [profiles, contents] = await Promise.all([getProfiles(), getContentItems()]);
+  const [profiles, contents] = (await Promise.all([getProfiles(), getContentItems()])) as [Profile[], ContentItem[]];
   const { aba } = await searchParams;
   const activeTab = aba || "ideias";
 
-  // Map database schema elements into clean component props
   const sanitizedProfiles = profiles.map(p => ({
     id: p.id,
     name: p.name

@@ -1,15 +1,91 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+import type { 
+  Profile, 
+  Job, 
+  AgentRun,
+  HealthLog, 
+  AuditLog, 
+  LibraryItem, 
+  ContentItem, 
+  ManualPostingItem, 
+  MediaAsset,
+  Role,
+  Permission,
+  DashboardCounts,
+  DashboardOverview,
+  MomongaCouncilOverview 
+} from "@/types/dashboard";
+import {
+  safeMapToProfile,
+  safeMapToContentItem,
+  safeMapToLibraryItem,
+  safeMapToManualPostingItem,
+  safeMapToJob,
+  safeMapToAgentRun,
+  safeMapToMediaAsset,
+  safeMapToHealthLog,
+  safeMapToAuditLog,
+} from "@/types/dashboard";
 
 const LIST_LIMIT = 50;
 const MEDIA_LIMIT = 40;
 const OVERVIEW_LIMIT = 5;
 
+async function getOptionalSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (!url || url.includes("example.supabase.co") || url === "https://example.supabase.co") {
+    return null;
+  }
+  try {
+    return await createSupabaseServerClient();
+  } catch {
+    return null;
+  }
+}
+
+export async function queryAll<T extends Record<string, unknown>>(
+  table: string,
+  select: string,
+  opts?: {
+    limit?: number;
+    order?: { column: string; ascending?: boolean };
+    filters?: Array<{ column: string; operator: string; value: string | string[] | boolean | number | null }>;
+  },
+): Promise<T[]> {
+  const supabase = await getOptionalSupabase();
+  if (!supabase) return [];
+
+  
+  let query = supabase.from(table).select(select);
+
+  if (opts?.filters) {
+    for (const f of opts.filters) {
+      if (f.operator === "in") {
+        query = query.in(f.column, f.value as string[]);
+      } else if (f.operator === "not") {
+        query = query.not(f.column, "is", null);
+      } else {
+        query = query.eq(f.column, f.value as string | boolean | number);
+      }
+    }
+  }
+
+  if (opts?.order) {
+    query = query.order(opts.order.column, { ascending: opts.order.ascending ?? false });
+  }
+
+  if (opts?.limit) {
+    query = query.limit(opts.limit);
+  }
+
+  const { data } = await query;
+  return (data ?? []) as T[];
+}
+
 export async function getDashboardCounts() {
   const supabase = await getOptionalSupabase();
-
-  if (!supabase) {
-    return { profiles: 0, pendingJobs: 0, manualPosts: 0, alerts: 0 };
-  }
+  if (!supabase) return { profiles: 0, pendingJobs: 0, manualPosts: 0, alerts: 0 };
 
   const [profiles, pendingJobs, manualPosts, alerts] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
@@ -38,197 +114,102 @@ export async function getDashboardOverview() {
 
   return {
     counts,
-    jobs: jobs.slice(0, OVERVIEW_LIMIT),
+    jobs: jobs.filter(job => job.status === 'pending' || job.status === 'processing').slice(0, OVERVIEW_LIMIT),
     contents: contents.slice(0, OVERVIEW_LIMIT),
     media: media.slice(0, 4),
-    manualPosts: manualPosts.slice(0, OVERVIEW_LIMIT),
+    manualPosts: manualPosts.filter(post => post.status === 'waiting').slice(0, OVERVIEW_LIMIT),
     health: health.slice(0, 4),
   };
 }
 
-export async function getProfiles() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("profiles")
-    .select("id,name,slug,description,status,created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return data ?? [];
+export async function getProfiles(): Promise<Profile[]> {
+  const data = await queryAll("profiles", "id,owner_id,name,slug,description,status,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToProfile(data);
 }
 
-export async function getContentItems() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("content_items")
-    .select("id,profile_id,title,content_type,status,platform,idea,caption,hashtags,scheduled_for,created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return data ?? [];
+export async function getContentItems(): Promise<ContentItem[]> {
+  const data = await queryAll("content_items", "id,profile_id,created_by,title,content_type,status,idea,script,caption,hashtags,platform,scheduled_for,published_at,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToContentItem(data);
 }
 
-export async function getLibraryItems() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("library_items")
-    .select("id,profile_id,type,title,body,status,created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return data ?? [];
+export async function getLibraryItems(): Promise<LibraryItem[]> {
+  const data = await queryAll("library_items", "id,profile_id,created_by,type,title,body,status,metadata,deleted_at,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToLibraryItem(data);
 }
 
-export async function getDeletedLibraryItems() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("library_items")
-    .select("id,profile_id,type,title,body,status,created_at,deleted_at")
-    .not("deleted_at", "is", null)
-    .order("deleted_at", { ascending: false });
-
-  return data ?? [];
+export async function getDeletedLibraryItems(): Promise<LibraryItem[]> {
+  const data = await queryAll("library_items", "id,profile_id,created_by,type,title,body,status,metadata,deleted_at,created_at,updated_at",
+    { order: { column: "deleted_at", ascending: false }, filters: [{ column: "deleted_at", operator: "not", value: null }] },
+  );
+  return safeMapToLibraryItem(data);
 }
 
-export async function getManualPostingItems() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("manual_posting_queue")
-    .select("id,profile_id,content_id,platform,status,caption_to_copy,hashtags_to_copy,planned_date,posted_at,post_url,created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return data ?? [];
+export async function getManualPostingItems(): Promise<ManualPostingItem[]> {
+  const data = await queryAll("manual_posting_queue", "id,profile_id,content_id,platform,status,checklist,caption_to_copy,hashtags_to_copy,media_asset_id,planned_date,posted_at,posted_by,post_url,notes,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToManualPostingItem(data);
 }
 
-export async function getJobs() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("ai_jobs")
-    .select("id,profile_id,type,status,attempts,max_attempts,error_message,result,created_at,completed_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return data ?? [];
+export async function getJobs(): Promise<Job[]> {
+  const data = await queryAll("ai_jobs", "id,user_id,profile_id,type,status,payload,result,error_message,attempts,max_attempts,started_at,completed_at,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToJob(data);
 }
 
-export async function getJobById(id: string) {
+export async function getAgentRunsByJobId(jobId: string): Promise<Array<Database["public"]["Tables"]["agent_runs"]["Row"]>> {
+  return queryAll("agent_runs", "id, job_id, user_id, profile_id, agent_key, module, input, output, status, error_message, started_at, completed_at, created_at",
+    { order: { column: "created_at", ascending: false }, filters: [{ column: "job_id", operator: "eq", value: jobId }] },
+  );
+}
+
+export async function getMediaAssets(): Promise<MediaAsset[]> {
+  const data = await queryAll("media_assets", "id,user_id,profile_id,content_id,job_id,asset_type,storage_provider,r2_key,public_url,mime_type,size_bytes,metadata,created_at,updated_at",
+    { order: { column: "created_at", ascending: false }, limit: MEDIA_LIMIT },
+  );
+  return safeMapToMediaAsset(data);
+}
+
+export async function getHealthLogs(): Promise<HealthLog[]> {
+  const data = await queryAll("health_logs", "id,source,status,message,metadata,created_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToHealthLog(data);
+}
+
+export async function getAuditLogs(): Promise<AuditLog[]> {
+  const data = await queryAll("audit_logs", "id,user_id,profile_id,action,resource_type,resource_id,reason,metadata,created_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToAuditLog(data);
+}
+
+export async function getAgentRuns(): Promise<AgentRun[]> {
+  const data = await queryAll("agent_runs", "id,job_id,user_id,profile_id,agent_key,module,input,output,status,error_message,started_at,completed_at,created_at",
+    { order: { column: "created_at", ascending: false }, limit: LIST_LIMIT },
+  );
+  return safeMapToAgentRun(data);
+}
+
+export async function getJobById(id: string): Promise<Job | null> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return null;
   const { data } = await supabase
     .from("ai_jobs")
-    .select("id,profile_id,type,status,attempts,max_attempts,error_message,result,payload,created_at,started_at,completed_at")
+    .select("id,user_id,profile_id,type,status,payload,result,error_message,attempts,max_attempts,started_at,completed_at,created_at,updated_at")
     .eq("id", id)
     .single();
-
-  return data;
+  return data ? safeMapToJob([data])[0] : null;
 }
 
-export async function getAgentRunsByJobId(jobId: string) {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("agent_runs")
-    .select("id, job_id, agent_key, module, input, output, status, error_message, started_at, completed_at, created_at")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: false });
-
-  return (data ?? []) as Array<{
-    id: string;
-    job_id: string | null;
-    agent_key: string;
-    module: string;
-    input: unknown;
-    output: unknown;
-    status: string;
-    error_message: string | null;
-    started_at: string | null;
-    completed_at: string | null;
-    created_at: string;
-  }>;
-}
-
-export async function getMediaAssets() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("media_assets")
-    .select("id, asset_type, public_url, r2_key, mime_type, size_bytes, created_at, profile_id")
-    .order("created_at", { ascending: false })
-    .limit(MEDIA_LIMIT);
-
-  return data ?? [];
-}
-
-export async function getHealthLogs() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("health_logs")
-    .select("id, source, status, message, metadata, created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return (data ?? []) as Array<{
-    id: string;
-    source: string;
-    status: string;
-    message: string;
-    metadata: unknown;
-    created_at: string;
-  }>;
-}
-
-export async function getAuditLogs() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("audit_logs")
-    .select("id, user_id, profile_id, action, resource_type, resource_id, reason, created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return (data ?? []) as Array<{
-    id: string;
-    user_id: string | null;
-    profile_id: string | null;
-    action: string;
-    resource_type: string | null;
-    resource_id: string | null;
-    reason: string | null;
-    created_at: string;
-  }>;
-}
-
-export async function getAgentRuns() {
-  const supabase = await getOptionalSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("agent_runs")
-    .select("id, job_id, agent_key, module, status, error_message, started_at, completed_at, created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
-
-  return (data ?? []) as Array<{
-    id: string;
-    job_id: string | null;
-    agent_key: string;
-    module: string;
-    status: string;
-    error_message: string | null;
-    started_at: string | null;
-    completed_at: string | null;
-    created_at: string;
-  }>;
-}
-
-export async function getMomongaCouncilOverview() {
+export async function getMomongaCouncilOverview(): Promise<MomongaCouncilOverview> {
   const [jobs, runs, audits, health, memories, agents, providers, decisions, automations, costs] = await Promise.all([
     getJobs(),
     getAgentRuns(),
@@ -267,29 +248,23 @@ export async function getMomongaCouncilOverview() {
   };
 }
 
-async function getAiLearningItems() {
+async function getAiLearningItems(): Promise<Array<LibraryItem & { type: "ai_learning" }>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
     .from("library_items")
-    .select("id,profile_id,type,title,body,status,metadata,created_at")
+    .select("id,profile_id,created_by,type,title,body,status,metadata,deleted_at,created_at,updated_at")
     .eq("type", "ai_learning")
     .order("created_at", { ascending: false })
     .limit(LIST_LIMIT);
 
-  return (data ?? []) as Array<{
-    id: string;
-    profile_id: string | null;
-    type: string;
-    title: string;
-    body: string | null;
-    status: string;
-    metadata: unknown;
-    created_at: string;
-  }>;
+  return (data ?? []).map(item => ({
+    ...item,
+    metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata as Record<string, unknown> : {},
+  })) as Array<LibraryItem & { type: "ai_learning" }>;
 }
 
-async function getCouncilAgents() {
+async function getCouncilAgents(): Promise<Array<Database["public"]["Tables"]["ai_council_agents"]["Row"]>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
@@ -297,21 +272,10 @@ async function getCouncilAgents() {
     .select("key,name,role,status,risk_level,paused_reason,last_seen_at,provider_preference,config,created_at")
     .order("key");
 
-  return (data ?? []) as Array<{
-    key: string;
-    name: string;
-    role: string;
-    status: string;
-    risk_level: string;
-    paused_reason: string | null;
-    last_seen_at: string | null;
-    provider_preference: unknown;
-    config: unknown;
-    created_at: string;
-  }>;
+  return (data ?? []) as Array<Database["public"]["Tables"]["ai_council_agents"]["Row"]>;
 }
 
-async function getProviderStatus() {
+async function getProviderStatus(): Promise<Array<Database["public"]["Tables"]["ai_provider_status"]["Row"]>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
@@ -319,41 +283,22 @@ async function getProviderStatus() {
     .select("provider,status,last_checked_at,latency_ms,error_message,metadata")
     .order("provider");
 
-  return (data ?? []) as Array<{
-    provider: string;
-    status: string;
-    last_checked_at: string | null;
-    latency_ms: number | null;
-    error_message: string | null;
-    metadata: unknown;
-  }>;
+  return (data ?? []) as Array<Database["public"]["Tables"]["ai_provider_status"]["Row"]>;
 }
 
-async function getCouncilDecisions() {
+async function getCouncilDecisions(): Promise<Array<Database["public"]["Tables"]["ai_council_decisions"]["Row"]>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
     .from("ai_council_decisions")
-    .select("id,job_id,decision_type,status,risk,authority,summary,payload,result,created_at,approved_at")
+    .select("id,job_id,user_id,profile_id,decision_type,status,risk,authority,summary,payload,result,approved_by,created_at,approved_at")
     .order("created_at", { ascending: false })
     .limit(LIST_LIMIT);
 
-  return (data ?? []) as Array<{
-    id: string;
-    job_id: string | null;
-    decision_type: string;
-    status: string;
-    risk: string;
-    authority: string;
-    summary: string;
-    payload: unknown;
-    result: unknown;
-    created_at: string;
-    approved_at: string | null;
-  }>;
+  return (data ?? []) as Array<Database["public"]["Tables"]["ai_council_decisions"]["Row"]>;
 }
 
-async function getAiAutomations() {
+async function getAiAutomations(): Promise<Array<Database["public"]["Tables"]["ai_automations"]["Row"]>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
@@ -361,35 +306,19 @@ async function getAiAutomations() {
     .select("key,name,status,interval_ms,last_run_at,next_run_at,metadata")
     .order("key");
 
-  return (data ?? []) as Array<{
-    key: string;
-    name: string;
-    status: string;
-    interval_ms: number;
-    last_run_at: string | null;
-    next_run_at: string | null;
-    metadata: unknown;
-  }>;
+  return (data ?? []) as Array<Database["public"]["Tables"]["ai_automations"]["Row"]>;
 }
 
-async function getCostLedger() {
+async function getCostLedger(): Promise<Array<Database["public"]["Tables"]["ai_cost_ledger"]["Row"]>> {
   const supabase = await getOptionalSupabase();
   if (!supabase) return [];
   const { data } = await supabase
     .from("ai_cost_ledger")
-    .select("id,job_id,provider,model,estimated_cost,currency,created_at")
+    .select("id,job_id,provider,model,estimated_cost,currency,metadata,created_at")
     .order("created_at", { ascending: false })
     .limit(LIST_LIMIT);
 
-  return (data ?? []) as Array<{
-    id: string;
-    job_id: string | null;
-    provider: string;
-    model: string | null;
-    estimated_cost: number;
-    currency: string;
-    created_at: string;
-  }>;
+  return (data ?? []) as Array<Database["public"]["Tables"]["ai_cost_ledger"]["Row"]>;
 }
 
 function summarizeProviders(jobs: Awaited<ReturnType<typeof getJobs>>) {
@@ -441,12 +370,4 @@ export async function getRolesAndPermissions() {
       created_at: string;
     }>,
   };
-}
-
-async function getOptionalSupabase() {
-  try {
-    return await createSupabaseServerClient();
-  } catch {
-    return null;
-  }
 }

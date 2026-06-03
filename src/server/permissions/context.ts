@@ -3,18 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PermissionContext } from "@/lib/permissions";
 import type { PermissionKey, RoleKey } from "@/lib/permissions/keys";
 
-let cachedPermissionContext: Promise<PermissionContext | null> | null = null;
-
 export async function getCurrentPermissionContext(): Promise<PermissionContext | null> {
-  if (cachedPermissionContext) return cachedPermissionContext;
-
-  cachedPermissionContext = (async (): Promise<PermissionContext | null> => {
-    let supabase;
-    try {
-      supabase = await createSupabaseServerClient();
-    } catch {
-      return null;
-    }
+  try {
+    const supabase = await createSupabaseServerClient();
 
     const {
       data: { user },
@@ -68,7 +59,7 @@ export async function getCurrentPermissionContext(): Promise<PermissionContext |
       permissions,
       profileIds,
     };
-  })();
-
-  return cachedPermissionContext;
+  } catch {
+    return null;
+  }
 }
