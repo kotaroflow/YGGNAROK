@@ -12,7 +12,7 @@ type CompletionOptions = {
   allowExternal?: boolean;
 };
 
-type ProviderName = "ollama" | "openai" | "openrouter" | "openclaw" | "msty";
+type ProviderName = "ollama" | "openai" | "openrouter" | "msty";
 
 type ParsedModel = {
   provider: ProviderName | "auto";
@@ -36,7 +36,7 @@ export async function runAiCompletion(messages: ChatMessage[], options: Completi
   return {
     summary: "Nenhum provedor de IA respondeu. O job foi preservado para nova tentativa ou fallback operacional.",
     items: [],
-    next_actions: ["Verificar OLLAMA_BASE_URL, OPENROUTER_API_KEY, OPENCLAW_URL, MSTY_URL ou limites de uso."],
+    next_actions: ["Verificar OLLAMA_BASE_URL, OPENROUTER_API_KEY, MSTY_URL ou limites de uso."],
     risk: "medium",
     metadata: {
       ai_gateway: {
@@ -53,7 +53,6 @@ async function runProvider(model: ParsedModel & { provider: ProviderName }, mess
     case "ollama": return runOllama(model.model, messages, options);
     case "openai": return runOpenAi(model.model, messages, options);
     case "openrouter": return runOpenRouter(model.model, messages, options);
-    case "openclaw": return runOpenClaw(model.model, messages, options);
     case "msty": return runMsty(model.model, messages, options);
   }
 }
@@ -135,25 +134,7 @@ type OllamaResponse = {
   error?: string;
 };
 
-async function runOpenClaw(model: string, messages: ChatMessage[], options: CompletionOptions) {
-  if (!workerConfig.ai.openClawUrl) {
-    throw new Error("OPENCLAW_URL is not configured.");
-  }
 
-  const response = await fetch(`${workerConfig.ai.openClawUrl}/v1/chat/completions`, {
-    method: "POST",
-    signal: AbortSignal.timeout(45_000),
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options.temperature ?? 0.4,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  return parseProviderResponse(response, `OpenClaw/${model}`, (body) => body?.choices?.[0]?.message?.content);
-}
 
 async function runMsty(model: string, messages: ChatMessage[], options: CompletionOptions) {
   if (!workerConfig.ai.mstyUrl) {
@@ -288,9 +269,6 @@ function providerAttempts(preferred: ParsedModel) {
     if (workerConfig.ai.openRouterEnabled) {
       add("openrouter", baseModel);
     }
-    if (workerConfig.ai.openClawEnabled && workerConfig.ai.openClawUrl) {
-      add("openclaw", baseModel);
-    }
     if (workerConfig.ai.mstyEnabled && workerConfig.ai.mstyUrl) {
       add("msty", baseModel);
     }
@@ -308,7 +286,7 @@ function parseModel(value: string): ParsedModel {
   if (value.startsWith("ollama:")) return { provider: "ollama", model: value.slice("ollama:".length) };
   if (value.startsWith("openai:")) return { provider: "openai", model: value.slice("openai:".length) };
   if (value.startsWith("openrouter:")) return { provider: "openrouter", model: value.slice("openrouter:".length) };
-  if (value.startsWith("openclaw:")) return { provider: "openclaw", model: value.slice("openclaw:".length) };
+
   if (value.startsWith("msty:")) return { provider: "msty", model: value.slice("msty:".length) };
   return { provider: "auto", model: value };
 }

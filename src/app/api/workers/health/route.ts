@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 const SERVICES = [
   { id: "ollama", label: "Ollama", url: "http://localhost:11434/api/tags" },
   { id: "n8n", label: "n8n", url: "http://localhost:5678/healthz" },
-  { id: "openclaw", label: "OPENCLAW Gateway", url: "http://localhost:3334/health" },
   { id: "dashboard", label: "Dashboard server", url: "http://localhost:3333/health" },
 ];
 

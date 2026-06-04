@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   Lightbulb, Brain, Send, Sparkles,
   Wand2, Layers, CheckCircle, Film, Play, Sliders, AlertTriangle,
   Trash2, ShieldAlert, Cpu, HelpCircle, Video, Scissors,
   Music, Radio, Star, Award, Heart, MessageSquare, RefreshCw, Plus, X, FileText, Image as ImageIcon, Check,
-  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, AtSign, Library, Archive,
+  MoreVertical, Copy, RotateCcw, Loader2, Search, Zap, ChevronRight, ChevronLeft, AtSign, Library, Archive,
   ScrollText, Subtitles, Hash, Globe, Settings, Terminal, Share2, ZoomIn, ZoomOut
 } from "lucide-react";
 import { inputClass } from "@/components/field";
+import { useObsidian } from "@/hooks/useObsidian";
+import { useN8n } from "@/hooks/useN8n";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { YggNode, YggNodeType, ConnectionType, User } from "@/types/yggnarok";
 
 type Profile = {
   id: string;
@@ -55,6 +59,7 @@ type CreativeNode = {
   tags: string[];
   source: string;
   status: string;
+  archived?: boolean;
   meta: {
     preview?: string;
     duration?: string;
@@ -64,6 +69,7 @@ type CreativeNode = {
     progress?: number;
     deadline?: string;
     history?: string;
+    messages?: { sender: "user" | "ai"; text: string }[];
   };
   related: string[];
 };
@@ -137,14 +143,14 @@ const CREATIVE_NODE_PORT_Y = 46;
 
 const CREATIVE_NODE_META: Record<CreativeNodeType, { label: string; icon: typeof FileText; tone: string }> = {
   image: { label: "Imagem", icon: ImageIcon, tone: "border-brand/30 bg-brand/10 text-brand" },
-  video: { label: "Vídeo", icon: Video, tone: "border-rose-500/30 bg-rose-950/30 text-rose-300" },
-  prompt: { label: "Prompt", icon: Sparkles, tone: "border-violet-500/30 bg-violet-950/30 text-violet-300" },
-  chat: { label: "Chat", icon: MessageSquare, tone: "border-sky-500/30 bg-sky-950/30 text-sky-300" },
-  campaign: { label: "Campanha", icon: Award, tone: "border-brand/35 bg-amber-950/30 text-brand" },
-  project: { label: "Projeto", icon: Layers, tone: "border-emerald-500/30 bg-emerald-950/30 text-emerald-300" },
-  reference: { label: "Referência", icon: Library, tone: "border-indigo-500/30 bg-indigo-950/30 text-indigo-300" },
-  idea: { label: "Ideia", icon: Lightbulb, tone: "border-yellow-500/30 bg-yellow-950/25 text-yellow-300" },
-  script: { label: "Roteiro", icon: ScrollText, tone: "border-orange-500/30 bg-orange-950/25 text-orange-300" },
+  video: { label: "Vídeo", icon: Video, tone: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300 dark:bg-rose-950/30" },
+  prompt: { label: "Prompt", icon: Sparkles, tone: "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300 dark:bg-violet-950/30" },
+  chat: { label: "Chat", icon: MessageSquare, tone: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-300 dark:bg-sky-950/30" },
+  campaign: { label: "Campanha", icon: Award, tone: "border-brand/35 bg-brand/10 text-brand dark:bg-amber-950/30" },
+  project: { label: "Projeto", icon: Layers, tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 dark:bg-emerald-950/30" },
+  reference: { label: "Referência", icon: Library, tone: "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 dark:bg-indigo-950/30" },
+  idea: { label: "Ideia", icon: Lightbulb, tone: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-yellow-300 dark:bg-yellow-950/25" },
+  script: { label: "Roteiro", icon: ScrollText, tone: "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-300 dark:bg-orange-950/25" },
 };
 
 const INITIAL_CREATIVE_NODES: CreativeNode[] = [
@@ -184,7 +190,14 @@ const INITIAL_CREATIVE_NODES: CreativeNode[] = [
     tags: ["#chat", "#direção", "#ia"],
     source: "Kotaro IA",
     status: "Contexto vivo",
-    meta: { persona: "Kotaro IA", history: "Conversa ligada ao conceito central." },
+    meta: { 
+      persona: "Kotaro IA", 
+      history: "Conversa ligada ao conceito central.",
+      messages: [
+        { sender: "user", text: "Kotaro, como podemos estruturar o tom de mistério?" },
+        { sender: "ai", text: "Recomendo começar com uma pergunta provocativa, usando imagens com contraste alto e tons dourados/âmbar." }
+      ]
+    },
     related: ["Prompt — Dark Fantasy Queen", "Campanha YGN Ascensão"],
   },
   {
@@ -192,7 +205,7 @@ const INITIAL_CREATIVE_NODES: CreativeNode[] = [
     type: "script",
     title: "Gancho Viral",
     x: 320,
-    y: 240,
+    y: 280,
     content: "Eles não querem que você saiba disso... mas mudou meu jogo completamente.",
     tags: ["#roteiro", "#shorts", "#retenção"],
     source: "Creative Vault",
@@ -205,7 +218,7 @@ const INITIAL_CREATIVE_NODES: CreativeNode[] = [
     type: "campaign",
     title: "Campanha YGN Ascensão",
     x: 600,
-    y: 240,
+    y: 280,
     content: "Campanha completa para lançamento YGN Ascensão. Foco em storytelling, mistério e transformação.",
     tags: ["#campanha", "#lançamento", "#high-ticket"],
     source: "Creation Nexus",
@@ -223,104 +236,303 @@ const INITIAL_CREATIVE_EDGES: CreativeEdge[] = [
   { id: "e-chat-campaign", source: "chat-01", target: "campaign-01" },
 ];
 
-const tabs = [
-  { id: "ideias", label: "Ideias", icon: Lightbulb, description: "Novas Pautas" },
-  { id: "roteiros", label: "Roteiros", icon: ScrollText, description: "Scripts e Falas" },
-  { id: "legendas", label: "Legendas", icon: Subtitles, description: "Copy e Ganchos" },
-  { id: "hashtags", label: "Hashtags", icon: Hash, description: "Tags e Alcance" },
-  { id: "videos", label: "Estúdio de Vídeo", icon: Film, description: "Mesa de Edição" }
-];
+const getClosestPorts = (
+  source: { x: number; y: number },
+  target: { x: number; y: number },
+  width = 240,
+  height = 140
+) => {
+  const sourcePorts = [
+    { x: source.x + width / 2, y: source.y }, // Top
+    { x: source.x + width, y: source.y + height / 2 }, // Right
+    { x: source.x + width / 2, y: source.y + height }, // Bottom
+    { x: source.x, y: source.y + height / 2 } // Left
+  ];
 
-const DEFAULT_PRESETS: Record<string, VideoStylePreset> = {
-  tiktok: {
-    name: "Estilo TikTok & Reels (Retenção Acelerada)",
-    duration: "15s - 60s (Alta Frequência)",
-    trendingMusic: ["'Void Echoes' (Synthwave Suave)", "'Amber Pulse' (Techno Melódico)", "'Kotaro Vibe' (Acoustic Trap)"],
-    trendingTransitions: ["Zoom Rápido a cada 1.5s", "Legendas de Destaque Neon Central", "Efeitos Sonoros 'Swoosh'"],
-    mostSearched: ["Engenharia de Prompt Inteligente", "IAs Gratuitas sem Limites", "Automação no Navegador"],
-    baseDirectives: "Ritmo frenético, gancho de impacto nos primeiros 2.5 segundos, zero pausas respiratórias, paleta Void & Amber vibrante com legendas de duas palavras por quadro."
-  },
-  youtube: {
-    name: "Estilo Vlogging / Explicativo no YouTube",
-    duration: "5m - 12m (Engajamento Profundo)",
-    trendingMusic: ["'Cyber Coffee' (Batidas Calmas)", "'Infinite Drift' (Sintetizador de Fundo)"],
-    trendingTransitions: ["Cortes Secos Estruturados", "Cenas de Apoio de Softwares Neon", "Zoom Lento no Ponto de Destaque"],
-    mostSearched: ["Como criar agente de autoaprendizado", "Supabase vs LocalStorage no NextJS", "Estúdio de Nodes Neon"],
-    baseDirectives: "Ritmo conversacional premium, transição explicativa visual a cada 10s, introdução estruturada do problema, tela limpa com cards informativos sobrepostos."
-  },
-  cinematic: {
-    name: "Estilo Documentário & Mini-Histórias",
-    duration: "2m - 5m (Imersão Dramática)",
-    trendingMusic: ["'Odyssey Orchestral' (Dramático)", "'Deep Void' (Sonoplastia Cinematográfica)"],
-    trendingTransitions: ["Transição Gradual Suave", "Sobreposição de Texturas de Luz", "Sonoplastia Sub-grave"],
-    mostSearched: ["Evolução de Sistemas AI", "Privacidade Digital Multi-tenant", "História do YGGNAROK"],
-    baseDirectives: "Foco estético em mistério, gradação de cores âmbar escuras, pausas dramáticas com trilha subindo de volume, voz grave e firme com frases curtas de alta reflexão."
-  },
-  sales: {
-    name: "VSL de Vendas de Alta Conversão",
-    duration: "3m - 8m (Persuasão & Neuro-copy)",
-    trendingMusic: ["'Ascension' (Trilha de Tensão Crescente)", "'Resolution' (Trilha Heroica de Fechamento)"],
-    trendingTransitions: ["Quebras de Padrão Agressivas", "Letreiros Neon Piscantes", "Efeito de Máquina de Escrever"],
-    mostSearched: ["Como economizar R$15.000 em APIs", "Melhores agentes para vendas automática", "Roteamento inteligente de modelos"],
-    baseDirectives: "Copy focada na dor imediata, quebra de objeção a cada 4 quadros, música de suspense crescendo até a revelação da oferta, CTA claro de urgência no fim."
+  const targetPorts = [
+    { x: target.x + width / 2, y: target.y },
+    { x: target.x + width, y: target.y + height / 2 },
+    { x: target.x + width / 2, y: target.y + height },
+    { x: target.x, y: target.y + height / 2 }
+  ];
+
+  let bestSource = sourcePorts[1];
+  let bestTarget = targetPorts[3];
+  let minDist = Infinity;
+
+  for (const sp of sourcePorts) {
+    for (const tp of targetPorts) {
+      const dx = sp.x - tp.x;
+      const dy = sp.y - tp.y;
+      const d = dx * dx + dy * dy;
+      if (d < minDist) {
+        minDist = d;
+        bestSource = sp;
+        bestTarget = tp;
+      }
+    }
   }
+
+  return { sourcePoint: bestSource, targetPoint: bestTarget };
 };
 
 export function CriarConteudoClient({ profiles, initialContents, activeTab: currentTab }: CriarConteudoClientProps) {
-  const [activeTab, setActiveTab] = useState(currentTab);
-  const [contents, setContents] = useState<ContentItem[]>(
-    initialContents.length > 0 ? initialContents : DEMO_CONTENTS
-  );
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(true);
+  // Toast Notification
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
 
-  const [creationMode, setCreationMode] = useState<"manual" | "ia">("manual");
-  const [briefingMode, setBriefingMode] = useState<"text" | "canvas">("text");
-  const [carouselIdx, setCarouselIdx] = useState(0);
+  // System Roles & Connection Style
+  const [userRole, setUserRole] = useState<"standard" | "admin">("standard");
+  const [showArchivedOnCanvas, setShowArchivedOnCanvas] = useState<boolean>(true);
+  const [connectionLineStyle, setConnectionLineStyle] = useState<"straight" | "orthogonal">("straight");
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-  // === Neural Canvas Drag & Drop State ===
-  const [canvasNodes, setCanvasNodes] = useState<CreativeNode[]>(INITIAL_CREATIVE_NODES);
+  // Search & Filtration on Canvas
+  const [canvasSearchQuery, setCanvasSearchQuery] = useState("");
+  const [selectedNodeTypeFilter, setSelectedNodeTypeFilter] = useState("all");
+
+  // Canvas Nodes & Edges State
+  const [canvasNodes, setCanvasNodes] = useState<CreativeNode[]>(() => {
+    return [
+      ...INITIAL_CREATIVE_NODES,
+      {
+        id: "archived-01",
+        type: "idea",
+        title: "Ideia Antiga - Post Carrossel",
+        x: 100,
+        y: 460,
+        content: "Post carrossel comparando produtividade com obsidian vs notion.",
+        tags: ["#arquivado", "#notion", "#obsidian"],
+        source: "Brain dump",
+        status: "Arquivado",
+        archived: true,
+        meta: {},
+        related: [],
+      },
+      {
+        id: "archived-02",
+        type: "prompt",
+        title: "Prompt Velho - DALL-E 2",
+        x: 400,
+        y: 490,
+        content: "Futuristic city neon purple, 3d render retro style.",
+        tags: ["#arquivado", "#dalle2"],
+        source: "Testes",
+        status: "Arquivado",
+        archived: true,
+        meta: { model: "DALL-E 2" },
+        related: [],
+      }
+    ];
+  });
   const [canvasEdges, setCanvasEdges] = useState<CreativeEdge[]>(INITIAL_CREATIVE_EDGES);
+
   const [selectedCanvasNodeId, setSelectedCanvasNodeId] = useState(INITIAL_CREATIVE_NODES[4]?.id ?? INITIAL_CREATIVE_NODES[0].id);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
-  const nextCreativeNodeId = useRef(0);
+  const nextCreativeNodeId = useRef(100);
 
-  // === 3D Parallax State ===
-  const [canvasRotation, setCanvasRotation] = useState({ x: 20, y: -10 }); // Initial 3D tilt
+  // Inspector & Interactive Messaging States
+  const [chatMessageText, setChatMessageText] = useState("");
+
+  // Creation Console Input Fields
+  const [newNodeTitle, setNewNodeTitle] = useState("");
+  const [newNodeType, setNewNodeType] = useState<CreativeNodeType>("idea");
+  const [newNodeContent, setNewNodeContent] = useState("");
+  const [newNodeTags, setNewNodeTags] = useState("");
+
+  // Obsidian note credentials (configurable by Admin)
+  const [obsidianVault, setObsidianVault] = useState("Yggnarok");
+  const [obsidianPath, setObsidianPath] = useState("creative-nexus/notes");
+
+  // n8n connection details (configurable by Admin)
+  const [n8nUrl, setn8nUrl] = useState("https://n8n.yggnarok.internal/webhook/creative");
+
   const canvasRef = useRef<HTMLDivElement>(null);
+  const dragRequestRef = useRef<number | null>(null);
+  const dragLatestPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Integration hooks
+  const { persistNode } = useObsidian();
+  const { triggerWorkflow } = useN8n();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Load user info client-side
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUser({
+          id: user.id,
+          role: userRole === "admin" ? "admin" : "user",
+          email: user.email,
+        });
+      } else {
+        setCurrentUser({
+          id: "anonymous",
+          role: userRole === "admin" ? "admin" : "user",
+          email: "guest@yggnarok.internal",
+        });
+      }
+    }
+    loadUser();
+  }, [userRole]);
+
+  // Load nodes and edges from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedNodes = window.localStorage.getItem("yggnarok.canvas_nodes");
+      const storedEdges = window.localStorage.getItem("yggnarok.canvas_edges");
+      if (storedNodes) {
+        try {
+          setCanvasNodes(JSON.parse(storedNodes));
+        } catch (e) {
+          console.error("Erro ao carregar canvasNodes", e);
+        }
+      }
+      if (storedEdges) {
+        try {
+          setCanvasEdges(JSON.parse(storedEdges));
+        } catch (e) {
+          console.error("Erro ao carregar canvasEdges", e);
+        }
+      }
+    }
+  }, []);
+
+  // Save to localStorage when nodes or edges change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("yggnarok.canvas_nodes", JSON.stringify(canvasNodes));
+    }
+  }, [canvasNodes]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("yggnarok.canvas_edges", JSON.stringify(canvasEdges));
+    }
+  }, [canvasEdges]);
+
+  // Helper to map CreativeNode to YggNode for API compatibility
+  const mapToYggNode = useCallback((node: CreativeNode): YggNode => {
+    return {
+      id: node.id,
+      type: node.type as YggNodeType,
+      position: { x: node.x, y: node.y },
+      dimensions: { width: 240, height: 140 },
+      zIndex: 1,
+      data: {
+        title: node.title,
+        content: node.content,
+        source: node.source,
+        status: node.status,
+        archived: node.archived || false,
+        ...node.meta
+      },
+      connections: (node.related || []).map(rId => ({
+        targetId: rId,
+        connectionType: "related_to" as ConnectionType
+      })),
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: currentUser?.id || "guest",
+        tags: node.tags || []
+      }
+    };
+  }, [currentUser]);
+
+  // Real Integration Handlers
+  const handleGerarNotaObsidian = async () => {
+    if (!selectedCanvasNode || !currentUser) return;
+    const yggNode = mapToYggNode(selectedCanvasNode);
+    await persistNode(yggNode, currentUser);
+  };
+
+  const handleDispararPipelineN8n = async () => {
+    if (!selectedCanvasNode || !currentUser) return;
+    const yggNode = mapToYggNode(selectedCanvasNode);
+    await triggerWorkflow(yggNode, "pipeline", currentUser);
+  };
+
+  const handleExecutarAutomacaoBasica = async () => {
+    if (!selectedCanvasNode || !currentUser) return;
+    const yggNode = mapToYggNode(selectedCanvasNode);
+    await triggerWorkflow(yggNode, "basic", currentUser);
+  };
+
+  const handleResetCanvas = () => {
+    if (window.confirm("Deseja realmente restaurar o canvas para o estado padrão? Isso removerá todas as modificações personalizadas.")) {
+      setCanvasNodes([
+        ...INITIAL_CREATIVE_NODES,
+        {
+          id: "archived-01",
+          type: "idea",
+          title: "Ideia Antiga - Post Carrossel",
+          x: 100,
+          y: 460,
+          content: "Post carrossel comparando produtividade com obsidian vs notion.",
+          tags: ["#arquivado", "#notion", "#obsidian"],
+          source: "Brain dump",
+          status: "Arquivado",
+          archived: true,
+          meta: {},
+          related: [],
+        },
+        {
+          id: "archived-02",
+          type: "prompt",
+          title: "Prompt Velho - DALL-E 2",
+          x: 400,
+          y: 490,
+          content: "Futuristic city neon purple, 3d render retro style.",
+          tags: ["#arquivado", "#dalle2"],
+          source: "Testes",
+          status: "Arquivado",
+          archived: true,
+          meta: { model: "DALL-E 2" },
+          related: [],
+        }
+      ]);
+      setCanvasEdges(INITIAL_CREATIVE_EDGES);
+      showToast("Canvas restaurado para o padrão!");
+    }
+  };
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (draggingNodeId || !canvasRef.current) return;
-
-    // Calculate rotation based on mouse position (Parallax effect)
     const rect = canvasRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
-    // Max rotation of 30 degrees
-    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
-    const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 15;
-
-    setCanvasRotation({ x: rotateX + 15, y: rotateY }); // +15 gives it a base tilt like looking down at a globe
+    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 9;
+    const rotateX = -((e.clientY - centerY) / (rect.height / 2)) * 9;
+    canvasRef.current.style.setProperty('--canvas-tx', `${rotateY}px`);
+    canvasRef.current.style.setProperty('--canvas-ty', `${rotateX}px`);
   };
 
+  // Node Drag and Drop Event handlers
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
     setSelectedCanvasNodeId(nodeId);
-    // If we are in connecting mode and click a node, try to connect them
     if (connectingFromId && connectingFromId !== nodeId) {
-      setCanvasEdges(prev => [...prev, { id: `e-${Date.now()}`, source: connectingFromId, target: nodeId }]);
+      const edgeId = `e-${Date.now()}`;
+      setCanvasEdges(prev => [...prev, { id: edgeId, source: connectingFromId, target: nodeId }]);
       setConnectingFromId(null);
+      showToast("Conexão visual criada!");
       e.stopPropagation();
       return;
     }
-
-    // Normal drag
     e.preventDefault();
     const nodeElement = e.currentTarget as HTMLDivElement;
     const rect = nodeElement.getBoundingClientRect();
     setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: (e.clientX - rect.left) / zoomLevel,
+      y: (e.clientY - rect.top) / zoomLevel
     });
     setDraggingNodeId(nodeId);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -331,1664 +543,1072 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     const canvasElement = e.currentTarget as HTMLDivElement;
     const rect = canvasElement.getBoundingClientRect();
 
-    let newX = e.clientX - rect.left - dragOffset.x;
-    let newY = e.clientY - rect.top - dragOffset.y;
+    let newX = (e.clientX - rect.left) / zoomLevel - dragOffset.x;
+    let newY = (e.clientY - rect.top) / zoomLevel - dragOffset.y;
 
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
-    if (newX > rect.width - 200) newX = rect.width - 200;
-    if (newY > rect.height - 100) newY = rect.height - 100;
+    if (newX > 3200) newX = 3200;
+    if (newY > 2200) newY = 2200;
 
-    setCanvasNodes(prev => prev.map(node =>
-      node.id === draggingNodeId ? { ...node, x: newX, y: newY } : node
-    ));
+    dragLatestPos.current = { x: newX, y: newY };
+
+    if (dragRequestRef.current === null) {
+      dragRequestRef.current = requestAnimationFrame(() => {
+        if (dragLatestPos.current && draggingNodeId) {
+          const { x, y } = dragLatestPos.current;
+          setCanvasNodes(prev => prev.map(node =>
+            node.id === draggingNodeId ? { ...node, x, y } : node
+          ));
+        }
+        dragRequestRef.current = null;
+      });
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (draggingNodeId) {
       setDraggingNodeId(null);
       e.currentTarget.releasePointerCapture(e.pointerId);
+      if (dragRequestRef.current !== null) {
+        cancelAnimationFrame(dragRequestRef.current);
+        dragRequestRef.current = null;
+      }
+      dragLatestPos.current = null;
     }
   };
 
-  const selectedCanvasNode = canvasNodes.find((node) => node.id === selectedCanvasNodeId) ?? canvasNodes[0];
-  const selectedCanvasConnections = canvasEdges
-    .filter((edge) => edge.source === selectedCanvasNode?.id || edge.target === selectedCanvasNode?.id)
-    .map((edge) => {
-      const connectedId = edge.source === selectedCanvasNode?.id ? edge.target : edge.source;
-      return canvasNodes.find((node) => node.id === connectedId);
-    })
-    .filter((node): node is CreativeNode => Boolean(node));
+  const selectedCanvasNode = canvasNodes.find((node) => node.id === selectedCanvasNodeId);
 
-  const addCanvasNode = (type: CreativeNodeType) => {
-    const meta = CREATIVE_NODE_META[type];
-    nextCreativeNodeId.current += 1;
-    const newNode: CreativeNode = {
-      id: `creative-node-${nextCreativeNodeId.current}`,
-      type,
-      title: `Novo ${meta.label}`,
-      x: 160 + (canvasNodes.length % 3) * 280,
-      y: 96 + Math.floor(canvasNodes.length / 3) * 168,
-      content: "Novo bloco criativo inserido no Nexus.",
-      tags: ["#creative-node"],
-      source: "Creation Nexus",
-      status: "Rascunho visual",
-      meta: {},
-      related: [],
-    };
-    setCanvasNodes(prev => [...prev, newNode]);
-    setSelectedCanvasNodeId(newNode.id);
+  const selectedCanvasConnections = useMemo(() => {
+    if (!selectedCanvasNode) return [];
+    return canvasEdges
+      .filter((edge) => edge.source === selectedCanvasNode.id || edge.target === selectedCanvasNode.id)
+      .map((edge) => {
+        const connectedId = edge.source === selectedCanvasNode.id ? edge.target : edge.source;
+        return canvasNodes.find((node) => node.id === connectedId);
+      })
+      .filter((node): node is CreativeNode => Boolean(node));
+  }, [canvasEdges, selectedCanvasNode, canvasNodes]);
+
+  // Dormant Node Layer Mechanics (Archive/Restore/Delete)
+  const archiveCanvasNode = (id: string) => {
+    setCanvasNodes(prev => prev.map(n => n.id === id ? { ...n, archived: true, status: "Arquivado" } : n));
+    showToast("Nó arquivado no Shadow Archive.");
   };
 
-  const deleteCanvasNode = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const restoreCanvasNode = (id: string) => {
+    setCanvasNodes(prev => prev.map(n => n.id === id ? { ...n, archived: false, status: "Rascunho" } : n));
+    showToast("Nó restaurado.");
+  };
+
+  const deleteCanvasNodePermanently = (id: string) => {
     setCanvasNodes(prev => prev.filter(n => n.id !== id));
     setCanvasEdges(prev => prev.filter(e => e.source !== id && e.target !== id));
-    setSelectedCanvasNodeId(prev => prev === id ? INITIAL_CREATIVE_NODES[0].id : prev);
+    if (selectedCanvasNodeId === id) {
+      setSelectedCanvasNodeId("");
+    }
+    showToast("Nó excluído permanentemente.");
   };
-  // ==========================================
 
-  const [contentType, setContentType] = useState("ideia");
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
-  const [showChannelMention, setShowChannelMention] = useState(false);
-  const [channelFilter, setChannelFilter] = useState("");
-  const briefingRef = useRef<HTMLTextAreaElement>(null);
-  const [, setRefinementInstructions] = useState("");
+  // Insert Nodes Function
+  const handleInsertNode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNodeTitle.trim()) {
+      showToast("Título é obrigatório", "error");
+      return;
+    }
 
-  const [acervoFilter, setAcervoFilter] = useState<string>("todos");
-  const [acervoSearch, setAcervoSearch] = useState("");
-  const [showArchive, setShowArchive] = useState(false);
-  const [archivedItems, setArchivedItems] = useState<ContentItem[]>(() => {
-    const now = Date.now();
-    return [
-      { id: "arc-1", profile_id: "", title: "Roteiro Antigo - Vendas Exponenciais", content_type: "Roteiro", platform: "Multicanais", idea: "Roteiro focado em gerar escassez imediata com gatilhos de copy do YGGNAROK.", status: "arquivado", created_at: new Date(now - 86400000 * 2).toISOString(), etapa_fluxo: "publicacao", origem: "manual" },
-      { id: "arc-2", profile_id: "", title: "Pauta: IA no Cotidiano", content_type: "Ideia", platform: "Instagram", idea: "Uma pauta abordando como a IA otimiza tarefas diárias.", status: "arquivado", created_at: new Date(now - 86400000 * 5).toISOString(), etapa_fluxo: "ideia", origem: "manual" },
-      { id: "arc-3", profile_id: "", title: "Storyboard Campanha Q2", content_type: "Documento", platform: "YouTube", idea: "Storyboard completo para campanha do segundo trimestre.", status: "arquivado", created_at: new Date(now - 86400000 * 12).toISOString(), etapa_fluxo: "ideia", origem: "hefesto" },
-    ];
-  });
-  const [openCardMenu, setOpenCardMenu] = useState<string | null>(null);
+    nextCreativeNodeId.current += 1;
+    const typeLabel = CREATIVE_NODE_META[newNodeType].label;
+    const parsedTags = newNodeTags
+      .split(",")
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+      .map(t => t.startsWith("#") ? t : `#${t}`);
 
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const newNode: CreativeNode = {
+      id: `creative-node-${nextCreativeNodeId.current}`,
+      type: newNodeType,
+      title: newNodeTitle.trim(),
+      x: 150 + (canvasNodes.length % 4) * 220,
+      y: 120 + Math.floor(canvasNodes.length / 4) * 160,
+      content: newNodeContent.trim() || `Novo bloco criativo de ${typeLabel}.`,
+      tags: parsedTags.length > 0 ? parsedTags : [`#${newNodeType}`],
+      source: "Manual Hub",
+      status: "Rascunho",
+      meta: {
+        messages: newNodeType === "chat" ? [
+          { sender: "ai", text: `Olá! Eu sou Kotaro IA associado ao canal. Como posso estruturar o ${newNodeTitle.trim()} hoje?` }
+        ] : [],
+        progress: (newNodeType === "campaign" || newNodeType === "project") ? 0 : undefined
+      },
+      related: []
+    };
 
-  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
+    setCanvasNodes(prev => [...prev, newNode]);
+    setSelectedCanvasNodeId(newNode.id);
+    setNewNodeTitle("");
+    setNewNodeContent("");
+    setNewNodeTags("");
+    showToast(`Nó "${newNode.title}" adicionado!`);
+  };
 
-  const [learningMargin, setLearningMargin] = useState(85);
-  const [autoFreeTier, setAutoFreeTier] = useState(true);
+  // Chat messaging node interaction
+  const handleSendChatMessage = () => {
+    if (!chatMessageText.trim() || !selectedCanvasNodeId) return;
+    const text = chatMessageText.trim();
+    setChatMessageText("");
 
-  const [manualTitle, setManualTitle] = useState("");
-  const [manualIdea, setManualIdea] = useState("");
-  const [selectedAgent, setSelectedAgent] = useState("hefesto");
+    // Add user text
+    setCanvasNodes(prev => prev.map(node => {
+      if (node.id === selectedCanvasNodeId) {
+        const currentMessages = node.meta.messages || [];
+        return {
+          ...node,
+          meta: {
+            ...node.meta,
+            messages: [...currentMessages, { sender: "user", text }]
+          }
+        };
+      }
+      return node;
+    }));
 
-  const [videoStyle, setVideoStyle] = useState<string>("tiktok");
-  const [allPresets, setAllPresets] = useState<Record<string, VideoStylePreset>>(DEFAULT_PRESETS);
-  const [, setShowStyleCreator] = useState(false);
+    // Append mock response
+    setTimeout(() => {
+      setCanvasNodes(prev => prev.map(node => {
+        if (node.id === selectedCanvasNodeId) {
+          const currentMessages = node.meta.messages || [];
+          const responseOptions = [
+            "Excelente ponto. Vamos processar isso no backend via automação n8n para atualizar o Obsidian Vault.",
+            "De acordo com a base de dados do Obsidian, essa relação fortalece a narrativa do Yggnarok.",
+            "Analisando os canais, sugiro adaptar esse roteiro para o formato Shorts, usando cortes rápidos e trilha dramática.",
+            "Entendido. Vou registrar esse feedback na Long-Term Memory do conselho de IAs.",
+            "Ideia excelente! Como quer mapear os nós filhos vinculados a esse pensamento?"
+          ];
+          const randomResponse = responseOptions[Math.floor(Math.random() * responseOptions.length)];
+          return {
+            ...node,
+            meta: {
+              ...node.meta,
+              messages: [...currentMessages, { sender: "ai", text: randomResponse }]
+            }
+          };
+        }
+        return node;
+      }));
+      showToast("Resposta recebida no chat.");
+    }, 1200);
+  };
 
-  const [referenceAssets, setReferenceAssets] = useState<ReferenceAsset[]>([]);
+  // Proximity & Relevance Sort Filter Limit (~40 nodes)
+  const visibleNodes = useMemo(() => {
+    let filtered = canvasNodes.filter(node => {
+      const matchesSearch = canvasSearchQuery === "" || 
+        node.title.toLowerCase().includes(canvasSearchQuery.toLowerCase()) ||
+        node.content.toLowerCase().includes(canvasSearchQuery.toLowerCase()) ||
+        node.tags.some(tag => tag.toLowerCase().includes(canvasSearchQuery.toLowerCase()));
+
+      const matchesType = selectedNodeTypeFilter === "all" || node.type === selectedNodeTypeFilter;
+
+      return matchesSearch && matchesType;
+    });
+
+    filtered = filtered.filter(n => showArchivedOnCanvas || !n.archived);
+
+    const LIMIT = 40;
+    if (filtered.length <= LIMIT) return filtered;
+
+    const selected = filtered.find(n => n.id === selectedCanvasNodeId);
+    if (!selected) {
+      return filtered.slice(0, LIMIT);
+    }
+
+    const priorityIds = new Set<string>();
+    priorityIds.add(selected.id);
+
+    canvasEdges.forEach(e => {
+      if (e.source === selected.id) priorityIds.add(e.target);
+      if (e.target === selected.id) priorityIds.add(e.source);
+    });
+
+    const otherNodes = filtered.filter(n => !priorityIds.has(n.id));
+    const dist = (n1: CreativeNode, n2: CreativeNode) => {
+      const dx = n1.x - n2.x;
+      const dy = n1.y - n2.y;
+      return dx * dx + dy * dy;
+    };
+    otherNodes.sort((a, b) => dist(a, selected) - dist(b, selected));
+
+    const result = filtered.filter(n => priorityIds.has(n.id));
+    const needed = LIMIT - result.length;
+    if (needed > 0) {
+      result.push(...otherNodes.slice(0, needed));
+    }
+    return result;
+  }, [canvasNodes, canvasEdges, selectedCanvasNodeId, canvasSearchQuery, selectedNodeTypeFilter, showArchivedOnCanvas]);
+
+  const visibleEdges = useMemo(() => {
+    const visibleIds = new Set(visibleNodes.map(n => n.id));
+    return canvasEdges.filter(e => visibleIds.has(e.source) && visibleIds.has(e.target));
+  }, [canvasEdges, visibleNodes]);
+
+  const drawEdgePath = (edge: CreativeEdge) => {
+    const sourceNode = visibleNodes.find(n => n.id === edge.source);
+    const targetNode = visibleNodes.find(n => n.id === edge.target);
+    if (!sourceNode || !targetNode) return null;
+
+    const { sourcePoint, targetPoint } = getClosestPorts(sourceNode, targetNode);
+    const isSelectedConnection = selectedCanvasNodeId === sourceNode.id || selectedCanvasNodeId === targetNode.id;
+
+    if (connectionLineStyle === "orthogonal") {
+      const midX = sourcePoint.x + (targetPoint.x - sourcePoint.x) / 2;
+      const points = `${sourcePoint.x},${sourcePoint.y} ${midX},${sourcePoint.y} ${midX},${targetPoint.y} ${targetPoint.x},${targetPoint.y}`;
+      return (
+        <polyline
+          key={edge.id}
+          points={points}
+          fill="none"
+          stroke={isSelectedConnection ? "rgba(var(--aura-color),0.85)" : "rgba(var(--aura-color),0.35)"}
+          strokeWidth={isSelectedConnection ? 2.5 : 1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          markerEnd="url(#creative-arrow)"
+        />
+      );
+    } else {
+      return (
+        <line
+          key={edge.id}
+          x1={sourcePoint.x}
+          y1={sourcePoint.y}
+          x2={targetPoint.x}
+          y2={targetPoint.y}
+          stroke={isSelectedConnection ? "rgba(var(--aura-color),0.85)" : "rgba(var(--aura-color),0.35)"}
+          strokeWidth={isSelectedConnection ? 2.5 : 1.5}
+          markerEnd="url(#creative-arrow)"
+        />
+      );
+    }
+  };
 
   const ltmMemories = useMemo(() => {
-    void toast;
     if (typeof window === "undefined") return [];
     const username = window.localStorage.getItem("yggnarok.username") || "kotaro";
     const stored = window.localStorage.getItem(`yggnarok.${username}.ltm_memories`);
     if (!stored) return [];
     try {
-      const list = JSON.parse(stored) as { id: string; fact: string; confidence: number }[];
-      return list.slice(0, 4);
+      return JSON.parse(stored).slice(0, 4);
     } catch (e) {
       console.error(e);
       return [];
     }
   }, [toast]);
 
-  const handleSimulateAssetUpload = (type: "image" | "video" | "audio" | "doc") => {
-    const fileNamesMap = {
-      image: "referencia_estilo_quadro.png",
-      video: "corte_exemplo_referencia.mp4",
-      audio: "efeito_sonoro_swoosh.mp3",
-      doc: "roteiro_planejado_vendas.pdf",
-    };
-    const nextAsset: ReferenceAsset = {
-      id: `asset_${Date.now()}`,
-      name: fileNamesMap[type],
-      type,
-      size: type === "video" ? "14.2 MB" : type === "image" ? "1.8 MB" : type === "audio" ? "600 KB" : "120 KB",
-      status: "uploading",
-      progress: 0,
-    };
-    setReferenceAssets((prev) => [...prev, nextAsset]);
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 25;
-      setReferenceAssets((prev) => prev.map((a) => (a.id === nextAsset.id ? { ...a, progress: prog } : a)));
-      if (prog >= 100) {
-        clearInterval(interval);
-        setReferenceAssets((prev) => prev.map((a) => (a.id === nextAsset.id ? { ...a, status: "completed" } : a)));
-      }
-    }, 400);
-  };
-
-  const handleRemoveAsset = (id: string) => {
-    setReferenceAssets(referenceAssets.filter((a) => a.id !== id));
-  };
-
-  const [videoStatus, setVideoStatus] = useState<"idle" | "analyzing" | "projecting" | "council_review" | "rendering" | "completed" | "rejected" | "exporting">("idle");
-  const [progressVal, setProgressVal] = useState(0);
-  const [exportPlatform, setExportPlatform] = useState<"4k" | "tiktok" | "reels" | "shorts" | null>(null);
-  const [exportLogs, setExportLogs] = useState<string[]>([]);
-  const [exportStep, setExportStep] = useState(0);
-
-  const [rejectionError, setRejectionError] = useState("");
-  const [absorbedFeedback, setAbsorbedFeedback] = useState<string[]>([]);
-  const [councilMessages, setCouncilMessages] = useState<{agent: string, avatar: string, message: string, status: "thinking" | "approved"}[]>([]);
-
-  const [videoScriptTitle, setVideoScriptTitle] = useState("Como Economizar 100% de APIs com YGGNAROK");
-  const [videoAspect, setVideoAspect] = useState<"916" | "169">("916");
-  const [videoTimeline, setVideoTimeline] = useState([
-    { id: "clip_1", title: "Gancho de Vídeo (3s)", dur: "3s", script: "Você sabia que está jogando dinheiro fora usando IAs pagas para coisas simples?", type: "Gancho" },
-    { id: "clip_2", title: "Apresentação (12s)", dur: "12s", script: "Apresento o YGGNAROK OS, seu centro de controle neural. Ele seleciona e direciona o modelo gratuito ideal para cada tarefa automaticamente.", type: "Conteúdo" },
-    { id: "clip_3", title: "Demonstração (15s)", dur: "15s", script: "[Mostrar tela do canvas visual n8n neon pulsando e os dados fluindo em tempo real pelo navegador]", type: "Visual" },
-    { id: "clip_4", title: "Chamada de Ação Final (10s)", dur: "10s", script: "Pare de ter surpresas na fatura de IA. Clique no link abaixo e inicie sua orquestra gratuita agora mesmo!", type: "CTA" },
-  ]);
-
-  const [videoGenre, setVideoGenre] = useState<"viral" | "educational" | "comedy" | "documentary" | "serious" | "sales">("viral");
-  const [adaptationMode, setAdaptationMode] = useState<"liquid" | "fixed">("liquid");
-  const [isScanningTrends, setIsScanningTrends] = useState(false);
-  const [trendRadarLogs, setTrendRadarLogs] = useState<string[]>([
-    "Gancho mais retentivo: Zoom Rápido no segundo 1.8.",
-    "Batida Recomendada: Synthwave Melodic (124BPM).",
-    "Estética do Algoritmo: Lettering Void & Amber piscante com ironia."
-  ]);
-
-  const runActiveTrendScan = () => {
-    setIsScanningTrends(true);
-    const mockLogs = [
-      "🌐 Conectando radar YGGNAROK ao feed global de tendências...",
-      "📈 Mapeando 14 padrões virais emergentes (Humor, Documentário)...",
-      "⚡ Sintonizando transições dinâmicas baseadas em retenção mobile...",
-      "🔥 Consciência de Gênero atualizada! Pesos sintonizados no Qwen-VL e Gemini!"
-    ];
-
-    let idx = 0;
-    setTrendRadarLogs([mockLogs[0]]);
-
-    const interval = setInterval(() => {
-      idx++;
-      if (idx < mockLogs.length) {
-        setTrendRadarLogs(prev => [...prev, mockLogs[idx]]);
-      } else {
-        clearInterval(interval);
-        setIsScanningTrends(false);
-      }
-    }, 1000);
-  };
-
-  const activePreset = allPresets[videoStyle] || DEFAULT_PRESETS["tiktok"];
-
-  const filteredContents = contents.filter(c => {
-    if (activeTab !== "videos" && activeTab !== "ideias" && !c.content_type?.toLowerCase().includes(activeTab.slice(0, -1))) return false;
-    if (acervoFilter !== "todos") {
-      const normalized = (c.status || "rascunho").toLowerCase().replace(/\s/g, "_");
-      if (normalized !== acervoFilter && c.etapa_fluxo !== acervoFilter) return false;
-    }
-    if (acervoSearch && !c.title.toLowerCase().includes(acervoSearch.toLowerCase())) return false;
-    return true;
-  });
-
-  const toggleChannel = (ch: string) => {
-    setSelectedChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
-  };
-
-  const handleBriefingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setManualIdea(val);
-    const cursorPos = e.target.selectionStart;
-    const textBeforeCursor = val.slice(0, cursorPos);
-    const atMatch = textBeforeCursor.match(/@(\w*)$/);
-    if (atMatch) {
-      setShowChannelMention(true);
-      setChannelFilter(atMatch[1].toLowerCase());
-    } else {
-      setShowChannelMention(false);
-      setChannelFilter("");
-    }
-  };
-
-  const selectChannelFromMention = (ch: string) => {
-    if (!selectedChannels.includes(ch)) {
-      setSelectedChannels(prev => [...prev, ch]);
-    }
-    if (briefingRef.current) {
-      const val = manualIdea;
-      const cursorPos = briefingRef.current.selectionStart;
-      const textBeforeCursor = val.slice(0, cursorPos);
-      const textAfterCursor = val.slice(cursorPos);
-      const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${ch} `);
-      const newVal = newTextBefore + textAfterCursor;
-      setManualIdea(newVal);
-      setTimeout(() => {
-        const newPos = newTextBefore.length;
-        briefingRef.current?.setSelectionRange(newPos, newPos);
-        briefingRef.current?.focus();
-      }, 0);
-    }
-    setShowChannelMention(false);
-    setChannelFilter("");
-  };
-
-  const filteredMentionChannels = CHANNELS.filter(
-    ch => ch.toLowerCase().includes(channelFilter) && !selectedChannels.includes(ch)
-  );
-
-  const handleSaveDraft = async () => {
-    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
-    setActionLoading("draft");
-    await new Promise(r => setTimeout(r, 800));
-    const newItem: ContentItem = {
-      id: `local-${Date.now()}`,
-      profile_id: profiles[0]?.id || "",
-      title: manualTitle.trim(),
-      content_type: contentType,
-      platform: selectedChannels.join(", ") || "Multicanal",
-      idea: manualIdea.trim(),
-      status: "rascunho",
-      created_at: new Date().toISOString(),
-      etapa_fluxo: "ideia",
-      origem: "manual",
-    };
-    setContents(prev => [newItem, ...prev]);
-    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
-    setActionLoading(null);
-    showToast("Rascunho salvo no Acervo!");
-  };
-
-  const handleSendForReview = async () => {
-    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
-    setActionLoading("review");
-    await new Promise(r => setTimeout(r, 1200));
-    const newItem: ContentItem = {
-      id: `local-${Date.now()}`,
-      profile_id: profiles[0]?.id || "",
-      title: manualTitle.trim(),
-      content_type: contentType,
-      platform: selectedChannels.join(", ") || "Multicanal",
-      idea: manualIdea.trim(),
-      status: "na_fila",
-      created_at: new Date().toISOString(),
-      etapa_fluxo: "ideia",
-      origem: "manual",
-      agente_executor: selectedAgent,
-    };
-    setContents(prev => [newItem, ...prev]);
-    setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
-    setActionLoading(null);
-    showToast("Pauta enviada para Fila do Agente!");
-  };
-
-  const handleGenerateContent = async () => {
-    if (!manualTitle.trim()) { showToast("Preencha o título operacional.", "error"); return; }
-    setActionLoading("generate");
-
-    const payload = {
-      id: `n8n-${Date.now()}`,
-      title: manualTitle.trim(),
-      content_type: contentType,
-      platform: selectedChannels.join(", ") || "Multicanal",
-      idea: manualIdea.trim(),
-      agente_executor: selectedAgent,
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      const res = await fetch("/api/n8n", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Falha na ponte com o n8n");
-
-      const newItem: ContentItem = {
-        id: payload.id,
-        profile_id: profiles[0]?.id || "",
-        title: payload.title,
-        content_type: payload.content_type,
-        platform: payload.platform,
-        idea: payload.idea,
-        status: "processando",
-        created_at: payload.timestamp,
-        etapa_fluxo: "ideia",
-        origem: payload.agente_executor as ContentOrigem,
-        agente_executor: payload.agente_executor,
-      };
-      setContents(prev => [newItem, ...prev]);
-      setManualTitle(""); setManualIdea(""); setRefinementInstructions("");
-      showToast(data.message || "Pipeline de geração (n8n) acionado!");
-    } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Erro ao acionar o pipeline", "error");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const getNextAction = (item: ContentItem) => {
-    const etapa = item.etapa_fluxo || "ideia";
-    const status = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
-    if (status === "processando") return { label: "Processando...", disabled: true, spinning: true };
-    if (status === "erro") return { label: "Tentar novamente", disabled: false, spinning: false };
-    if (etapa === "ideia" && (status === "rascunho" || status === "pronto" || status === "idea" || status === "pendente")) return { label: "Gerar Roteiro", disabled: false, spinning: false };
-    if (etapa === "roteiro" && status === "pronto") return { label: "Gerar Legenda", disabled: false, spinning: false };
-    if (etapa === "legenda" && status === "pronto") return { label: "Gerar Hashtags", disabled: false, spinning: false };
-    if (etapa === "hashtag" && status === "pronto") return { label: "Concluir Pauta", disabled: false, spinning: false };
-    return { label: "Abrir Conteúdo", disabled: false, spinning: false };
-  };
-
-  const handleUpdateClipScript = (id: string, nextText: string) => {
-    setVideoTimeline(prev => prev.map(c => c.id === id ? { ...c, script: nextText } : c));
-  };
-
-  const runVideoEditingPipeline = async () => {
-    setVideoStatus("analyzing");
-    setProgressVal(15);
-    setCouncilMessages([
-      { agent: "Hefesto (Roteirista)", avatar: "🔨", message: "Iniciando verificação técnica de proporção e codec...", status: "thinking" }
-    ]);
-    await new Promise(r => setTimeout(r, 1000));
-    setVideoStatus("projecting");
-    setProgressVal(40);
-    setCouncilMessages(prev => [
-      ...prev,
-      { agent: "Morax (Estrategista)", avatar: "🦉", message: "Calculando pontos críticos de retenção. Sugiro zoom no hook inicial.", status: "thinking" }
-    ]);
-    await new Promise(r => setTimeout(r, 1200));
-    setVideoStatus("council_review");
-    setProgressVal(75);
-    setCouncilMessages(prev => [
-      ...prev.map(c => ({ ...c, status: "approved" as const })),
-      { agent: "Odin OS (Supervisor)", avatar: "👁️", message: "Ganchos e pacing aprovados sem custo de API! Renderizando cortes...", status: "thinking" }
-    ]);
-    await new Promise(r => setTimeout(r, 1500));
-    setVideoStatus("completed");
-    setProgressVal(100);
-    setCouncilMessages(prev => prev.map(c => ({ ...c, status: "approved" as const })));
-    showToast("Orquestra de vídeo finalizada com sucesso!");
-  };
-
-  const handleRejectVideo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rejectionError.trim()) return;
-
-    const errorFact = `[ERRO DE EDIÇÃO DE VÍDEO DETECTADO] Estilo: ${videoStyle}. Correção crítica exigida: ${rejectionError.trim()}`;
-    const username = typeof window !== "undefined" ? (localStorage.getItem("yggnarok.username") || "kotaro") : "kotaro";
-    const storedMems = localStorage.getItem(`yggnarok.${username}.ltm_memories`);
-    let memoriesList = [];
-    if (storedMems) {
-      try {
-        memoriesList = JSON.parse(storedMems);
-      } catch (err) {}
-    }
-    const newMem = {
-      id: `mem_video_error_${Date.now()}`,
-      category: "tecnico" as const,
-      fact: errorFact,
-      timestamp: "Absorbido via Feedback de Edição",
-      confidence: 100
-    };
-    localStorage.setItem(`yggnarok.${username}.ltm_memories`, JSON.stringify([newMem, ...memoriesList]));
-
-    setAbsorbedFeedback([rejectionError.trim(), ...absorbedFeedback]);
-    setVideoStatus("rejected");
-    setRejectionError("");
-    setProgressVal(0);
-    setCouncilMessages([]);
-  };
-
-  const triggerPlatformPublish = (platform: "4k" | "tiktok" | "reels" | "shorts") => {
-    setExportPlatform(platform);
-    setVideoStatus("exporting");
-    setExportStep(0);
-
-    const stepsMap = {
-      "4k": [
-        "Iniciando Renderização H.264 / ProRes a 60fps...",
-        "Calculando anti-aliasing vetorial e sobreposição neon...",
-        "Ajustando bitrate de exportação para 50 Mbps (Qualidade Máxima)...",
-        "✓ Sucesso! Vídeo salvo em ProRes 4K Ultra-HD sem compactação local!"
-      ],
-      tiktok: [
-        "Conectando com a API oficial do TikTok...",
-        "Ignorando compressão automática do servidor TikTok...",
-        "Carregando vídeo original ProRes via Envio Fragmentado...",
-        "✓ Sucesso! Vídeo publicado no TikTok em Resolução Nativa Máxima!"
-      ],
-      reels: [
-        "Negociando codec HDR com a API do Instagram Graph...",
-        "Estabilizando taxa de quadros e cores Void & Amber em 4K...",
-        "Carregando arquivo brutamente em alta fidelidade...",
-        "✓ Sucesso! Reels publicado em Altíssima Qualidade no Instagram!"
-      ],
-      shorts: [
-        "Abrindo túnel de alta velocidade com o YouTube Creator API...",
-        "Processando áudio original sem compactação em WAV...",
-        "Transmitindo pacote de dados sem perdas...",
-        "✓ Sucesso! YouTube Short agendado em Ultra-HD original!"
-      ]
-    };
-
-    const steps = stepsMap[platform];
-    setExportLogs([steps[0]]);
-
-    let idx = 0;
-    const interval = setInterval(() => {
-      idx++;
-      if (idx < steps.length) {
-        setExportStep(idx);
-        setExportLogs(prev => [...prev, steps[idx]]);
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          setVideoStatus("idle");
-          setExportPlatform(null);
-          setExportLogs([]);
-        }, 3000);
-      }
-    }, 2000);
-  };
-
   return (
-    <main className="min-h-screen text-foreground relative bg-background pb-20 select-none">
-
-      {/* CSS Keyframe Injections for Rich Aesthetics */}
+    <main className="min-h-screen text-foreground relative bg-background pb-10 select-none">
       <style>{`
         @keyframes subtleGlow {
-          0% { border-color: rgba(245, 158, 11, 0.15); box-shadow: 0 0 10px rgba(245, 158, 11, 0.02); }
-          50% { border-color: rgba(245, 158, 11, 0.35); box-shadow: 0 0 20px rgba(245, 158, 11, 0.08); }
-          100% { border-color: rgba(245, 158, 11, 0.15); box-shadow: 0 0 10px rgba(245, 158, 11, 0.02); }
+          0% { border-color: rgba(var(--aura-color), 0.15); box-shadow: 0 0 10px rgba(var(--aura-color), 0.02); }
+          50% { border-color: rgba(var(--aura-color), 0.35); box-shadow: 0 0 20px rgba(var(--aura-color), 0.08); }
+          100% { border-color: rgba(var(--aura-color), 0.15); box-shadow: 0 0 10px rgba(var(--aura-color), 0.02); }
         }
         .glowing-panel {
           animation: subtleGlow 4s ease-in-out infinite;
-        }
-        .glowing-input:focus {
-          border-color: rgba(245, 158, 11, 0.6);
-          box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 5px;
           height: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.2);
+          background: rgba(0, 0, 0, 0.1);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(245, 158, 11, 0.2);
+          background: rgba(var(--aura-color), 0.25);
           border-radius: 99px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(245, 158, 11, 0.4);
+          background: rgba(var(--aura-color), 0.45);
         }
       `}</style>
 
-      {/* Exquisite Top Gradient Orbs (Illuminated for Legibility) */}
+      {/* Aesthetic Backlight */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-brand-strong/5 blur-[130px] rounded-full pointer-events-none" />
 
-      <div className="mx-auto max-w-[1440px] px-6 pt-8">
+      {/* Floating Status Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-extrabold shadow-2xl backdrop-blur-xl animate-bounce ${
+          toast.type === "success"
+            ? "border-emerald-500/30 bg-emerald-950/90 text-emerald-400"
+            : "border-rose-500/30 bg-rose-950/90 text-rose-400"
+        }`}>
+          <span className="relative flex h-2 w-2">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${toast.type === "success" ? "bg-emerald-400" : "bg-rose-400"}`}></span>
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${toast.type === "success" ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+          </span>
+          <span>{toast.message}</span>
+        </div>
+      )}
 
-        {/* Dynamic Toast Feedback Overlay */}
-        {toast && (
-          <div className={`fixed bottom-6 right-6 z-[var(--z-toast)] flex items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-extrabold shadow-2xl backdrop-blur-xl animate-bounce ${
-            toast.type === "success"
-              ? "border-emerald-500/30 bg-emerald-950/90 text-emerald-400"
-              : "border-rose-500/30 bg-rose-950/90 text-rose-400"
-          }`}>
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${toast.type === "success" ? "bg-emerald-400" : "bg-rose-400"}`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${toast.type === "success" ? "bg-emerald-500" : "bg-rose-500"}`}></span>
-            </span>
-            <span>{toast.message}</span>
-          </div>
-        )}
-
-        {/* ── Visual Studio Header & Navigation ── */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8 pb-6 border-b border-line/25">
+      {/* Fullscreen Board Layout */}
+      <div className="flex h-screen flex-col overflow-hidden">
+        {/* Core Header */}
+        <header className="flex shrink-0 items-center justify-between border-b border-line/20 bg-surface/30 px-6 py-4 backdrop-blur-md">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-1">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand/75 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
               </span>
-              <span className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-brand leading-none">Studio de Criação Neuronal</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.25em] text-brand leading-none">Creative Brain Canvas</span>
             </div>
-            <h1 className="font-divine text-4xl sm:text-5xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(245,158,11,0.4)] animate-pulse">
-              YGGNAROK Creation Hub
+            <h1 className="font-divine text-2xl font-black tracking-widest bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(248, 195, 102,0.3)]">
+              YGGNAROK Creation Nexus
             </h1>
-            <p className="text-xs text-muted mt-2 max-w-xl font-medium">Configure pautas, defina parâmetros de ingestão e acelere sua produção de mídias de alta retenção.</p>
           </div>
 
-          {/* Slash Command Button (Menos Destaque, Clicável) */}
-          <button
-            type="button"
-            onClick={() => showToast("Comandos '/' estarão disponíveis em breve!")}
-            className="flex items-center gap-2 bg-black/10 hover:bg-black/30 border border-line/20 hover:border-line/40 px-3 py-1.5 rounded-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-white"
-          >
-            <Zap size={12} className="text-brand/50" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Comandos &quot;/&quot;</span>
-          </button>
-        </div>
+          <div className="flex items-center gap-3">
+            <span className="rounded-lg border border-brand/20 bg-brand/5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-brand">
+              Canvas: {visibleNodes.length}/{canvasNodes.length} cards (Performance Limiter)
+            </span>
+            <Link 
+              href="/estudio-video" 
+              className="flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-rose-300 transition"
+            >
+              <Film size={11} />
+              <span>Estúdio de Edição</span>
+            </Link>
+          </div>
+        </header>
 
-        {/* ── 3-Column Symmetrical Studio Grid Workspace ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          {/* COLUMN 1 & 2: Console de Criação (Left/Middle - 8 Cols) */}
-          <div className="lg:col-span-8 space-y-8">
-
-            {activeTab !== "videos" ? (
-              /* console de criação de conteúdo */
-              <section className="rounded-2xl border border-line/40 bg-surface/60 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-300 focus-within:border-brand/30">
-
-                {/* Panel Header */}
-                <div className="flex items-center justify-between border-b border-line/10 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid size-8 place-items-center rounded-lg bg-brand/10 border border-brand/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                      <Terminal size={15} className="text-brand" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-black uppercase tracking-widest text-brand">Núcleo Neural de Ingestão</h2>
-                      <p className="text-[10px] text-muted font-semibold tracking-wider">Defina a pauta bruta de entrada via texto ou comandos</p>
-                    </div>
-                  </div>
-
-                  {/* Mode Selector */}
-                  <div className="flex items-center gap-1 bg-black/10 dark:bg-black/40 border border-line/20 rounded-lg p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setCreationMode("manual")}
-                      className={`px-3 py-1.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider transition ${
-                        creationMode === "manual" ? "bg-neutral-800 text-brand font-black" : "text-muted hover:text-white"
-                      }`}
-                    >
-                      Manual
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreationMode("ia")}
-                      className={`px-3 py-1.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider transition ${
-                        creationMode === "ia" ? "bg-neutral-800 text-brand font-black" : "text-muted hover:text-white"
-                      }`}
-                    >
-                      Piloto Automático
-                    </button>
-                  </div>
+        {/* Unified workspace */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* MAIN CANVAS WORKSPACE */}
+          <div className="flex-1 flex flex-col min-w-0 relative">
+            {/* Canvas Header toolbar: Search and Filters */}
+            <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 bg-surface/85 border border-line/30 rounded-xl p-3 backdrop-blur-md shadow-2xl select-none">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/60" size={12} />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar nós ou tags..."
+                    className="h-8 w-56 rounded-lg border border-line/40 bg-surface-strong/50 pl-8 pr-3 text-[10px] text-foreground outline-none focus:border-brand/40 transition font-semibold"
+                    value={canvasSearchQuery}
+                    onChange={(e) => setCanvasSearchQuery(e.target.value)}
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  {/* Inputs Grid */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Título Operacional</label>
-                      <input
-                        id="title-input"
-                        type="text"
-                        placeholder="Ex: 5 Dicas Rápidas de Prompt Engineering"
-                        value={manualTitle}
-                        onChange={(e) => setManualTitle(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-line bg-black/10 dark:bg-black/40 px-3 text-xs text-foreground outline-none focus:border-brand/40 transition placeholder:text-muted/40 font-semibold focus:ring-1 focus:ring-brand/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Tipo de Formato</label>
-                      <select
-                        value={contentType}
-                        onChange={(e) => setContentType(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-line bg-black/10 dark:bg-black/40 px-3 text-xs text-foreground outline-none focus:border-brand/40 transition font-semibold cursor-pointer"
+                <div className="flex items-center gap-1 border-l border-line/20 pl-2">
+                  <button
+                    onClick={() => setSelectedNodeTypeFilter("all")}
+                    className={`h-8 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                      selectedNodeTypeFilter === "all" ? "bg-brand text-white dark:text-neutral-950" : "text-muted hover:text-brand"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {Object.keys(CREATIVE_NODE_META).slice(0, 5).map(key => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedNodeTypeFilter(key)}
+                      className={`h-8 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                        selectedNodeTypeFilter === key ? "bg-brand text-white dark:text-neutral-950" : "text-muted hover:text-brand"
+                      }`}
+                    >
+                      {CREATIVE_NODE_META[key as CreativeNodeType].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Advanced Controls */}
+              <div className="flex items-center gap-2">
+                {/* Toggle Show Archived */}
+                <button
+                  type="button"
+                  onClick={() => setShowArchivedOnCanvas(!showArchivedOnCanvas)}
+                  className={`h-8 px-3 rounded-lg border text-[9.5px] font-black uppercase tracking-widest flex items-center gap-1.5 transition ${
+                    showArchivedOnCanvas 
+                      ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 dark:bg-indigo-950/30"
+                      : "border-line bg-surface/20 text-muted hover:text-brand"
+                  }`}
+                >
+                  <Archive size={11} />
+                  <span>Arquivo de Sombras</span>
+                </button>
+
+                {/* Toggle Orthogonal Lines */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const style = connectionLineStyle === "straight" ? "orthogonal" : "straight";
+                    setConnectionLineStyle(style);
+                    showToast(style === "straight" ? "Conexões retas ativadas." : "Conexões ortogonais ativadas.");
+                  }}
+                  className={`h-8 px-3 rounded-lg border text-[9.5px] font-black uppercase tracking-widest flex items-center gap-1.5 transition ${
+                    connectionLineStyle === "orthogonal"
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-line bg-surface/20 text-muted hover:text-brand"
+                  }`}
+                >
+                  <Sliders size={11} />
+                  <span>{connectionLineStyle === "orthogonal" ? "Ortogonal" : "Retas"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Board Canvas Workspace */}
+            <div
+              ref={canvasRef}
+              className={`flex-1 relative overflow-hidden bg-surface-base ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`}
+              onMouseMove={handleCanvasMouseMove}
+            >
+              {/* Backlight layout */}
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(var(--aura-color),0.12),transparent_45%),linear-gradient(135deg,var(--surface-base)_0%,var(--background)_100%)]" />
+              <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(var(--line)_1px,transparent_1px),linear-gradient(90deg,var(--line)_1px,transparent_1px)] [background-size:60px_60px]" />
+
+              {/* Transform layout wrapper */}
+              <div
+                className="absolute inset-0 transition-transform duration-100 ease-out z-10"
+                style={{
+                  transform: `scale(${zoomLevel}) translate3d(calc(120px + var(--canvas-tx, 0px)), calc(40px + var(--canvas-ty, 0px)), 0)`,
+                  transformOrigin: "center center",
+                }}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                onClick={() => connectingFromId && setConnectingFromId(null)}
+              >
+                {/* Connections SVG */}
+                <svg className="absolute inset-0 z-0 size-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <marker id="creative-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                      <path d="M 0 1 L 6 4 L 0 7 z" fill="rgba(var(--aura-color),0.65)" />
+                    </marker>
+                  </defs>
+                  {visibleEdges.map(edge => drawEdgePath(edge))}
+                </svg>
+
+                {/* Nodes Cards */}
+                {visibleNodes.map(node => {
+                  const meta = CREATIVE_NODE_META[node.type];
+                  const TitleIcon = meta.icon;
+                  const isSelected = selectedCanvasNodeId === node.id;
+
+                  return (
+                    <div
+                      key={node.id}
+                      onPointerDown={(e) => handlePointerDown(e, node.id)}
+                      className={`absolute w-[240px] rounded-xl border p-3.5 shadow-2xl backdrop-blur-md select-none ${
+                        draggingNodeId === node.id ? "cursor-grabbing scale-[1.03]" : "transition-all duration-300 cursor-grab"
+                      } ${meta.tone} ${
+                        isSelected 
+                          ? "ring-2 ring-brand/60 border-brand shadow-[0_0_40px_rgba(var(--aura-color),0.22)] scale-[1.01]" 
+                          : "hover:border-brand/40"
+                      } ${node.archived ? "opacity-35 hover:opacity-50 ring-0 border-indigo-950/40 bg-indigo-950/5 text-indigo-400/50" : ""} ${
+                        connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]" : ""}`}
+                      style={{
+                        left: `${node.x}px`,
+                        top: `${node.y}px`,
+                        touchAction: "none",
+                      }}
+                    >
+                      {/* Close/Archive node button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (node.archived) {
+                            deleteCanvasNodePermanently(node.id);
+                          } else {
+                            archiveCanvasNode(node.id);
+                          }
+                        }}
+                        className="absolute -right-1.5 -top-1.5 z-20 grid size-5 place-items-center rounded-full border border-line bg-surface-strong text-muted transition hover:border-red-500 hover:text-red-400"
+                        title={node.archived ? "Excluir Permanentemente" : "Arquivar Pensamento"}
                       >
-                        {CONTENT_TYPES.map(ct => (
-                          <option key={ct.value} value={ct.value} className="bg-neutral-900">{ct.label}</option>
-                        ))}
-                      </select>
+                        <X size={9} />
+                      </button>
+
+                      {/* Header layout */}
+                      <div className="mb-2 flex items-center justify-between border-b border-line/15 pb-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <TitleIcon size={12} className="shrink-0" />
+                          <span className="truncate text-[8.5px] font-black uppercase tracking-widest">{meta.label}</span>
+                        </div>
+                        <span className="rounded bg-black/35 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider">{node.status}</span>
+                      </div>
+
+                      {/* Title & info */}
+                      <h3 className="line-clamp-2 text-xs font-black leading-snug text-foreground">{node.title}</h3>
+                      
+                      {/* Campaign slider progress indicator */}
+                      {(node.type === "campaign" || node.type === "project") && node.meta.progress !== undefined && (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex justify-between text-[7px] text-muted">
+                            <span>Progresso</span>
+                            <span className="text-brand font-bold">{node.meta.progress}%</span>
+                          </div>
+                          <div className="h-1 rounded-full bg-black/30 overflow-hidden">
+                            <div className="h-full rounded-full bg-brand" style={{ width: `${node.meta.progress}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="mt-2 line-clamp-3 text-[10px] font-semibold leading-relaxed text-muted/80">{node.content}</p>
+                      
+                      {/* Tags */}
+                      {node.tags && node.tags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {node.tags.slice(0, 2).map(tag => (
+                            <span key={tag} className="rounded border border-current/15 bg-black/25 px-1.5 py-0.5 text-[7.5px] font-extrabold uppercase opacity-80">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Ports for snapping lines */}
+                      <div className="absolute -left-1.5 top-[46px] size-3 rounded-full border-2 border-line bg-surface-strong" />
+                      <button
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          setConnectingFromId(node.id);
+                          showToast("Clique em outro nó para criar uma conexão!");
+                        }}
+                        className="absolute -right-2 top-[44px] grid size-4 cursor-crosshair place-items-center rounded-full border border-line bg-brand transition-transform hover:scale-125 hover:shadow-[0_0_8px_rgba(var(--aura-color),0.5)]"
+                        title="Conectar"
+                      >
+                        <Plus size={8} className="text-white dark:text-neutral-950" />
+                      </button>
                     </div>
+                  );
+                })}
+              </div>
+
+              {/* Zoom Buttons inside Canvas */}
+              <div className="absolute bottom-4 left-4 flex gap-1 z-20 select-none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const z = Math.min(1.5, zoomLevel + 0.1);
+                    setZoomLevel(z);
+                    showToast(`Zoom: ${Math.round(z * 100)}%`);
+                  }}
+                  className="grid size-8 place-items-center bg-surface/85 border border-line/25 rounded-lg text-muted hover:text-brand backdrop-blur transition hover:bg-surface-strong/50"
+                >
+                  <ZoomIn size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const z = Math.max(0.5, zoomLevel - 0.1);
+                    setZoomLevel(z);
+                    showToast(`Zoom: ${Math.round(z * 100)}%`);
+                  }}
+                  className="grid size-8 place-items-center bg-surface/85 border border-line/25 rounded-lg text-muted hover:text-brand backdrop-blur transition hover:bg-surface-strong/50"
+                >
+                  <ZoomOut size={12} />
+                </button>
+              </div>
+              
+              {/* Floating toggle button for right sidebar */}
+              <button
+                type="button"
+                onClick={() => setRightSidebarCollapsed((c) => !c)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface/85 text-foreground backdrop-blur-md shadow-2xl transition hover:text-brand hover:border-brand/45"
+                title={rightSidebarCollapsed ? "Abrir Painel de Controle" : "Recuar Painel de Controle"}
+              >
+                {rightSidebarCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* RIGHT SIDEBAR: Inspector (or Creation Console if none selected) */}
+          <aside
+            style={{
+              width: rightSidebarCollapsed ? "0px" : "360px",
+              opacity: rightSidebarCollapsed ? 0 : 1,
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+            className="border-l border-line/25 bg-surface/15 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto overflow-x-hidden custom-scrollbar select-text"
+          >
+            <div className="w-[360px] h-full flex flex-col">
+            {selectedCanvasNode ? (
+              // Detailed Node Inspector
+              <div className="flex flex-col p-5 space-y-5 h-full">
+                <div className="flex items-start justify-between gap-3 border-b border-line/20 pb-4">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Detailed Node Inspector</p>
+                    <input
+                      type="text"
+                      className="mt-1 bg-transparent border-b border-transparent focus:border-brand/40 text-base font-black text-foreground outline-none w-full pb-0.5"
+                      value={selectedCanvasNode.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, title: val } : n));
+                      }}
+                    />
                   </div>
+                  <span className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${CREATIVE_NODE_META[selectedCanvasNode.type].tone}`}>
+                    {CREATIVE_NODE_META[selectedCanvasNode.type].label}
+                  </span>
+                </div>
 
-                  {/* Briefing Field Imersivo c/ Toggle de Canvas */}
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Conteúdo / Briefing Principal</label>
+                <div className="space-y-5 flex-1">
+                  {/* Image Type Specific view */}
+                  {selectedCanvasNode.type === "image" && (
+                    <div className="space-y-3">
+                      <div className="relative overflow-hidden rounded-xl border border-brand/20 bg-surface-strong/50 p-4 flex flex-col items-center justify-center h-44 shadow-inner">
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent pointer-events-none" />
+                        <ImageIcon size={40} className="text-brand/50 mb-2" />
+                        <span className="text-[9.5px] font-bold text-muted text-center leading-normal">
+                          {selectedCanvasNode.meta.preview || "Preview Dourado (Yggnarok AI)"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Prompt Sintonizado</span>
+                        <div className="flex rounded-lg border border-line/30 bg-surface-strong/50 p-2.5 items-start justify-between gap-2">
+                          <code className="text-[10.5px] text-brand/90 font-mono leading-normal select-all">
+                            {selectedCanvasNode.content}
+                          </code>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedCanvasNode.content);
+                              showToast("Prompt copiado!");
+                            }}
+                            className="p-1.5 rounded bg-surface/50 border border-line/25 text-muted hover:text-brand transition"
+                            title="Copiar Prompt"
+                          >
+                            <Copy size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                      {/* Obsidian Mode Toggle */}
-                      <div className="flex items-center bg-black/40 border border-line/20 rounded-lg p-0.5">
+                  {/* Video Type Specific view */}
+                  {selectedCanvasNode.type === "video" && (
+                    <div className="space-y-3">
+                      <div className="relative overflow-hidden rounded-xl border border-rose-500/20 bg-rose-500/10 dark:bg-rose-950/10 p-4 flex flex-col items-center justify-center h-44">
+                        <div className="absolute inset-0 bg-gradient-to-t from-rose-500/5 to-transparent pointer-events-none" />
+                        <Play size={40} className="text-rose-400/40 mb-2 animate-pulse" />
+                        <span className="text-[10px] font-mono text-rose-600 dark:text-rose-300 font-bold uppercase tracking-wider">
+                          Duração: {selectedCanvasNode.meta.duration || "15s"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Roteiro / Legenda</span>
+                        <textarea
+                          rows={4}
+                          className="w-full rounded-lg border border-line bg-surface-strong/50 p-3 text-[11px] font-medium leading-relaxed text-foreground focus:border-brand focus:outline-none"
+                          value={selectedCanvasNode.content}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, content: val } : n));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat Type Specific view (Interactive conversations) */}
+                  {selectedCanvasNode.type === "chat" && (
+                    <div className="space-y-3 flex flex-col h-[280px]">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted block">Canal IA: {selectedCanvasNode.meta.persona || "Kotaro"}</span>
+                      <div className="flex-1 overflow-y-auto border border-line/30 rounded-xl bg-surface-strong/30 p-3 space-y-2.5 custom-scrollbar min-h-0">
+                        {(selectedCanvasNode.meta.messages || []).map((msg, i) => (
+                          <div key={i} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
+                            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs font-semibold leading-relaxed shadow-sm ${
+                              msg.sender === "user" 
+                                ? "bg-brand text-white dark:text-neutral-950 rounded-br-none" 
+                                : "bg-surface-strong border border-line/25 text-foreground rounded-bl-none"
+                            }`}>
+                              {msg.text}
+                            </div>
+                            <span className="text-[7.5px] text-muted/60 mt-0.5 px-1 font-bold">
+                              {msg.sender === "user" ? "Você" : selectedCanvasNode.meta.persona || "Kotaro"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <input
+                          type="text"
+                          placeholder="Digite para conversar..."
+                          className="flex-1 h-9 rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 transition font-semibold"
+                          value={chatMessageText}
+                          onChange={(e) => setChatMessageText(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSendChatMessage()}
+                        />
                         <button
-                          type="button"
-                          onClick={() => setBriefingMode("text")}
-                          className={`flex items-center gap-1.5 px-3 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded-md transition-all ${briefingMode === "text" ? "bg-neutral-800 text-brand shadow-[0_0_10px_rgba(245,158,11,0.2)]" : "text-muted hover:text-white"}`}
+                          onClick={handleSendChatMessage}
+                          className="grid size-9 place-items-center rounded-lg bg-brand text-white dark:text-neutral-950 hover:bg-brand-strong transition shadow-[0_0_10px_rgba(var(--aura-color),0.2)]"
                         >
-                          <FileText size={10} />
-                          Texto
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBriefingMode("canvas")}
-                          className={`flex items-center gap-1.5 px-3 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded-md transition-all ${briefingMode === "canvas" ? "bg-brand text-neutral-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]" : "text-muted hover:text-white"}`}
-                        >
-                          <Share2 size={10} />
-                          Modo Neural
+                          <Send size={12} />
                         </button>
                       </div>
                     </div>
+                  )}
 
-                    <div className="relative rounded-xl border border-line/40 bg-black/10 dark:bg-black/20 focus-within:border-brand/40 transition-all duration-500 shadow-inner overflow-hidden">
-                      {briefingMode === "text" ? (
-                        <>
-                          <textarea
-                            ref={briefingRef}
-                            value={manualIdea}
-                            onChange={handleBriefingChange}
-                            onBlur={() => setTimeout(() => setShowChannelMention(false), 200)}
-                            placeholder="Insira o seu fluxo criativo aqui... Digite @ para definir canais ou / para ações de IA."
-                            rows={22}
-                            className="w-full resize-none bg-transparent px-5 py-4 text-sm leading-loose text-white outline-none placeholder:text-muted/30 font-medium custom-scrollbar"
-                          />
+                  {/* Prompt Type Specific view */}
+                  {selectedCanvasNode.type === "prompt" && (
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Modelo de IA</span>
+                        <input
+                          type="text"
+                          className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 font-semibold"
+                          value={selectedCanvasNode.meta.model || "Universal LLM"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, meta: { ...n.meta, model: val } } : n));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Prompt / Diretivas</span>
+                        <textarea
+                          rows={6}
+                          className="w-full rounded-lg border border-line bg-surface-strong/50 p-3 text-[11px] font-mono leading-relaxed text-brand/90 focus:border-brand focus:outline-none"
+                          value={selectedCanvasNode.content}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, content: val } : n));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
-                          {/* Botões de Ação Embutidos no Textarea (Elegantes) */}
-                          <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => { setManualTitle(""); setManualIdea(""); }}
-                              className="grid size-10 place-items-center rounded-lg bg-black/40 hover:bg-rose-500/20 text-muted hover:text-rose-400 transition backdrop-blur-md border border-line/20"
-                              title="Limpar formulário"
-                            >
-                              <RotateCcw size={14} />
-                            </button>
-
-                            {creationMode === "manual" ? (
-                              <button
-                                type="button"
-                                onClick={handleSaveDraft}
-                                disabled={actionLoading !== null || !manualIdea.trim()}
-                                className="flex items-center gap-2 rounded-lg bg-black/60 hover:bg-black border border-line/20 px-5 py-2.5 text-xs font-bold text-neutral-300 hover:text-white transition backdrop-blur-md shadow-lg h-10 disabled:opacity-30"
-                              >
-                                {actionLoading === "draft" ? <Loader2 size={13} className="animate-spin text-brand" /> : <Check size={13} />}
-                                <span>Salvar Rascunho</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={handleGenerateContent}
-                                disabled={actionLoading !== null || !manualIdea.trim()}
-                                className="flex items-center gap-2 rounded-lg bg-brand text-neutral-950 hover:bg-brand-strong px-6 py-2.5 text-xs font-black transition shadow-[0_0_20px_rgba(245,158,11,0.4)] h-10 disabled:opacity-30"
-                              >
-                                {actionLoading === "generate" ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                                <span>Gerar Mídia via IA</span>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* @mention floating overlay */}
-                          {showChannelMention && filteredMentionChannels.length > 0 && (
-                            <div className="absolute left-5 bottom-16 mb-2 z-[var(--z-dropdown)] w-56 rounded-xl border border-line bg-surface-strong/95 shadow-[0_10px_40px_rgba(0,0,0,0.8)] py-1.5 backdrop-blur-xl animate-fade-in-up">
-                              <p className="px-3 py-1 text-[9px] font-black text-brand uppercase tracking-widest border-b border-line/10 mb-1">Canais e Redes</p>
-                              {filteredMentionChannels.map(ch => (
-                                <button
-                                  key={ch}
-                                  type="button"
-                                  onMouseDown={(e) => { e.preventDefault(); selectChannelFromMention(ch); }}
-                                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-neutral-300 hover:bg-brand/15 hover:text-brand transition font-bold"
-                                >
-                                  <AtSign size={12} className="text-brand/50" />
-                                  {ch}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div
-                          ref={canvasRef}
-                          className="relative grid h-[620px] w-full overflow-hidden bg-[#080706] lg:grid-cols-[1fr_320px]"
-                          onMouseMove={handleCanvasMouseMove}
-                        >
-                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(245,158,11,0.16),transparent_36%),linear-gradient(135deg,rgba(12,10,8,0.96),rgba(0,0,0,0.98))]" />
-                          <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(245,158,11,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.12)_1px,transparent_1px)] [background-size:56px_56px]" />
-
-                          <div
-                            className={`relative z-10 min-h-0 overflow-hidden ${connectingFromId ? "cursor-alias" : "cursor-crosshair"}`}
-                            style={{
-                              transform: `translate3d(${canvasRotation.y * 0.08}px, ${canvasRotation.x * 0.04}px, 0)`,
-                            }}
-                            onPointerMove={handlePointerMove}
-                            onPointerUp={handlePointerUp}
-                            onPointerLeave={handlePointerUp}
-                            onClick={() => connectingFromId && setConnectingFromId(null)}
-                          >
-                            <div className="absolute left-5 top-5 z-20 rounded-xl border border-brand/25 bg-black/45 px-4 py-3 backdrop-blur-md">
-                              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Creation Nexus</p>
-                              <p className="mt-1 text-[10px] font-semibold text-muted">Creative Brain: ideias, memórias e relações. Não executa workflows.</p>
-                            </div>
-
-                            <svg className="absolute inset-0 z-0 size-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                              <defs>
-                                <marker id="creative-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-                                  <path d="M 0 0 L 8 4 L 0 8 z" fill="rgba(245,158,11,0.62)" />
-                                </marker>
-                              </defs>
-                              {canvasEdges.map(edge => {
-                                const sourceNode = canvasNodes.find(n => n.id === edge.source);
-                                const targetNode = canvasNodes.find(n => n.id === edge.target);
-                                if (!sourceNode || !targetNode) return null;
-
-                                const startX = sourceNode.x + CREATIVE_NODE_WIDTH;
-                                const startY = sourceNode.y + CREATIVE_NODE_PORT_Y;
-                                const endX = targetNode.x;
-                                const endY = targetNode.y + CREATIVE_NODE_PORT_Y;
-                                const midX = startX + (endX - startX) / 2;
-                                const isSelectedConnection = selectedCanvasNode?.id === sourceNode.id || selectedCanvasNode?.id === targetNode.id;
-                                const points = `${startX},${startY} ${midX},${startY} ${midX},${endY} ${endX},${endY}`;
-
-                                return (
-                                  <polyline
-                                    key={edge.id}
-                                    points={points}
-                                    fill="none"
-                                    stroke={isSelectedConnection ? "rgba(245,158,11,0.82)" : "rgba(245,158,11,0.36)"}
-                                    strokeWidth={isSelectedConnection ? 2.4 : 1.7}
-                                    strokeLinejoin="round"
-                                    strokeLinecap="round"
-                                    markerEnd="url(#creative-arrow)"
-                                  />
-                                );
-                              })}
-                            </svg>
-
-                            {canvasNodes.map(node => {
-                              const meta = CREATIVE_NODE_META[node.type];
-                              const TitleIcon = meta.icon;
-                              const isSelected = selectedCanvasNode?.id === node.id;
-
-                              return (
-                                <div
-                                  key={node.id}
-                                  onPointerDown={(e) => handlePointerDown(e, node.id)}
-                                  className={`absolute w-[240px] rounded-xl border p-3 shadow-xl backdrop-blur-md transition-colors select-none ${meta.tone} ${isSelected ? "ring-2 ring-brand/55 shadow-[0_0_32px_rgba(245,158,11,0.28)]" : "hover:border-brand/50"} ${draggingNodeId === node.id ? "cursor-grabbing scale-[1.02]" : "cursor-grab"} ${connectingFromId === node.id ? "ring-2 ring-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]" : ""}`}
-                                  style={{
-                                    left: `${node.x}px`,
-                                    top: `${node.y}px`,
-                                    touchAction: "none",
-                                  }}
-                                >
-                                  <button onClick={(e) => deleteCanvasNode(node.id, e)} className="absolute -right-2 -top-2 z-20 grid size-5 place-items-center rounded-full border border-line bg-black text-muted transition hover:border-red-500 hover:text-red-400">
-                                    <X size={10} />
-                                  </button>
-
-                                  <div className="mb-2 flex items-center justify-between border-b border-line/15 pb-2">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      <TitleIcon size={13} className="shrink-0" />
-                                      <span className="truncate text-[10px] font-black uppercase tracking-widest">{meta.label}</span>
-                                    </div>
-                                    <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider">{node.status}</span>
-                                  </div>
-                                  <h3 className="line-clamp-2 text-sm font-black leading-tight text-foreground">{node.title}</h3>
-                                  <p className="mt-2 line-clamp-3 text-[11px] font-medium leading-relaxed text-muted">{node.content}</p>
-                                  <div className="mt-3 flex flex-wrap gap-1">
-                                    {node.tags.slice(0, 2).map(tag => (
-                                      <span key={tag} className="rounded border border-current/15 bg-black/15 px-1.5 py-0.5 text-[8px] font-bold uppercase opacity-85">{tag}</span>
-                                    ))}
-                                  </div>
-
-                                  <div className="absolute -left-1.5 top-[46px] size-3 rounded-full border-2 border-black bg-surface-strong" />
-                                  <button
-                                    onPointerDown={(e) => { e.stopPropagation(); setConnectingFromId(node.id); }}
-                                    className="absolute -right-2 top-[44px] grid size-4 cursor-crosshair place-items-center rounded-full border-2 border-black bg-brand transition-transform hover:scale-125"
-                                    title="Adicionar conexão criativa"
-                                  >
-                                    <Plus size={8} className="text-black" />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                           </div>
-
-                           {connectingFromId && (
-                             <div className="absolute left-1/2 top-4 z-[var(--z-toast)] -translate-x-1/2 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400 shadow-xl pointer-events-none">
-                               Clique em outro nó criativo para conectar memórias
-                             </div>
-                           )}
-
-                           <div className="absolute bottom-6 left-[calc(50%-160px)] z-[var(--z-popover)] flex -translate-x-1/2 items-center gap-2 rounded-xl border border-line/40 bg-black/65 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md">
-                             {(["image", "prompt", "chat", "script", "campaign"] as CreativeNodeType[]).map(type => {
-                               const meta = CREATIVE_NODE_META[type];
-                               const Icon = meta.icon;
-                               return (
-                                 <button key={type} onClick={() => addCanvasNode(type)} className="flex flex-col items-center gap-1 rounded-lg p-2 transition-colors hover:bg-brand/10 group">
-                                   <Icon size={14} className="text-muted group-hover:text-brand" />
-                                   <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted group-hover:text-brand">{meta.label}</span>
-                                 </button>
-                               );
-                             })}
-                           </div>
-
-                           <div className="absolute bottom-4 right-4 flex gap-1 z-20">
-                             <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomIn size={12} /></button>
-                             <button className="grid size-8 place-items-center bg-black/40 border border-line/20 rounded-lg text-muted hover:text-white backdrop-blur transition hover:bg-neutral-800"><ZoomOut size={12} /></button>
-                           </div>
-
-                           <aside className="relative z-20 hidden min-h-0 border-l border-line/40 bg-black/55 p-4 backdrop-blur-xl lg:block">
-                             {selectedCanvasNode ? (
-                               <div className="flex h-full flex-col">
-                                 <div className="flex items-start justify-between gap-3 border-b border-line/20 pb-4">
-                                   <div>
-                                     <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Detailed Node Inspector</p>
-                                     <h2 className="mt-2 text-lg font-black leading-tight text-foreground">{selectedCanvasNode.title}</h2>
-                                   </div>
-                                   <span className={`rounded-lg border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${CREATIVE_NODE_META[selectedCanvasNode.type].tone}`}>
-                                     {CREATIVE_NODE_META[selectedCanvasNode.type].label}
-                                   </span>
-                                 </div>
-
-                                 <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
-                                   {selectedCanvasNode.type === "image" ? (
-                                     <div className="grid h-32 place-items-center rounded-xl border border-brand/20 bg-[radial-gradient(circle,rgba(245,158,11,0.24),rgba(0,0,0,0.65))]">
-                                       <ImageIcon size={34} className="text-brand" />
-                                     </div>
-                                   ) : null}
-                                   {selectedCanvasNode.type === "video" ? (
-                                     <div className="grid h-32 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/20">
-                                       <Play size={34} className="text-rose-300" />
-                                     </div>
-                                   ) : null}
-                                   {selectedCanvasNode.type === "chat" ? (
-                                     <div className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-3">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-sky-300">{selectedCanvasNode.meta.persona ?? "IA"}</p>
-                                       <p className="mt-2 text-xs leading-relaxed text-muted">{selectedCanvasNode.content}</p>
-                                     </div>
-                                   ) : null}
-                                   {selectedCanvasNode.type === "campaign" || selectedCanvasNode.type === "project" ? (
-                                     <div className="rounded-xl border border-brand/20 bg-brand/5 p-3">
-                                       <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted">
-                                         <span>Progresso</span>
-                                         <span className="text-brand">{selectedCanvasNode.meta.progress ?? 48}%</span>
-                                       </div>
-                                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                                         <div className="h-full rounded-full bg-brand" style={{ width: `${selectedCanvasNode.meta.progress ?? 48}%` }} />
-                                       </div>
-                                       <p className="mt-2 text-[10px] font-semibold text-muted">Prazo: {selectedCanvasNode.meta.deadline ?? "sem data definida"}</p>
-                                     </div>
-                                   ) : null}
-
-                                   <section>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Contexto</p>
-                                     <p className="mt-2 rounded-xl border border-line/30 bg-surface/20 p-3 text-xs leading-relaxed text-muted">{selectedCanvasNode.content}</p>
-                                   </section>
-
-                                   <section>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Metadados</p>
-                                     <div className="mt-2 grid gap-2 text-[11px] font-semibold text-muted">
-                                       <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Origem</span><span className="text-foreground">{selectedCanvasNode.source}</span></div>
-                                       <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Status</span><span className="text-foreground">{selectedCanvasNode.status}</span></div>
-                                       {selectedCanvasNode.meta.model ? <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Modelo</span><span className="text-foreground">{selectedCanvasNode.meta.model}</span></div> : null}
-                                       {selectedCanvasNode.meta.platform ? <div className="flex justify-between rounded-lg border border-line/25 bg-surface/15 px-3 py-2"><span>Plataforma</span><span className="text-foreground">{selectedCanvasNode.meta.platform}</span></div> : null}
-                                     </div>
-                                   </section>
-
-                                   <section>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Tags</p>
-                                     <div className="mt-2 flex flex-wrap gap-1.5">
-                                       {selectedCanvasNode.tags.map(tag => <span key={tag} className="rounded-lg border border-line/25 bg-surface/20 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-brand">{tag}</span>)}
-                                     </div>
-                                   </section>
-
-                                   <section>
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted">Conexões ({selectedCanvasConnections.length})</p>
-                                     <div className="mt-2 space-y-2">
-                                       {selectedCanvasConnections.map(node => (
-                                         <button key={node.id} type="button" onClick={() => setSelectedCanvasNodeId(node.id)} className="flex w-full items-center gap-2 rounded-lg border border-line/25 bg-surface/15 px-3 py-2 text-left text-xs font-semibold text-muted transition hover:border-brand/35 hover:text-foreground">
-                                           {(() => {
-                                             const Icon = CREATIVE_NODE_META[node.type].icon;
-                                             return <Icon size={13} className="text-brand" />;
-                                           })()}
-                                           {node.title}
-                                         </button>
-                                       ))}
-                                     </div>
-                                   </section>
-                                 </div>
-
-                                 <div className="grid gap-2 border-t border-line/20 pt-4">
-                                   {["Abrir no Obsidian", "Enviar para n8n", "Duplicar nó", "Adicionar conexão", selectedCanvasNode.type === "chat" ? "Continuar conversa" : "Reutilizar ativo"].map(action => (
-                                     <button key={action} type="button" className="flex h-9 items-center justify-between rounded-lg border border-line/35 bg-surface/20 px-3 text-[10px] font-black uppercase tracking-wide text-muted transition hover:border-brand/45 hover:text-brand">
-                                       {action}
-                                       <ChevronRight size={12} />
-                                     </button>
-                                   ))}
-                                 </div>
-                               </div>
-                             ) : (
-                               <div className="grid h-full place-items-center text-center">
-                                 <div>
-                                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand">Nenhum nó selecionado</p>
-                                   <p className="mt-2 text-xs text-muted">Selecione uma memória criativa para inspecionar contexto e relações.</p>
-                                 </div>
-                               </div>
-                             )}
-                           </aside>
+                  {/* Campaign & Project Type Specific view */}
+                  {(selectedCanvasNode.type === "campaign" || selectedCanvasNode.type === "project") && (
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted mb-1.5">
+                          <span>Progresso Operacional</span>
+                          <span className="text-brand font-mono">{selectedCanvasNode.meta.progress ?? 0}%</span>
                         </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          className="w-full h-1.5 bg-neutral-900 rounded-full appearance-none cursor-pointer accent-brand"
+                          value={selectedCanvasNode.meta.progress ?? 0}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, meta: { ...n.meta, progress: val } } : n));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Deadline</span>
+                        <input
+                          type="text"
+                          placeholder="DD/MM/AAAA"
+                          className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 font-semibold"
+                          value={selectedCanvasNode.meta.deadline || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, meta: { ...n.meta, deadline: val } } : n));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* General context layout */}
+                  {selectedCanvasNode.type !== "prompt" && selectedCanvasNode.type !== "chat" && (
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Notas / Conteúdo</span>
+                      <textarea
+                        rows={4}
+                        className="w-full rounded-lg border border-line bg-surface-strong/50 p-3 text-xs font-semibold leading-relaxed text-foreground focus:border-brand focus:outline-none"
+                        value={selectedCanvasNode.content}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, content: val } : n));
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Tags input */}
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1.5">Tags</span>
+                    <input
+                      type="text"
+                      className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 font-semibold"
+                      value={selectedCanvasNode.tags.join(", ")}
+                      onChange={(e) => {
+                        const parsed = e.target.value.split(",").map(t => t.trim());
+                        setCanvasNodes(prev => prev.map(n => n.id === selectedCanvasNode.id ? { ...n, tags: parsed } : n));
+                      }}
+                    />
+                  </div>
+
+                  {/* Connections Details */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted block">Relações Conectadas ({selectedCanvasConnections.length})</span>
+                    {selectedCanvasConnections.length > 0 ? (
+                      <div className="grid gap-1.5">
+                        {selectedCanvasConnections.map(node => (
+                          <button
+                            key={node.id}
+                            type="button"
+                            onClick={() => setSelectedCanvasNodeId(node.id)}
+                            className="flex items-center justify-between rounded-lg border border-line/25 bg-surface-strong/50 hover:border-brand/35 hover:bg-surface px-3 py-2 text-left text-xs font-semibold text-muted transition"
+                          >
+                            <span className="flex items-center gap-2 truncate">
+                              {(() => {
+                                const Icon = CREATIVE_NODE_META[node.type].icon;
+                                return <Icon size={12} className="text-brand shrink-0" />;
+                              })()}
+                              <span className="truncate">{node.title}</span>
+                            </span>
+                            <ChevronRight size={11} className="text-muted/40 shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[9.5px] font-bold text-muted/50 italic block">Nenhuma relação visual neste pensamento.</span>
+                    )}
+                  </div>
+
+                  {/* Obsidian & n8n System Actions */}
+                  <div className="border-t border-line/20 pt-4 space-y-3.5">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-2">Vault Obsidian (Backend Local)</span>
+                      {userRole === "admin" ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Vault</label>
+                              <input
+                                type="text"
+                                className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
+                                value={obsidianVault}
+                                onChange={(e) => setObsidianVault(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Caminho</label>
+                              <input
+                                type="text"
+                                className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
+                                value={obsidianPath}
+                                onChange={(e) => setObsidianPath(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleGerarNotaObsidian}
+                            className="w-full h-8 text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 rounded transition"
+                          >
+                            Gerar Nota Obsidian
+                          </button>
+                        </div>
+                      ) : (
+                        <a
+                          href={`obsidian://open?vault=${encodeURIComponent(obsidianVault)}&file=${encodeURIComponent(obsidianPath + "/" + selectedCanvasNode.title)}`}
+                          className="flex h-9 items-center justify-between rounded-lg border border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-950/30 px-3 text-[10px] font-black uppercase tracking-wide text-indigo-300 transition"
+                        >
+                          <span>Abrir Nota no Obsidian</span>
+                          <ChevronRight size={11} />
+                        </a>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-2">Workflow n8n (Integrações)</span>
+                      {userRole === "admin" ? (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">URL Webhook</label>
+                            <input
+                              type="text"
+                              className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[9px] text-foreground font-mono outline-none"
+                              value={n8nUrl}
+                              onChange={(e) => setn8nUrl(e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleDispararPipelineN8n}
+                            className="w-full h-8 text-[9px] font-black uppercase tracking-wider bg-brand/20 hover:bg-brand/30 border border-brand/40 text-brand rounded transition"
+                          >
+                            Disparar Pipeline n8n
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleExecutarAutomacaoBasica}
+                          className="w-full flex h-9 items-center justify-between rounded-lg border border-brand/20 bg-brand/5 hover:bg-brand/10 px-3 text-[10px] font-black uppercase tracking-wide text-brand transition"
+                        >
+                          <span>Executar Automação Básica</span>
+                          <ChevronRight size={11} />
+                        </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-              </section>
-            ) : (
-              /* Estúdio de Vídeo Colaborativo */
-              <section className="glowing-panel relative overflow-hidden rounded-2xl border-2 border-line/40 bg-surface/30 p-6 shadow-2xl backdrop-blur-xl space-y-6 transition-all duration-700 hover:border-brand/30 hover:shadow-[0_0_60px_-15px_rgba(245,158,11,0.15)]">
-                {/* Motion Poetics Ambient Glow */}
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 via-brand/0 to-brand/5 opacity-0 transition-opacity duration-700 hover:opacity-100 pointer-events-none" />
-
-                <div className="relative z-10 flex items-center justify-between border-b border-line/10 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid size-8 place-items-center rounded-lg bg-rose-500/10 border border-rose-500/20">
-                      <Film size={15} className="text-rose-400 animate-pulse" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-extrabold uppercase tracking-wider text-white">Mesa de Edição Colaborativa</h2>
-                      <p className="text-[10px] text-muted">Ajuste de mídias e cortes automáticos do conselho multi-agentes</p>
-                    </div>
-                  </div>
-
-                  {videoStatus === "idle" && (
-                    <button
-                      onClick={runVideoEditingPipeline}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-black px-4 transition shadow-lg shadow-rose-500/15"
-                    >
-                      <Wand2 size={12} />
-                      <span>Disparar Edição</span>
-                    </button>
-                  )}
-
-                  {videoStatus !== "idle" && videoStatus !== "completed" && videoStatus !== "rejected" && videoStatus !== "exporting" && (
-                    <div className="flex items-center gap-2 text-xs font-bold text-rose-400">
-                      <RefreshCw size={12} className="animate-spin" />
-                      <span>{videoStatus === "analyzing" ? "Analisando..." : videoStatus === "projecting" ? "Cortando..." : "Conselho deliberando..."}</span>
-                    </div>
-                  )}
-
-                  {videoStatus === "completed" && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[10px] font-extrabold text-emerald-400 uppercase">
-                      <CheckCircle size={10} /> Render Ok
-                    </span>
-                  )}
-                </div>
-
-                {/* Progress Visualizer */}
-                {(videoStatus !== "idle" && videoStatus !== "exporting") && (
-                  <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 h-1.5 rounded-full transition-all duration-500"
-                      style={{ width: `${progressVal}%` }}
-                    />
-                  </div>
-                )}
-
-                {/* Local Video Ingestion settings */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Preset de Vídeo</label>
-                      <select
-                        className="h-10 w-full rounded-lg border border-line bg-black/40 px-3 text-xs text-white outline-none focus:border-brand/40 transition font-semibold"
-                        value={videoStyle}
-                        onChange={(e) => setVideoStyle(e.target.value)}
-                      >
-                        {Object.keys(allPresets).map(key => (
-                          <option key={key} value={key} className="bg-neutral-900">{allPresets[key].name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Formato</label>
-                        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 border border-line rounded-lg">
-                          <button
-                            type="button"
-                            onClick={() => setVideoAspect("916")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "916" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
-                          >
-                            9:16
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setVideoAspect("169")}
-                            className={`py-1.5 text-[10px] font-extrabold rounded transition ${videoAspect === "169" ? "bg-rose-500 text-white font-black" : "text-muted hover:text-white"}`}
-                          >
-                            16:9
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest block mb-1.5">Duração</label>
-                        <div className="py-2 bg-black/40 border border-line rounded-lg text-xs font-bold text-center text-rose-400 font-mono">
-                          {activePreset.duration}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right side styling logs */}
-                  <div className="rounded-xl border border-line bg-black/20 p-4 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest block mb-1">Diretivas do Preset</span>
-                      <p className="text-[10px] text-muted leading-relaxed font-semibold">{activePreset.baseDirectives}</p>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-line/10 flex items-center gap-1.5 text-[9px] text-emerald-400 font-bold">
-                      <Cpu size={12} className="shrink-0" />
-                      <span>Processamento Local sem consumo de cota.</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid Visual Timeline Preview */}
-                <div className="grid gap-6 sm:grid-cols-12 border-t border-line/10 pt-5">
-                  <div className="sm:col-span-4 flex flex-col items-center justify-start border-r border-line/10 pr-4">
-                    <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider block mb-3 relative z-10">Simulação 4K HDR</span>
-
-                    <div className={`relative group/video overflow-hidden border border-white/10 bg-black rounded-xl flex flex-col items-center justify-center transition-all duration-700 hover:border-brand/40 hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] hover:scale-[1.02] ${
-                      videoAspect === "916" ? "h-[190px] w-[110px]" : "h-[110px] w-[190px]"
-                    }`}>
-                      {videoStatus === "rendering" || videoStatus === "analyzing" ? (
-                        <div className="absolute inset-0 bg-neutral-950/80 flex flex-col items-center justify-center gap-2 z-20">
-                          <Loader2 size={20} className="text-rose-400 animate-spin" />
-                          <span className="text-[8px] text-rose-300 font-mono tracking-widest">RENDER...</span>
-                        </div>
-                      ) : null}
-
-                      <div className="absolute inset-0 border border-dashed border-white/5 grid grid-cols-3 grid-rows-3 pointer-events-none" />
-                      <Video className="text-rose-500/20 size-7 transition-colors duration-700 group-hover/video:text-brand/40" />
-                      <div className="absolute bottom-2 left-1.5 right-1.5 text-[6.5px] font-mono text-center text-white/40 truncate transition-colors duration-700 group-hover/video:text-brand/80">
-                        {videoScriptTitle}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-8 space-y-4">
-                    <div className="relative z-10 space-y-2">
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Cortes Estruturados</span>
-
-                      <div className="flex border border-line/40 bg-surface/40 backdrop-blur-md rounded-xl p-2 gap-2 overflow-x-auto custom-scrollbar shadow-inner">
-                        {videoTimeline.map((clip, idx) => (
-                          <div
-                            key={clip.id}
-                            className="group/clip flex-grow min-w-[100px] rounded-lg border border-line/40 bg-surface p-2.5 text-center relative overflow-hidden transition-all duration-500 hover:border-brand/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:-translate-y-0.5 cursor-pointer"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-t from-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover/clip:opacity-100 pointer-events-none" />
-                            <span className="relative z-10 text-[7px] font-black uppercase text-rose-400 block tracking-widest transition-colors duration-500 group-hover/clip:text-brand">{clip.type}</span>
-                            <span className="relative z-10 text-xs font-black text-foreground block mt-0.5">{clip.dur}</span>
-                            <span className="relative z-10 text-[8px] text-muted block truncate mt-1">Corte #{idx+1}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Council Log Space */}
-                    {(videoStatus === "council_review" || videoStatus === "completed") && (
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Ata do Conselho de IA</span>
-                        <div className="space-y-2 bg-black/40 rounded-xl p-3 border border-line max-h-[140px] overflow-y-auto custom-scrollbar">
-                          {councilMessages.map((msg, idx) => (
-                            <div key={idx} className="text-[10px] leading-normal flex items-start gap-2 border-b border-line/5 pb-1.5 last:border-0 last:pb-0">
-                              <span className="size-5 rounded-full bg-neutral-800 border border-line/30 grid place-items-center text-xs shrink-0">{msg.avatar}</span>
-                              <div className="flex-grow">
-                                <span className="font-extrabold text-neutral-200 block">{msg.agent}</span>
-                                <p className="text-muted mt-0.5">{msg.message}</p>
-                              </div>
-                              <span className={`text-[8px] font-extrabold uppercase shrink-0 px-1.5 py-0.5 rounded ${msg.status === "approved" ? "text-emerald-400 bg-emerald-500/5 border border-emerald-500/10" : "text-amber-400 bg-amber-500/5 animate-pulse"}`}>
-                                {msg.status === "approved" ? "Ok" : "Fila"}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Upload Section inside Videos tab */}
-                <div className="relative z-10 border-t border-line/10 pt-5 space-y-4">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Arquivos de Ingestão de Referência</span>
-
-                  <div className="grid grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateAssetUpload("image")}
-                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                      <ImageIcon size={15} className="text-amber-400 transition-transform duration-500 group-hover:scale-125" />
-                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Quadro de Estilo</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateAssetUpload("video")}
-                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                      <Play size={15} className="text-rose-400 transition-transform duration-500 group-hover:scale-125" />
-                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Corte Bruto</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateAssetUpload("audio")}
-                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                      <Music size={15} className="text-sky-400 transition-transform duration-500 group-hover:scale-125" />
-                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Voz/Música</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateAssetUpload("doc")}
-                      className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1.5 hover:-translate-y-1 hover:shadow-[0_10px_20px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                      <FileText size={15} className="text-emerald-400 transition-transform duration-500 group-hover:scale-125" />
-                      <span className="text-[9px] font-extrabold text-muted transition-colors duration-500 group-hover:text-foreground">Roteiro PDF</span>
-                    </button>
-                  </div>
-
-                  {/* Upload List */}
-                  {referenceAssets.length > 0 && (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {referenceAssets.map((asset) => (
-                        <div key={asset.id} className="flex items-center justify-between p-2.5 rounded-xl border border-line bg-black/40">
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="size-6 rounded bg-neutral-900 border border-line flex items-center justify-center text-xs shrink-0">
-                              {asset.type === "image" ? "🖼️" : asset.type === "video" ? "📹" : asset.type === "audio" ? "🎵" : "📄"}
-                            </span>
-                            <div className="truncate">
-                              <span className="text-[10px] font-bold text-white block truncate max-w-[130px]">{asset.name}</span>
-                              <span className="text-[8px] text-muted block">{asset.size}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {asset.status === "uploading" ? (
-                              <span className="text-[9px] text-brand font-mono font-bold animate-pulse">{asset.progress}%</span>
-                            ) : (
-                              <span className="text-[8px] font-extrabold uppercase text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1.5 py-0.5 rounded">Pronto</span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAsset(asset.id)}
-                              className="text-muted hover:text-rose-400 text-xs px-1"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Export Hub */}
-                {videoStatus === "completed" && (
-                  <div className="relative z-10 border-t border-line/15 pt-5 space-y-4">
-                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest block">Exportação ProRes &amp; Distribuição</span>
-
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {/* Bottom Inspector controls */}
+                <div className="grid gap-2 border-t border-line/20 pt-4 shrink-0">
+                  {selectedCanvasNode.archived ? (
+                    <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => triggerPlatformPublish("4k")}
-                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-brand/20 bg-brand/5 hover:border-brand/40 hover:bg-brand/10 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)] cursor-pointer"
+                        onClick={() => restoreCanvasNode(selectedCanvasNode.id)}
+                        className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/30 text-[10px] font-black uppercase tracking-wide transition"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                        <Film size={15} className="text-brand animate-pulse transition-transform duration-500 group-hover:scale-125" />
-                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500">Render ProRes 4K</span>
-                        <span className="text-[8px] text-muted block">Ultra HD Local</span>
+                        <RefreshCw size={11} />
+                        <span>Recuperar</span>
                       </button>
                       <button
-                        onClick={() => triggerPlatformPublish("tiktok")}
-                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
+                        onClick={() => deleteCanvasNodePermanently(selectedCanvasNode.id)}
+                        className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-950/20 text-rose-400 hover:bg-rose-950/30 text-[10px] font-black uppercase tracking-wide transition"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                        <MessageSquare size={15} className="text-pink-400 transition-transform duration-500 group-hover:scale-125" />
-                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-pink-400">Subir TikTok</span>
-                        <span className="text-[8px] text-muted block">API Direta Original</span>
-                      </button>
-                      <button
-                        onClick={() => triggerPlatformPublish("reels")}
-                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                        <Heart size={15} className="text-rose-400 transition-transform duration-500 group-hover:scale-125" />
-                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-rose-400">Agendar Reels</span>
-                        <span className="text-[8px] text-muted block">Instagram HDR 4K</span>
-                      </button>
-                      <button
-                        onClick={() => triggerPlatformPublish("shorts")}
-                        className="group relative overflow-hidden flex flex-col items-center justify-center p-3 border border-line/40 bg-surface/40 hover:border-brand/40 transition-all duration-500 rounded-xl gap-1 text-center hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)] cursor-pointer"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                        <Play size={15} className="text-red-400 transition-transform duration-500 group-hover:scale-125" />
-                        <span className="text-[10px] font-extrabold text-foreground block transition-colors duration-500 group-hover:text-red-400">YouTube Shorts</span>
-                        <span className="text-[8px] text-muted block">Sem compactação</span>
+                        <Trash2 size={11} />
+                        <span>Excluir</span>
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {/* Export logs */}
-                {videoStatus === "exporting" && exportPlatform && (
-                  <div className="rounded-xl border border-brand/20 bg-brand/5 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <RefreshCw size={12} className="animate-spin text-brand" />
-                      <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Distribuição Nativa ativa...</span>
-                    </div>
-
-                    <div className="space-y-1.5 border border-line/10 rounded-lg p-3 bg-black font-mono text-[9px] text-muted">
-                      {exportLogs.map((log, idx) => (
-                        <p key={idx} className="flex items-center gap-1.5">
-                          {idx === exportStep ? (
-                            <span className="text-brand animate-pulse">&gt;</span>
-                          ) : (
-                            <span className="text-emerald-400">✓</span>
-                          )}
-                          <span>{log}</span>
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Rejection Feedbacks */}
-                {videoStatus === "completed" && (
-                  <div className="border-t border-line/15 pt-5 space-y-4">
-                    <div className="bg-black/40 rounded-xl p-4 border border-line/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <Award size={13} className="text-brand" /> Revisão do Corte
-                        </h4>
-                        <p className="text-[10px] text-muted">Aprove o vídeo ou envie de volta com aprendizados LTM.</p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setVideoStatus("idle");
-                            showToast("Vídeo aceito e salvo no Acervo!");
-                          }}
-                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-neutral-950 text-xs font-extrabold transition"
-                        >
-                          Aceitar Corte
-                        </button>
-                        <button
-                          onClick={() => setVideoStatus("rejected")}
-                          className="px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition"
-                        >
-                          Recusar &amp; Ajustar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {videoStatus === "rejected" && (
-                  <form onSubmit={handleRejectVideo} className="border-t border-line/15 pt-5 space-y-3">
-                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-1">
-                      <h4 className="text-xs font-extrabold text-rose-400 flex items-center gap-1.5">
-                        <ShieldAlert size={13} /> O que deve ser melhorado?
-                      </h4>
-                      <p className="text-[10px] text-muted leading-relaxed">
-                        Descreva as alterações exigidas. Seus feedbacks de rejeição são gravados na <strong>Long-Term Memory</strong> das IAs para que elas aprimorem a edição e não repitam erros nos próximos vídeos.
-                      </p>
-                    </div>
-
-                    <textarea
-                      required
-                      className="w-full rounded-xl border border-line bg-black/40 p-3 text-xs text-white placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 font-medium"
-                      rows={3}
-                      value={rejectionError}
-                      onChange={(e) => setRejectionError(e.target.value)}
-                      placeholder="Ex: Diminuir o pacing das legendas centrais no final e usar música mais tranquila..."
-                    />
-
-                    <div className="flex justify-end">
-                      <button className="flex items-center gap-2 rounded-xl bg-brand py-2 px-5 text-xs font-black text-neutral-950 shadow-md transition hover:bg-brand-strong">
-                        <Wand2 size={12} />
-                        <span>Injetar Neural Feedback</span>
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Active Error Feedback history */}
-                {absorbedFeedback.length > 0 && (
-                  <div className="rounded-xl border border-brand/20 bg-brand/5 p-3 space-y-1.5">
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-brand flex items-center gap-1.5">
-                      <Brain size={12} className="animate-pulse" /> Memória LTM Neural Injetada
-                    </span>
-                    <div className="text-[9px] text-muted space-y-1 font-semibold">
-                      {absorbedFeedback.map((fb, idx) => (
-                        <p key={idx} className="flex items-center gap-1.5">
-                          <span className="text-brand font-bold">•</span>
-                          <span>Refinamento Absorvido: <em>&quot;{fb}&quot;</em></span>
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </section>
-            )}
-
-          </div>
-
-          {/* COLUMN 3: Sintonia Fina & Odin Supervisor (Right - 4 Cols) */}
-          <div className="lg:col-span-4 space-y-6">
-
-            {/* Painel de Controle de Temperatura Isolado (Premium mas sutil) */}
-            <section className="rounded-2xl border border-line/10 bg-surface/40 p-6 backdrop-blur-xl space-y-6 transition-all duration-500 hover:border-line/30">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-line/10">
-                <div className="grid size-8 place-items-center rounded bg-brand/10 border border-brand/20 shadow-inner">
-                  <Sliders size={14} className="text-brand" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-foreground block">Cognição Criativa</span>
-                  <span className="text-[9px] text-muted font-bold">Ajuste neural de fidelidade vs criatividade</span>
-                </div>
-              </div>
-
-              {/* Fine Tuning Creativeness */}
-              <div className="space-y-4 pt-1">
-                <div className="flex items-center justify-between text-[11px] font-black">
-                  <span className="text-brand/80 uppercase tracking-widest">Temperatura Local</span>
-                  <span className="text-brand font-mono text-xs bg-brand/10 px-2 py-0.5 rounded border border-brand/20">{learningMargin}%</span>
-                </div>
-
-                <div className="relative pt-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={learningMargin}
-                    onChange={(e) => setLearningMargin(Number(e.target.value))}
-                    className="w-full h-1.5 bg-neutral-900 rounded-full appearance-none cursor-pointer accent-brand shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand/20 to-transparent pointer-events-none blur-md mix-blend-screen" />
-                </div>
-
-                <div className="flex justify-between text-[9px] text-muted/80 font-mono font-black uppercase tracking-widest">
-                  <span>Modo Fiel</span>
-                  <span>Alucinação Criativa</span>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between bg-black/30 dark:bg-black/50 rounded-xl p-4 border border-line/20 shadow-inner">
-                <div>
-                  <span className="text-[11px] font-black text-white block uppercase tracking-wider">Cota Grátis Llama 3.3</span>
-                  <span className="text-[9px] text-muted font-semibold block leading-tight mt-1">Ative para não gastar credits OpenRouter.</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAutoFreeTier(!autoFreeTier);
-                    showToast(autoFreeTier ? "Foco em Alto Desempenho!" : "Foco em Economia Total!");
-                  }}
-                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 focus:outline-none shadow-lg ${autoFreeTier ? "bg-brand shadow-[0_0_15px_rgba(245,158,11,0.5)]" : "bg-neutral-800"}`}
-                >
-                  <span className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow transition-all duration-300 ${autoFreeTier ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-            </section>
-
-            {/* 📈 Active Trend Radar Panel */}
-            <section className="glowing-panel rounded-2xl border border-line bg-surface/30 p-5 shadow-sm backdrop-blur-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-line/10 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="grid size-6 place-items-center rounded bg-brand/5 border border-brand/20">
-                    <Radio size={12} className="text-brand animate-pulse" />
-                  </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-foreground">Radar de Tendências Ativo</span>
-                </div>
-                <span className="text-[8px] text-muted font-bold tracking-widest">TEMPO REAL</span>
-              </div>
-
-              <p className="text-[10.5px] text-muted leading-relaxed font-medium">
-                Mapeamento das tendências de áudio, transição e copy mais retentivos da semana.
-              </p>
-
-              <div className="space-y-1.5 p-3 rounded-lg bg-black/40 border border-line/10 font-mono text-[9px] text-muted">
-                {trendRadarLogs.map((log, idx) => (
-                  <p key={idx} className="truncate select-none leading-snug">• {log}</p>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={runActiveTrendScan}
-                disabled={isScanningTrends}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand text-neutral-950 hover:bg-brand-strong py-2 text-xs font-black transition"
-              >
-                <RefreshCw size={11} className={isScanningTrends ? "animate-spin" : ""} />
-                <span>{isScanningTrends ? "Mapeando Redes..." : "Recarregar Radar"}</span>
-              </button>
-            </section>
-
-          </div>
-
-        </div>
-
-        {/* ── SECTION 3: Symmetrical Acervo Operacional (Full Width Bottom) ── */}
-        {activeTab !== "videos" && (
-          <div className="mt-8">
-            <section className="glowing-panel rounded-2xl border border-line bg-surface/30 p-6 shadow-sm backdrop-blur-xl">
-
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line/10 pb-4 mb-6 gap-4">
-                <div>
-                  <h2 className="text-base font-black tracking-tight text-foreground flex items-center gap-2">
-                    <Layers size={16} className="text-brand" />
-                    <span>Acervo Operacional</span>
-                  </h2>
-                  <p className="text-[10px] text-muted mt-0.5">Acompanhe e progrida suas ideias e pautas ao longo de todas as etapas de criação</p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-brand/10 border border-brand/20 px-3 py-1 text-[10px] font-black text-brand uppercase tracking-wider">
-                    {filteredContents.length} Itens Encontrados
-                  </span>
-                </div>
-              </div>
-
-              {/* Filters Toolbar */}
-              <div className="flex flex-col md:flex-row gap-3 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={13} />
-                  <input
-                    type="text"
-                    placeholder="Filtrar acervo operacional por título..."
-                    value={acervoSearch}
-                    onChange={(e) => setAcervoSearch(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-line bg-black/10 dark:bg-black/40 pl-9 pr-3 text-xs text-foreground outline-none focus:border-brand/40 transition placeholder:text-muted/40 font-semibold focus:ring-1 focus:ring-brand/20"
-                  />
-                </div>
-                <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
-                  {["todos", "rascunho", "na_fila", "processando", "pronto", "erro"].map((f) => (
+                  ) : (
                     <button
-                      key={f}
-                      type="button"
-                      onClick={() => { setAcervoFilter(f); setShowArchive(false); }}
-                      className={`rounded-lg px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider border transition shrink-0 ${
-                        acervoFilter === f
-                          ? "border-brand bg-brand/10 text-brand font-black"
-                          : "border-line bg-black/20 text-muted hover:text-white"
-                      }`}
+                      onClick={() => archiveCanvasNode(selectedCanvasNode.id)}
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-strong/85 hover:bg-surface-strong text-[10px] font-black uppercase tracking-wide text-muted hover:text-brand transition"
                     >
-                      {f.replace("_", " ")}
+                      <Archive size={11} />
+                      <span>Arquivar Pensamento</span>
                     </button>
-                  ))}
+                  )}
                   <button
-                    type="button"
-                    onClick={() => setShowArchive(!showArchive)}
-                    className={`rounded-lg px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider border transition shrink-0 flex items-center gap-1.5 ${
-                      showArchive
-                        ? "border-indigo-500/50 bg-indigo-950/30 text-indigo-300 font-black"
-                        : "border-line bg-black/20 text-muted hover:text-white"
-                    }`}
+                    onClick={() => setSelectedCanvasNodeId("")}
+                    className="h-9 rounded-lg border border-line/20 bg-surface/30 text-[10px] font-black uppercase text-muted hover:text-brand transition"
                   >
-                    <Archive size={11} />
-                    <span>Arquivo de Sombras</span>
+                    Fechar Inspector
                   </button>
                 </div>
               </div>
-
-              {/* Lista Ultra-Compacta */}
-              {!showArchive && (
-              <div className="flex flex-col rounded-xl overflow-hidden border border-line bg-black/20">
-                {/* Header Table */}
-                <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-line/20 bg-black/40 text-[9px] font-black uppercase tracking-widest text-muted">
-                  <div className="col-span-4">Pauta / Título</div>
-                  <div className="col-span-3">Status</div>
-                  <div className="col-span-2">Formato</div>
-                  <div className="col-span-2">Plataforma</div>
-                  <div className="col-span-1 text-right">Ação</div>
+            ) : (
+              // Creation Console (No Node Selected)
+              <div className="flex flex-col p-5 space-y-6 h-full">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.22em] text-brand">Creation Console</p>
+                  <h2 className="text-base font-black text-foreground mt-1">Ingestão Visual</h2>
+                  <p className="text-[9.5px] text-muted font-semibold mt-1 leading-normal">
+                    Adicione um novo pensamento no Nexus para interligar referências e disparar fluxos.
+                  </p>
                 </div>
 
-                {filteredContents.length > 0 ? (
-                  filteredContents.map((item) => {
-                    const normalizedStatus = (item.status || "rascunho").toLowerCase().replace(/\s/g, "_");
-                    const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG["rascunho"];
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="group grid grid-cols-12 gap-4 items-center px-5 py-3 border-b border-line/10 last:border-0 hover:bg-surface/30 transition-colors cursor-pointer"
-                        onClick={() => {
-                          setManualTitle(item.title);
-                          setManualIdea(item.idea);
-                          showToast("Pauta carregada no Console!");
-                        }}
-                      >
-                        {/* Title & Idea Tooltip */}
-                        <div className="col-span-4 truncate">
-                          <span className="text-[11px] font-bold text-foreground group-hover:text-brand transition block truncate">{item.title}</span>
-                          <span className="text-[9px] text-muted truncate block">{item.idea.substring(0, 45)}...</span>
-                        </div>
-
-                        {/* Status Label Compact */}
-                        <div className="col-span-3">
-                          <span className={`inline-flex items-center justify-center rounded border px-2 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wider ${config.color} border-current/25 bg-current/5`}>
-                            {config.label}
-                          </span>
-                        </div>
-
-                        {/* Format */}
-                        <div className="col-span-2">
-                          <span className="text-[10px] font-semibold text-neutral-300">{item.content_type || "Pauta"}</span>
-                        </div>
-
-                        {/* Platform */}
-                        <div className="col-span-2">
-                          <span className="text-[10px] font-bold text-brand/80 truncate block">{item.platform || "Multicanais"}</span>
-                        </div>
-
-                        {/* Quick Menu Actions */}
-                        <div className="col-span-1 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setContents(prev => prev.filter(c => c.id !== item.id));
-                              showToast("Pauta deletada!");
-                            }}
-                            className="text-muted hover:text-rose-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Apagar Pauta"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : !showArchive ? (
-                  <div className="py-8 text-center">
-                    <p className="text-xs text-muted font-bold">Nenhuma pauta no Acervo.</p>
+                {/* Node Insertion Form */}
+                <form onSubmit={handleInsertNode} className="space-y-4">
+                  <div>
+                    <label className="text-[9.5px] font-black text-muted uppercase tracking-widest block mb-1">Título do Pensamento</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Pauta - IAs de Áudio"
+                      className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 transition font-semibold"
+                      value={newNodeTitle}
+                      onChange={(e) => setNewNodeTitle(e.target.value)}
+                    />
                   </div>
-                ) : null}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9.5px] font-black text-muted uppercase tracking-widest block mb-1">Tipo de Bloco</label>
+                      <select
+                        className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-2 text-xs text-foreground font-semibold outline-none focus:border-brand/40 cursor-pointer"
+                        value={newNodeType}
+                        onChange={(e) => setNewNodeType(e.target.value as CreativeNodeType)}
+                      >
+                        {Object.keys(CREATIVE_NODE_META).map(key => (
+                          <option key={key} value={key} className="bg-surface-strong text-foreground">
+                            {CREATIVE_NODE_META[key as CreativeNodeType].label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[9.5px] font-black text-muted uppercase tracking-widest block mb-1">Tags (Vírgula)</label>
+                      <input
+                        type="text"
+                        placeholder="ia, audio"
+                        className="h-9 w-full rounded-lg border border-line bg-surface-strong/50 px-3 text-xs text-foreground outline-none focus:border-brand/40 font-semibold"
+                        value={newNodeTags}
+                        onChange={(e) => setNewNodeTags(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black text-muted uppercase tracking-widest block mb-1">Diretivas / Conteúdo</label>
+                    <textarea
+                      rows={5}
+                      placeholder="Descreva a pauta ou o prompt que deseja interligar..."
+                      className="w-full rounded-lg border border-line bg-surface-strong/50 p-3 text-xs font-semibold text-foreground leading-relaxed outline-none focus:border-brand/40"
+                      value={newNodeContent}
+                      onChange={(e) => setNewNodeContent(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full flex h-10 items-center justify-center gap-2 rounded-lg bg-brand text-white dark:text-neutral-950 hover:bg-brand-strong transition font-black text-xs shadow-[0_0_15px_rgba(var(--aura-color),0.2)]"
+                  >
+                    <Plus size={14} />
+                    <span>Inserir no Nexus</span>
+                  </button>
+                </form>
+
+                {/* Console System Settings */}
+                <div className="border-t border-line/25 pt-5 space-y-4 flex-1">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-2">Painel de Configuração</span>
+                    <div className="flex rounded-lg border border-line/20 bg-surface/20 border border-line/20 p-1">
+                      <button
+                        type="button"
+                        onClick={() => { setUserRole("standard"); showToast("Operador Standard ativado."); }}
+                        className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center transition-all ${userRole === "standard" ? "bg-surface text-brand font-black" : "text-muted"}`}
+                      >
+                        Operador Standard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setUserRole("admin"); showToast("Administrador ativado."); }}
+                        className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center transition-all ${userRole === "admin" ? "bg-brand text-white dark:text-neutral-950 font-black shadow-[0_0_10px_rgba(var(--aura-color),0.3)]" : "text-muted"}`}
+                      >
+                        Administrador
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LTM Memories in Console */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-brand flex items-center gap-1.5">
+                      <Brain size={12} className="animate-pulse" /> Memórias LTM Ativas
+                    </span>
+                    <div className="bg-surface-strong/30 rounded-xl p-3 border border-line/30 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+                      {ltmMemories.length > 0 ? (
+                        ltmMemories.map((mem: any) => (
+                          <div key={mem.id} className="text-[9.5px] leading-relaxed text-muted border-b border-line/5 pb-1.5 last:border-0 last:pb-0">
+                            <span className="font-extrabold text-neutral-400 block mb-0.5">Confiança: {mem.confidence}%</span>
+                            {mem.fact}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[9px] text-muted/50 italic">Nenhuma memória sintonizada localmente.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              )}
-
-              {showArchive && (
-                <div className="flex flex-col rounded-xl overflow-hidden border border-indigo-500/20 bg-black/20">
-                  <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-indigo-500/20 bg-indigo-950/20 text-[9px] font-black uppercase tracking-widest text-indigo-300/80">
-                    <div className="col-span-4 flex items-center gap-2">
-                      <Archive size={11} />
-                      <span>Arquivo de Sombras</span>
-                    </div>
-                    <div className="col-span-2">Tipo</div>
-                    <div className="col-span-2">Data</div>
-                    <div className="col-span-4 text-right">Ações</div>
-                  </div>
-                  {archivedItems.length > 0 ? (
-                    archivedItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="group grid grid-cols-12 gap-4 items-center px-5 py-3 border-b border-indigo-500/5 last:border-0 hover:bg-indigo-950/15 transition-colors opacity-50 hover:opacity-80"
-                      >
-                        <div className="col-span-4 truncate">
-                          <span className="text-[11px] font-bold text-indigo-300/70 group-hover:text-indigo-200 transition block truncate">{item.title}</span>
-                          <span className="text-[9px] text-indigo-400/40 truncate block">{item.idea.substring(0, 45)}...</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-[10px] font-semibold text-indigo-400/60">{item.content_type || "---"}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-[9px] text-indigo-400/50 font-mono">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
-                        </div>
-                        <div className="col-span-4 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setArchivedItems(prev => prev.filter(i => i.id !== item.id));
-                              setContents(prev => [{ ...item, status: "rascunho" }, ...prev]);
-                              showToast("Item restaurado do Arquivo de Sombras!");
-                            }}
-                            className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-400/70 hover:text-emerald-300 hover:border-emerald-500/40 transition opacity-0 group-hover:opacity-100"
-                            title="Restaurar"
-                          >
-                            <RefreshCw size={11} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setArchivedItems(prev => prev.filter(i => i.id !== item.id));
-                              showToast("Item eliminado permanentemente.");
-                            }}
-                            className="rounded-lg border border-rose-500/20 bg-rose-950/20 px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wider text-rose-400/70 hover:text-rose-300 hover:border-rose-500/40 transition opacity-0 group-hover:opacity-100"
-                            title="Deletar Permanentemente"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="py-8 text-center">
-                      <Archive size={24} className="mx-auto text-indigo-500/30 mb-2" />
-                      <p className="text-xs text-indigo-400/60 font-bold">Arquivo de Sombras vazio.</p>
-                      <p className="text-[10px] text-indigo-400/40 mt-1">Itens descartados aparecerão aqui antes da eliminação definitiva.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </section>
-          </div>
-        )}
-
+            )}
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );

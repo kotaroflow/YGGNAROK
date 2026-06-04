@@ -94,3 +94,24 @@ Se você deseja retomar uma sessão anterior, copie o identificador da sessão (
 - Cada terminal/IA tem seu próprio arquivo de memória, garantindo isolamento.
 - O histórico é salvo após cada resposta, assegurando persistência entre sessões.
 - Caso queira limpar o histórico, basta excluir o respectivo arquivo JSON na pasta `memory/`.
+# Uso rápido com Antigravity CLI
+
+Depois de criar o script `scripts/antigravity-cli.ps1`, carregue-o no seu terminal PowerShell:
+```powershell
+. .\scripts\antigravity-cli.ps1
+```
+
+Agora você tem os seguintes atalhos disponíveis:
+- `dev` – inicia o servidor de desenvolvimento Next.js (`npm run dev`).
+- `lint` – executa o lint (`npm run lint`).
+- `worker` – executa o worker uma única vez (`npm run worker:once`).
+- `hermes <prompt>` – envia um prompt ao agente Hermes e exibe a resposta.
+
+### Exemplo de uso
+```powershell
+hermes "Qual é a estrutura de diretórios deste projeto?"
+```
+
+Esses atalhos facilitam o fluxo de trabalho e garantem que Antigravity e Hermes estejam sempre em sintonia.
+
+---

@@ -17,7 +17,6 @@ $fronts = @(
     @{name="build";     cmd="npm run build";     desc="Build"}
     @{name="ollama";    cmd="curl -s http://localhost:11434/api/tags >`$null 2>&1"; desc="Ollama"}
     @{name="n8n";       cmd="curl -s http://localhost:5678/healthz >`$null 2>&1";   desc="n8n"}
-    @{name="openclaw";  cmd="curl -s http://localhost:3334/health >`$null 2>&1";    desc="OpenClaw"}
     @{name="dashboard"; cmd="curl -s http://localhost:3333/dashboard.html >`$null 2>&1"; desc="Dashboard"}
     @{name="nextjs";    cmd="curl -s http://localhost:3000 >`$null 2>&1";           desc="Next.js"}
 )
@@ -25,7 +24,7 @@ $fronts = @(
 function Update-HTML {
     $state = $script:state
     $agentsHtml = ""
-    foreach ($name in @("typecheck","lint","build","ollama","n8n","openclaw","dashboard","nextjs")) {
+    foreach ($name in @("typecheck","lint","build","ollama","n8n","dashboard","nextjs")) {
         $a = $state.agents[$name]
         if (-not $a) { continue }
         $color = $a.color
@@ -74,7 +73,7 @@ h1{font-size:1.5rem;color:#f5c400;margin-bottom:4px;letter-spacing:2px;text-tran
 </div>
 <div class="grid">$agentsHtml</div>
 <div class="refresh">Atualizando a cada 3s - Ultimo ciclo: $($state.lastRun)</div>
-<div class="footer">YGGNAROK v1 - Poder maximo: Ollama+OpenRouter+OpenClaw+n8n+Obsidian</div>
+<div class="footer">YGGNAROK v1 - Poder maximo: Ollama+OpenRouter+n8n+Obsidian</div>
 <script>
 var pollTimer = setInterval(function(){
   var x = new XMLHttpRequest();
@@ -107,9 +106,8 @@ function Run-Cycle {
         Save
         Update-HTML
         
-        if ($name -in @("ollama","n8n","openclaw","dashboard","nextjs")) {
-            $ok = $false
-            $ports = @{ollama=11434; n8n=5678; openclaw=3334; dashboard=3333; nextjs=3000}
+        if ($name -in @("ollama","n8n","dashboard","nextjs")) {
+            $ports = @{ollama=11434; n8n=5678; dashboard=3333; nextjs=3000}
             try { $ok = (netstat -an | Select-String ":$($ports[$name]).*LISTEN") -ne $null } catch { $ok = $false }
             if ($ok) {
                 Agent $name "online" "$($f.desc) - OK" "green"

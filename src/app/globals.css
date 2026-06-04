@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;600&family=Cinzel:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700;0,400&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 @import "tailwindcss";
+
 
 @theme {
   --animate-fade-in: fade-in 0.2s ease-out;
@@ -13,19 +14,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
-  Consolidated :root variables for Light mode (Amber)
-  All theme tokens centralized to avoid duplication
-
-  Nomenclatura YGGNAROK:
-  - Modo Claro: "Amber" (UI label) = Âmbar (#F59E0B) - cor principal
-  - Modo Escuro: "Void" (UI label) = Violeta (#5B21B6) - cor principal
+  YGGNAROK — Regra de Inversao
+  AMBER (light) → fundo claro, detalhes/glow/aura VIOLETA
+  VOID  (dark)  → fundo escuro, detalhes/glow/aura AMBAR
 */
 :root {
-  /* ═══════════════════════════════════════
-     Z-INDEX LAYER SYSTEM — Global Hierarchy
-     Do NOT hardcode z-index values.
-     Use these variables everywhere.
-     ═══════════════════════════════════════ */
   --z-content: 1;
   --z-amber-ambient: 4;
   --z-amber-aura: 5;
@@ -40,43 +33,36 @@
   --z-toast: 1300;
   --z-tooltip: 1400;
 
-  /* Core Palette - Light Mode (Amber = ÂMBAR) */
-  --background: #FAFAFA;
-  --foreground: #171717;
-  --surface-base: #FAFAFA;
-  --surface: rgba(255, 255, 255, 0.95);
+  --background: #FAF8F2; /* Warm alabaster/ivory background */
+  --foreground: #2A2216; /* Warm dark espresso text */
+  --surface-base: #FAF8F2;
+  --surface: rgba(255, 254, 250, 0.92);
   --surface-strong: #FFFFFF;
-  --surface-overlay: rgba(255, 255, 255, 0.98);
-  --line: rgba(0, 0, 0, 0.08);
-  --line-strong: rgba(0, 0, 0, 0.16);
-  --muted: #404040;
-  --brand: #F59E0B;
-  --brand-strong: #D97706;
+  --surface-overlay: rgba(255, 255, 254, 0.98);
+  --line: rgba(180, 110, 10, 0.09); /* Gold-tinted border lines */
+  --line-strong: rgba(180, 110, 10, 0.18);
+  --muted: #6B5E4D; /* Elegant warm golden-brown muted text */
+  --brand: #7c3aed; /* Keeping brand/detail accent as Violet */
+  --brand-strong: #6d28d9;
 
-  /* Typography System */
-  --font-divine: 'Cinzel', serif;
-  --font-heading: 'Playfair Display', serif;
-  --font-body: 'Inter', sans-serif;
+  --sidebar-bg: #F5EFEB; /* Warm sand/linen sidebar background */
+  --sidebar-hover: #EBE0D5; /* Rich warm sand hover */
+  --sidebar-active-bg: rgba(124, 58, 237, 0.08);
+  --sidebar-active-text: #7c3aed;
+  --sidebar-text: #3D3325;
+  --sidebar-text-muted: #8A7A68;
+
+  --core-opacity: 0.14;
+  --ambient-opacity: 0.06;
+  --ambient-bg-start: rgba(124, 58, 237, 0.06);
+  --ambient-bg-end: rgba(250, 240, 255, 0.02);
+  --pulse-from: 0.03;
+  --pulse-to: 0.06;
+  --aura-color: 124, 58, 237;
+  --font-serif: 'Playfair Display', serif;
   --font-mono: 'JetBrains Mono', monospace;
-
-  /* Light Mode Sidebar - Amber Theme */
-  --sidebar-bg: #F5F5F5;
-  --sidebar-hover: #EBEBEB;
-  --sidebar-active-bg: rgba(245, 158, 11, 0.08);
-  --sidebar-active-text: #F59E0B;
-  --sidebar-text: #262626;
-  --sidebar-text-muted: #737373;
-
-  /* Light mode ambient colors */
-  --ambient-bg-start: rgba(255, 240, 200, 0.08);
-  --ambient-bg-end: rgba(255, 225, 165, 0.04);
-  --ambient-pulse-from: 0.03;
-  --ambient-pulse-to: 0.07;
 }
 
-/*
-  Dark Mode: "Void" - Cor primária VIOLETA
-*/
 .dark {
   --background: #121214;
   --foreground: #F5F5F5;
@@ -87,20 +73,23 @@
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: rgba(255, 255, 255, 0.22);
   --muted: #A3A3A3;
-  --brand: #5B21B6;
-  --brand-strong: #4C1D95;
+  --brand: #f8c366; /* Softer Pantone 14-1045 TCX Amber */
+  --brand-strong: #f5a623; /* Pantone 14-1045 TCX Amber */
 
   --sidebar-bg: #141416;
   --sidebar-hover: #1F1B16;
-  --sidebar-active-bg: rgba(245, 158, 11, 0.18);
-  --sidebar-active-text: #F59E0B;
+  --sidebar-active-bg: rgba(248, 195, 102, 0.10);
+  --sidebar-active-text: #f8c366;
   --sidebar-text: #E5E5E5;
   --sidebar-text-muted: #A3A3A3;
 
-  --ambient-bg-start: rgba(30, 20, 0, 0.12);
-  --ambient-bg-end: rgba(45, 30, 5, 0.08);
-  --ambient-pulse-from: 0.04;
-  --ambient-pulse-to: 0.09;
+  --core-opacity: 0.18;
+  --ambient-opacity: 0.06;
+  --ambient-bg-start: rgba(40, 28, 8, 0.10);
+  --ambient-bg-end: rgba(50, 35, 10, 0.06);
+  --pulse-from: 0.03;
+  --pulse-to: 0.06;
+  --aura-color: 248, 195, 102;
 }
 
 @theme inline {
@@ -120,26 +109,28 @@
   --color-line-strong: var(--line-strong);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-serif);
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-heading);
+  --font-divine: var(--font-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
-  font-weight: 400;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-style: italic;
   line-height: 1.6;
 }
-
 /* EFEITO DE GLOW REMOVIDO - Anteriormente: body::before e body::after com radial-gradient que seguia o mouse */
-
-
-@keyframes amber-pulse {
-  from { opacity: var(--ambient-pulse-from); }
-  to { opacity: var(--ambient-pulse-to); }
+body::before, body::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
 }
+
 
 button, a, input, select, textarea {
   outline-color: var(--brand);

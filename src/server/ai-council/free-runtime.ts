@@ -297,7 +297,7 @@ function freeModelFallbacks(preferredModel: string) {
 }
 
 function stripProviderPrefix(value: string) {
-  const prefixes = ["ollama:", "openrouter:", "openai:", "openclaw:", "msty:"];
+  const prefixes = ["ollama:", "openrouter:", "openai:", "msty:"];
   for (const prefix of prefixes) {
     if (value.startsWith(prefix)) return value.slice(prefix.length);
   }

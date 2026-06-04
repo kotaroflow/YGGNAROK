@@ -27,6 +27,7 @@ interface DashboardCounts {
 }
 
 interface HealthService {
+  id: string;
   label: string; status: "online" | "offline" | "checking";
   icon: React.ComponentType<{ size?: number; className?: string }>;
   href: string; description: string;
@@ -50,27 +51,26 @@ export function AdminClient({
   const router = useRouter();
 
   const [services, setServices] = useState<HealthService[]>([
-    { label: "Ollama (IA Local)", status: "checking", icon: Cpu, href: "http://localhost:11434", description: "Modelo de IA local" },
-    { label: "n8n (Workflows)", status: "checking", icon: Activity, href: "http://localhost:5678", description: "Automação de workflows" },
-    { label: "OPENCLAW Gateway", status: "checking", icon: Server, href: "http://localhost:3334", description: "API Gateway" },
-    { label: "Supabase", status: "checking", icon: Database, href: "https://supabase.com/dashboard", description: "Banco de dados" },
+    { id: "ollama", label: "Ollama (IA Local)", status: "checking", icon: Cpu, href: "http://localhost:11434", description: "Modelo de IA local" },
+    { id: "n8n", label: "n8n (Workflows)", status: "checking", icon: Activity, href: "http://localhost:5678", description: "Automação de workflows" },
+    { id: "supabase", label: "Supabase", status: "online", icon: Database, href: "https://supabase.com/dashboard", description: "Banco de dados" },
   ]);
 
   const checkServices = useCallback(async () => {
-    setServices(prev => prev.map((s, i) => i < 3 ? { ...s, status: "checking" as const } : s));
+    setServices(prev => prev.map(s => s.id !== "supabase" ? { ...s, status: "checking" as const } : s));
     try {
       const res = await fetch("/api/workers/health", { signal: AbortSignal.timeout(5000) });
       if (res.ok) {
         const data = await res.json();
         if (data.services) {
-          setServices(prev => prev.map((s, i) => {
-            const svc = data.services[i];
+          setServices(prev => prev.map(s => {
+            const svc = data.services.find((x: { id: string }) => x.id === s.id);
             return svc ? { ...s, status: svc.status as "online" | "offline" } : s;
           }));
         }
       }
     } catch {
-      setServices(prev => prev.map((s, i) => i < 3 ? { ...s, status: "offline" as const } : s));
+      setServices(prev => prev.map(s => s.id !== "supabase" ? { ...s, status: "offline" as const } : s));
     }
   }, []);
 

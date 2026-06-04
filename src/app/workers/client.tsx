@@ -17,7 +17,6 @@ export function WorkersClient({ initialLogs, initialPending, initialProcessing }
   const [services, setServices] = useState<ServiceStatus[]>([
     { id: "ollama", label: "Ollama", status: "checking" },
     { id: "n8n", label: "n8n", status: "checking" },
-    { id: "openclaw", label: "OPENCLAW Gateway", status: "checking" },
     { id: "dashboard", label: "Dashboard server", status: "checking" },
   ]);
 

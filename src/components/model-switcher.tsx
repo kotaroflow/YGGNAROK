@@ -138,7 +138,7 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
             : "px-3.5 py-2 text-[13px]"
         } ${
           open
-            ? "border-brand bg-brand/10 text-brand shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+            ? "border-brand bg-brand/10 text-brand shadow-[0_0_15px_rgba(248, 195, 102,0.1)]"
             : "border-line bg-surface/85 text-foreground hover:border-brand/40 shadow-sm"
         }`}
       >
@@ -147,10 +147,10 @@ export function ModelSwitcher({ onModelChange, compact = false }: Props) {
           <div 
             className="absolute inset-0 pointer-events-none transition-all duration-700 ease-out z-0"
             style={{
-              background: `linear-gradient(to right, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.12) 100%)`,
+              background: `linear-gradient(to right, rgba(248, 195, 102, 0.25) 0%, rgba(248, 195, 102, 0.12) 100%)`,
               width: `${usage.tokens > 0 ? Math.max(pct * 100, 5) : 0}%`,
-              borderRight: usage.tokens > 0 ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
-              boxShadow: usage.tokens > 0 ? '2px 0 8px rgba(245, 158, 11, 0.2)' : 'none'
+              borderRight: usage.tokens > 0 ? '1px solid rgba(248, 195, 102, 0.4)' : 'none',
+              boxShadow: usage.tokens > 0 ? '2px 0 8px rgba(248, 195, 102, 0.2)' : 'none'
             }}
           />
         )}

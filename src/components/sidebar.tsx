@@ -449,26 +449,55 @@ export function Sidebar({
     profileIds: ["mock-profile-id"],
   };
   const router = useRouter();
+  const pathname = usePathname();
   const { createConversation } = useChatWorkspace();
   const [theme] = useTheme();
   const toggleThemeMode = theme === "dark" ? "amber" : "void";
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+
+  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
+  const [animKey, setAnimKey] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const saved = window.localStorage.getItem("ygn-sidebar-tab");
+      if (saved === "chat" || saved === "criacao" || saved === "mercado") {
+        setActiveTabRaw(saved);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
+    if (tab === activeTab) return;
+    setAnimKey((k) => k + 1);
+    setActiveTabRaw(tab);
+    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
+  }, [activeTab]);
 
   const handleNewChat = useCallback(async () => {
     if (isCreatingChat) return;
     setIsCreatingChat(true);
     try {
       const id = await createConversation({ title: "Nova conversa" });
+      setActiveTab("chat"); // Force switch to Chat tab when creating a new chat
       router.push(`/chat?conv=${id}`);
     } catch (err) {
       console.error(err);
     } finally {
       setIsCreatingChat(false);
     }
-  }, [isCreatingChat, createConversation, router]);
+  }, [isCreatingChat, createConversation, router, setActiveTab]);
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (pathname === "/agentes-ia" || pathname === "/criar-conteudo") {
+      setCollapsed(true);
+    }
+  }, [pathname]);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(defaultExpandedGroups);
   const [showAll, setShowAll] = useState<Record<string, boolean>>({});
   const [sidebarWidth, setSidebarWidth] = useState(defaultWidth);
@@ -509,12 +538,18 @@ export function Sidebar({
   };
 
   useEffect(() => {
+    if (isMounted) return;
     const savedState = readSavedSidebarState();
 
     // Batch all saved-state updates in a microtask to avoid cascading renders
     const timer = setTimeout(() => {
       setIsMounted(true);
-      if (savedState.collapsed !== undefined) setCollapsed(savedState.collapsed);
+      const forceCollapse = pathname === "/agentes-ia" || pathname === "/criar-conteudo";
+      if (forceCollapse) {
+        setCollapsed(true);
+      } else if (savedState.collapsed !== undefined) {
+        setCollapsed(savedState.collapsed);
+      }
       if (savedState.width !== undefined) setSidebarWidth(savedState.width);
       if (savedState.expandedGroups !== undefined) {
         setExpandedGroups(prev => ({ ...prev, ...savedState.expandedGroups }));
@@ -525,19 +560,28 @@ export function Sidebar({
     }, 0);
 
     return () => clearTimeout(timer);
+  }, [pathname, isMounted]);
+
+  useEffect(() => {
+    function handleForceCollapse() {
+      setCollapsed(true);
+    }
+    window.addEventListener("ygn-force-collapse-sidebar", handleForceCollapse);
+    return () => {
+      window.removeEventListener("ygn-force-collapse-sidebar", handleForceCollapse);
+    };
   }, []);
 
   useEffect(() => {
-    const throttledHandler = throttle((e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
       const newWidth = Math.max(220, Math.min(e.clientX, 500));
       setSidebarWidth(newWidth);
-    }, 16);
-
+    };
     const handleMouseUp = () => setIsResizing(false);
 
     if (isResizing) {
-      document.addEventListener("mousemove", throttledHandler);
+      document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
@@ -546,7 +590,7 @@ export function Sidebar({
       document.body.style.userSelect = "";
     }
     return () => {
-      document.removeEventListener("mousemove", throttledHandler);
+      document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing]);
@@ -589,27 +633,6 @@ export function Sidebar({
     setMobileOpen(false);
     window.sessionStorage.setItem(mobileStorageKey, "false");
   }
-
-  const [activeTab, setActiveTabRaw] = useState<"chat" | "criacao" | "mercado">("chat");
-  const [animKey, setAnimKey] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const saved = window.localStorage.getItem("ygn-sidebar-tab");
-      if (saved === "chat" || saved === "criacao" || saved === "mercado") {
-        setActiveTabRaw(saved);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const setActiveTab = useCallback((tab: "chat" | "criacao" | "mercado") => {
-    if (tab === activeTab) return;
-    setAnimKey((k) => k + 1);
-    setActiveTabRaw(tab);
-    if (typeof window !== "undefined") window.localStorage.setItem("ygn-sidebar-tab", tab);
-  }, [activeTab]);
 
   const resolvedTab = isMounted ? activeTab : "chat";
 
@@ -665,23 +688,22 @@ export function Sidebar({
         />
       )}
       {/* Top Header (Brand & Collapse Button) */}
-<div className="flex h-14 shrink-0 items-center justify-between px-4">
-           {!collapsed ? (
-             <>
-               <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-brand font-divine">YGGNAROK</div>
-               <SidebarToggleButton
-                 isOpen={!collapsed}
-                 onToggle={() => setCollapsed(true)}
-                 themeMode={toggleThemeMode}
-               />
-             </>
-           ) : (
-             <SidebarToggleButton
-               isOpen={!collapsed}
-               onToggle={() => setCollapsed(false)}
-               themeMode={toggleThemeMode}
-             />
-           )}
+      <div className="flex h-14 shrink-0 items-center justify-between px-4">
+        <div className="flex flex-1 min-w-0 overflow-hidden">
+          <Link
+            href="/chat"
+            className={`shrink-0 text-[12px] font-semibold uppercase tracking-[0.2em] text-brand font-divine hover:opacity-80 whitespace-nowrap transition-all duration-200 ease-out ${
+              collapsed ? "opacity-0 -translate-x-2 max-w-0 ml-0" : "opacity-100 translate-x-0 max-w-[120px] ml-0"
+            }`}
+          >
+            YGGNAROK
+          </Link>
+        </div>
+        <SidebarToggleButton
+          isOpen={!collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+          themeMode={toggleThemeMode}
+        />
       </div>
 
       {!collapsed && (
@@ -690,7 +712,12 @@ export function Sidebar({
           <div className="px-3 pb-2">
             <div className="flex h-9 rounded-lg bg-black/20 p-1">
               <button
-                onClick={() => setActiveTab("chat")}
+                onClick={() => {
+                  setActiveTab("chat");
+                  if (pathname !== "/" && !pathname.startsWith("/chat")) {
+                    router.push("/chat");
+                  }
+                }}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium transition ${resolvedTab === "chat" ? "bg-sidebar-hover text-sidebar-text shadow-sm" : "text-sidebar-text-muted hover:text-sidebar-text"}`}
               >
                 <MessageSquare size={14} />
@@ -713,23 +740,27 @@ export function Sidebar({
             </div>
           </div>
 
+          {/* Global Action: Novo Chat */}
+          <div className="px-3 mb-2">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={isCreatingChat}
+              className="w-full flex h-9 items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand/10 px-3 mx-0 text-[13px] font-medium text-brand hover:bg-brand/20 hover:border-brand/40 transition disabled:opacity-50"
+            >
+              {isCreatingChat ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Plus size={16} />
+              )}
+              Novo chat
+            </button>
+          </div>
+
           {/* Recents / Dynamic List */}
-          <div className="mt-4 flex-1 overflow-y-auto px-2 overscroll-contain">
+          <div className="flex-1 overflow-y-auto px-2 overscroll-contain">
             {resolvedTab === "chat" && (
               <div className="mb-4 space-y-0.5 pb-3 border-b border-sidebar-hover/40">
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  disabled={isCreatingChat}
-                  className="w-full flex h-9 items-center gap-2.5 rounded-lg px-3 mx-1 text-[13px] font-medium text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text transition disabled:opacity-50"
-                >
-                  {isCreatingChat ? (
-                    <Loader2 size={15} className="animate-spin text-brand" />
-                  ) : (
-                    <Plus size={16} className="text-muted" />
-                  )}
-                  Novo chat
-                </button>
                 <ProjectsSection collapsed={collapsed} />
               </div>
             )}
@@ -780,31 +811,31 @@ export function Sidebar({
               )}
 
               {/* Profile Menu Popover - opens to the RIGHT with a gorgeous zoom-in spring micro-animation */}
-              <div className="absolute bottom-0 left-full ml-3.5 z-[var(--z-sidebar-popup)] w-64 origin-bottom-left rounded-xl border border-line bg-neutral-900/98 dark:bg-neutral-950/98 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
+              <div className="absolute bottom-0 left-full ml-3.5 z-[var(--z-sidebar-popup)] w-64 origin-bottom-left rounded-xl border border-line bg-surface-overlay backdrop-blur-xl shadow-lg dark:bg-neutral-950/98 dark:shadow-[0_12px_40px_rgba(0,0,0,0.65)] p-2.5 opacity-0 invisible transition-all duration-300 scale-95 hover:scale-100 group-hover:opacity-100 group-hover:visible group-hover:scale-100">
                 {/* Stylized System Status Header instead of raw email address */}
-                <div className="px-3 py-2.5 mb-2 rounded-lg bg-neutral-950/60 border border-line/20 flex items-center gap-2.5 select-none">
+                <div className="px-3 py-2.5 mb-2 rounded-lg bg-surface-base/80 dark:bg-neutral-950/60 border border-line/20 flex items-center gap-2.5 select-none">
                   <div className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand/75 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand leading-none">Kotaro OS</span>
+                    <span className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-brand leading-none">Kotaro OS</span>
                     <span className="text-[8.5px] text-muted font-mono uppercase tracking-wider mt-1">Acesso: {isOwner ? "Administrador Master" : "Membro"}</span>
                   </div>
                 </div>
 
                 <div className="space-y-0.5">
-                  <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-sidebar-hover dark:hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Globe size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Meu Perfil</span>
                   </Link>
 
-                  <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/configuracoes" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-sidebar-hover dark:hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Settings size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Configurações do OS</span>
                   </Link>
 
-                  <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <Link href="/prompts" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-sidebar-hover dark:hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <Library size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Biblioteca de Prompts</span>
                   </Link>
@@ -834,7 +865,7 @@ export function Sidebar({
                 <div className="my-1.5 border-t border-line/10"></div>
 
                 <form action={signOut}>
-                  <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
+                  <button type="submit" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-sidebar-text hover:bg-sidebar-hover dark:hover:bg-neutral-800 hover:text-brand transition-all duration-200 group/item">
                     <LogOut size={14} className="text-muted group-hover/item:text-brand transition-colors" />
                     <span>Sair</span>
                   </button>

@@ -31,7 +31,7 @@ export default async function VendasPage({ searchParams }: { searchParams: Promi
         <header className="relative z-10 mx-auto mb-8 flex w-full max-w-7xl flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-brand">Comercial</p>
-            <h1 className="mt-1 font-divine text-3xl sm:text-4xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">Vendas</h1>
+            <h1 className="mt-1 font-divine text-3xl sm:text-4xl font-black tracking-widest leading-tight bg-gradient-to-r from-brand via-amber-200 to-brand-strong bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(248, 195, 102,0.3)]">Vendas</h1>
             <p className="mt-2 text-sm text-muted">Acompanhe faturamento, comissões e perfil dos clientes.</p>
           </div>
           <Link href="/" className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-foreground transition hover:bg-surface-strong">Voltar ao início</Link>

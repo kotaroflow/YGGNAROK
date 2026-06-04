@@ -6,12 +6,13 @@ import { AgentEvolutionDashboard } from "@/components/agent-evolution-dashboard"
 import { GitBranch, Brain, Lock, ShieldAlert } from "lucide-react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isYggnarokAdminIdentity } from "@/lib/ai-hierarchy";
 
 export function AgentesIaClient() {
   const [activeTab, setActiveTab] = useState<"studio" | "evolution">("studio");
   const [username, setUsername] = useState("kotaro");
   
-  // Read logged user client-side to avoid hydration mismatch
+  // Read logged user client-side to avoid hydration mismatch and force sidebar collapse on mount
   useEffect(() => {
     async function fetchUser() {
       const supabase = createSupabaseBrowserClient();
@@ -21,7 +22,7 @@ export function AgentesIaClient() {
         const emailName = email.split("@")[0];
         setUsername(emailName);
         
-        const isOwner = emailName === "kotaro" || emailName === "naoteemteresa";
+        const isOwner = isYggnarokAdminIdentity(email);
         if (!isOwner) {
           setActiveTab("evolution");
         }
@@ -31,9 +32,12 @@ export function AgentesIaClient() {
       }
     }
     fetchUser();
+
+    // Collapses the main left sidebar to optimize space for the 3D globe studio
+    window.dispatchEvent(new CustomEvent("ygn-force-collapse-sidebar"));
   }, []);
 
-  const isKotaro = username === "kotaro" || username === "naoteemteresa";
+  const isKotaro = isYggnarokAdminIdentity(username);
 
   return (
     <main className="w-full px-4 py-6 lg:px-8 space-y-6">

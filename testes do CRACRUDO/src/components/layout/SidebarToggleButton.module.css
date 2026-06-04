@@ -1,0 +1,241 @@
+.root {
+  --sidebar-toggle-line: rgba(80, 60, 130, 0.72);
+  --sidebar-toggle-hover: #7c3aed;
+  --sidebar-toggle-glow: rgba(124, 58, 237, 0.18);
+  --sidebar-toggle-focus: rgba(139, 92, 246, 0.40);
+  --sidebar-toggle-active-glow: rgba(109, 40, 217, 0.28);
+  --sidebar-toggle-surface: rgba(124, 58, 237, 0.04);
+  --sidebar-toggle-border: rgba(109, 40, 217, 0.10);
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--sidebar-toggle-border);
+  border-radius: 12px;
+  color: var(--sidebar-toggle-line);
+  background:
+    radial-gradient(circle at 50% 10%, var(--sidebar-toggle-surface), transparent 68%),
+    transparent;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.03) inset,
+    0 3px 8px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  isolation: isolate;
+  transform: translateZ(0) scale(1);
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.root[data-theme-mode="amber"] {
+  --sidebar-toggle-line: rgba(255, 235, 200, 0.82);
+  --sidebar-toggle-hover: #f59e0b;
+  --sidebar-toggle-glow: rgba(248, 195, 102, 0.22);
+  --sidebar-toggle-focus: rgba(248, 195, 102, 0.40);
+  --sidebar-toggle-active-glow: rgba(248, 195, 102, 0.32);
+  --sidebar-toggle-surface: rgba(248, 195, 102, 0.06);
+  --sidebar-toggle-border: rgba(248, 195, 102, 0.14);
+}
+
+.root::before {
+  position: absolute;
+  inset: 5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--sidebar-toggle-glow);
+  filter: blur(10px);
+  opacity: 0.06;
+  transform: scale(0.72);
+  transition:
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  content: "";
+}
+
+.root::after {
+  position: absolute;
+  inset: -2px;
+  z-index: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    color-mix(in srgb, var(--sidebar-toggle-hover) 38%, transparent) 46%,
+    transparent 72%
+  );
+  opacity: 0;
+  transform: translateX(-140%) skewX(-14deg);
+  transition:
+    opacity 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  content: "";
+}
+
+.root:hover,
+.root:focus-visible {
+  border-color: color-mix(in srgb, var(--sidebar-toggle-hover) 30%, transparent);
+  background:
+    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--sidebar-toggle-hover) 7%, transparent), transparent 68%),
+    color-mix(in srgb, var(--sidebar-toggle-hover) 3%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--sidebar-toggle-hover) 6%, transparent) inset,
+    0 0 14px var(--sidebar-toggle-glow),
+    0 6px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px) scale(1.03);
+}
+
+.root:hover::before,
+.root:focus-visible::before,
+.root[data-state="open"]::before {
+  opacity: 0.22;
+  transform: scale(1.14);
+}
+
+.root:hover::after,
+.root:focus-visible::after,
+.root[data-state="open"]::after {
+  opacity: 0.14;
+  transform: translateX(142%) skewX(-14deg);
+}
+
+.root:active {
+  transform: translateY(0) scale(0.93);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--sidebar-toggle-hover) 10%, transparent) inset,
+    0 0 18px var(--sidebar-toggle-active-glow),
+    0 4px 10px rgba(0, 0, 0, 0.16);
+}
+
+.root:focus-visible {
+  outline: 2px solid var(--sidebar-toggle-focus);
+  outline-offset: 3px;
+}
+
+.sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--sidebar-toggle-hover) 12%, transparent), transparent 58%);
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.root[data-state="open"] .sweep {
+  opacity: 0.16;
+  transform: scale(1.06);
+}
+
+.icon {
+  position: relative;
+  z-index: 2;
+  width: 18px;
+  height: 12px;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sidebar-toggle-glow) 50%, transparent));
+  transform: translateZ(0) scale(1);
+  transition:
+    filter 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.root:hover .icon,
+.root:focus-visible .icon {
+  filter: drop-shadow(0 0 6px var(--sidebar-toggle-glow));
+}
+
+.root[data-state="open"] .icon {
+  transform: translateZ(0) scale(1.10);
+}
+
+.line {
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--sidebar-toggle-glow) 40%, transparent),
+    0 0 1px rgba(255, 255, 255, 0.08) inset;
+  transform-origin: center;
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lineOne { top: 0; }
+.lineTwo { top: 5px; }
+.lineThree { top: 10px; }
+
+.root:hover .lineOne,
+.root:focus-visible .lineOne {
+  transform: translateY(-1px) scaleX(0.92);
+}
+
+.root:hover .lineTwo,
+.root:focus-visible .lineTwo {
+  transform: scaleX(0.64);
+}
+
+.root:hover .lineThree,
+.root:focus-visible .lineThree {
+  transform: translateY(1px) scaleX(0.92);
+}
+
+.root[data-state="open"] {
+  color: var(--sidebar-toggle-hover);
+  border-color: color-mix(in srgb, var(--sidebar-toggle-hover) 34%, transparent);
+  background:
+    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--sidebar-toggle-hover) 8%, transparent), transparent 68%),
+    color-mix(in srgb, var(--sidebar-toggle-hover) 3%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--sidebar-toggle-hover) 7%, transparent) inset,
+    0 0 16px var(--sidebar-toggle-glow),
+    0 6px 14px rgba(0, 0, 0, 0.14);
+}
+
+.root[data-state="open"] .line {
+  box-shadow:
+    0 0 8px var(--sidebar-toggle-active-glow),
+    0 0 1px rgba(255, 255, 255, 0.20) inset;
+}
+
+.root[data-state="open"] .lineOne {
+  transform: translateY(5px) rotate(45deg);
+}
+
+.root[data-state="open"] .lineTwo {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.root[data-state="open"] .lineThree {
+  transform: translateY(-5px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .root::before,
+  .root::after,
+  .sweep,
+  .icon,
+  .line {
+    transition-duration: 1ms;
+    animation: none;
+  }
+
+  .root:hover,
+  .root:focus-visible,
+  .root:active {
+    transform: none;
+  }
+}

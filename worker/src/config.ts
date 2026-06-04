@@ -11,7 +11,6 @@ export const workerConfig = {
     ollamaEnabled: flag("ENABLE_OLLAMA", true),
     openAiEnabled: flag("ENABLE_OPENAI_GPT", false),
     openRouterEnabled: flag("ENABLE_OPENROUTER_FALLBACK", true),
-    openClawEnabled: flag("ENABLE_OPENCLAW", true),
     mstyEnabled: flag("ENABLE_MSTY", true),
     multiModelEnabled: flag("ENABLE_MULTI_MODEL_GENERATION", process.env.AI_MULTI_MODEL_ENABLED !== "false"),
     multiAgentDebateEnabled: flag("ENABLE_MULTI_AGENT_DEBATE", true),
@@ -37,7 +36,6 @@ export const workerConfig = {
     openAiKey: process.env.OPENAI_API_KEY ?? "",
     openRouterKey: process.env.OPENROUTER_API_KEY ?? "",
     ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
-    openClawUrl: process.env.OPENCLAW_URL ?? "http://localhost:3334",
     mstyUrl: process.env.MSTY_URL ?? "",
     models: {
       fast: process.env.AI_MODEL_FAST ?? "ollama:qwen2.5-coder:7b",

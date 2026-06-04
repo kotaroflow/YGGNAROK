@@ -35,11 +35,11 @@
 .root[data-theme-mode="amber"] {
   --sidebar-toggle-line: rgba(255, 235, 200, 0.82);
   --sidebar-toggle-hover: #f59e0b;
-  --sidebar-toggle-glow: rgba(245, 158, 11, 0.22);
-  --sidebar-toggle-focus: rgba(245, 158, 11, 0.40);
-  --sidebar-toggle-active-glow: rgba(245, 158, 11, 0.32);
-  --sidebar-toggle-surface: rgba(245, 158, 11, 0.06);
-  --sidebar-toggle-border: rgba(245, 158, 11, 0.14);
+  --sidebar-toggle-glow: rgba(248, 195, 102, 0.22);
+  --sidebar-toggle-focus: rgba(248, 195, 102, 0.40);
+  --sidebar-toggle-active-glow: rgba(248, 195, 102, 0.32);
+  --sidebar-toggle-surface: rgba(248, 195, 102, 0.06);
+  --sidebar-toggle-border: rgba(248, 195, 102, 0.14);
 }
 
 .root::before {

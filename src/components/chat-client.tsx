@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image as ImageIcon, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowUp, StopCircle, Trash2, Bot, User, Paperclip, Image as ImageIcon, FileText, X, Video, Code, Lightbulb, HelpCircle, MessageSquare, SendHorizontal, ThumbsUp, ThumbsDown, Search, Briefcase, Globe } from "lucide-react";
 import { ModelSwitcher } from "@/components/model-switcher";
 import { loadSelectedModel, saveSelectedModel, DEFAULT_MODEL_ID, getModel, getSectorFromPath, incrementModelUsage } from "@/lib/models";
 import { useChatWorkspace } from "@/components/chat-workspace-provider";
@@ -34,9 +34,75 @@ function parseMessageFiles(content: string) {
   return { files, cleanContent };
 }
 
-function uid() {
-  return newConversationId();
-}
+const uid = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
+const SUGGESTION_PILLS = [
+  {
+    title: "Criar Roteiro",
+    prompt: "Escreva um roteiro completo de alta conversão sobre: ",
+    icon: Video
+  },
+  {
+    title: "Analisar Código",
+    prompt: "Analise o seguinte trecho de código em busca de erros e otimizações:\n\n```\n\n```",
+    icon: Code
+  },
+  {
+    title: "Ideias Criativas",
+    prompt: "Faça um brainstorm estratégico com 5 ideias inovadoras para: ",
+    icon: Lightbulb
+  },
+  {
+    title: "Tirar Dúvidas",
+    prompt: "Explique de forma didática e aprofundada como funciona: ",
+    icon: HelpCircle
+  },
+  {
+    title: "Agente B2B IA",
+    prompt: "Desenvolva um prompt de sistema para um agente de vendas IA especializado em fechar contratos B2B de: ",
+    icon: Bot
+  },
+  {
+    title: "Copy AIDA de E-mail",
+    prompt: "Crie uma copy de e-mail de vendas usando a estrutura AIDA focado no lançamento de: ",
+    icon: FileText
+  },
+  {
+    title: "SEO Cauda Longa",
+    prompt: "Gere 10 palavras-chave de cauda longa para posicionar um artigo de blog sobre: ",
+    icon: Search
+  },
+  {
+    title: "Proposta Comercial",
+    prompt: "Desenvolva um escopo de proposta comercial de serviço de automação de marketing para: ",
+    icon: Briefcase
+  },
+  {
+    title: "Script YouTube",
+    prompt: "Crie um script em Python para extrair métricas de visualizações usando a API do YouTube para o canal: ",
+    icon: Code
+  },
+  {
+    title: "Desafio 30 Dias",
+    prompt: "Elabore um calendário estratégico de 30 dias de postagens no TikTok para crescer organicamente com foco em: ",
+    icon: Globe
+  },
+  {
+    title: "Ideia de Micro-SaaS",
+    prompt: "Gere 3 conceitos de produtos digitais micro-SaaS que resolvem o problema de: ",
+    icon: Lightbulb
+  },
+  {
+    title: "Jornada do Herói",
+    prompt: "Escreva um roteiro de storytelling baseado no modelo da Jornada do Herói contando a história de: ",
+    icon: FileText
+  }
+];
 
 export function ChatClient() {
   const router = useRouter();
@@ -681,6 +747,21 @@ export function ChatClient() {
   const visibleMessages = messages.filter((m) => m.role !== "system");
   const isEmpty = visibleMessages.length === 0;
 
+  const [pillGroupIndex, setPillGroupIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isEmpty) return;
+    const interval = setInterval(() => {
+      setPillGroupIndex((prev) => (prev + 1) % 3);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isEmpty]);
+
+  const visiblePills = useMemo(() => {
+    const start = pillGroupIndex * 4;
+    return SUGGESTION_PILLS.slice(start, start + 4);
+  }, [pillGroupIndex]);
+
   useEffect(() => {
     if (!isEmpty) return;
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -708,7 +789,7 @@ export function ChatClient() {
 
   const renderInputBox = (centered: boolean) => (
     <div className={`mx-auto w-full ${centered ? "max-w-2xl" : "max-w-3xl"}`}>
-      <div className={`relative flex flex-col rounded-2xl border-2 border-line/35 shadow-md hover:shadow-lg transition-all duration-300 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)] ${centered ? "bg-surface-strong/60 backdrop-blur-md" : "bg-surface-strong"}`}>
+      <div className={`relative flex flex-col rounded-2xl transition-all duration-300 ${centered ? "border border-line/50 bg-surface-strong/70 backdrop-blur-xl shadow-[0_4px_32px_-8px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.05)] hover:border-line/70 hover:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.16)] focus-within:border-brand/60 focus-within:ring-4 focus-within:ring-brand/15 focus-within:shadow-[0_0_60px_-12px_rgba(248,195,102,0.3)]" : "border-2 border-line/35 bg-surface-strong shadow-md hover:shadow-lg focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15 focus-within:shadow-[0_0_50px_-12px_rgba(234,179,8,0.25)]"}`}>
         <input
           type="file"
           ref={fileInputRef}
@@ -810,18 +891,18 @@ export function ChatClient() {
             <button
               type="button"
               onClick={stop}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-foreground text-background font-bold text-xs transition duration-300 hover:opacity-90 shadow-sm cursor-pointer animate-pulse"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-foreground/90 text-background font-bold text-xs transition-all duration-300 hover:opacity-80 shadow-md cursor-pointer ring-1 ring-line/20"
               title="Parar geração"
             >
               <span>Parar</span>
-              <StopCircle size={14} strokeWidth={2.5} />
+              <StopCircle size={14} strokeWidth={2.5} className="animate-pulse" />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => void send()}
               disabled={!input.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand text-neutral-950 font-bold text-xs transition duration-300 hover:bg-brand-strong disabled:opacity-40 shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand text-neutral-950 font-extrabold text-xs transition-all duration-300 hover:bg-brand-strong hover:shadow-[0_0_20px_-4px_rgba(248,195,102,0.6)] disabled:opacity-35 disabled:shadow-none shadow-[0_2px_12px_-3px_rgba(248,195,102,0.4)] cursor-pointer"
               title="Enviar"
             >
               <span>Enviar</span>
@@ -838,89 +919,81 @@ export function ChatClient() {
 
   if (isEmpty) {
     return (
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto animate-[pulse_20s_infinite]">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 overflow-y-auto">
 
-        {/* Ambient Light Orbs for Void Mode Legibility */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
-        <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+        {/* Ambient Light Orbs */}
+        <div className="absolute top-0 left-1/4 w-[700px] h-[500px] bg-brand/[0.07] blur-[120px] rounded-full pointer-events-none z-0" />
+        <div className="absolute top-40 right-1/4 w-[500px] h-[400px] bg-amber-500/[0.06] blur-[100px] rounded-full pointer-events-none z-0" />
+        <div className="hidden dark:block absolute bottom-20 left-1/3 w-[400px] h-[300px] bg-violet-500/[0.05] blur-[100px] rounded-full pointer-events-none z-0" />
 
-        <div className="relative z-10 w-full max-w-2xl text-center space-y-8 my-auto">
-          {/* Header */}
-          <div className="transition-all duration-700 ease-out">
+        <div className="relative z-10 w-full max-w-2xl text-center space-y-5 my-auto" style={{ transform: 'translateY(-10%)' }}>
+
+          {/* Logo + Brand */}
+          <div className="flex flex-col items-center gap-2 mb-1">
+            <div className="relative inline-flex items-center justify-center mb-1">
+              <div className="absolute inset-0 rounded-2xl bg-brand/20 blur-xl scale-110" />
+              <div className="relative grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-brand/90 to-brand-strong border border-brand/30 shadow-[0_8px_32px_rgba(248,195,102,0.35)]">
+                <span className="text-xl font-black text-neutral-950 tracking-tight">Y</span>
+              </div>
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-brand/70 select-none">YGGNAROK IA</div>
+          </div>
+
+          {/* Animated Greeting */}
+          <div className="mb-1">
             <h2
-              className="bg-gradient-to-br from-foreground via-foreground to-muted bg-clip-text text-2xl font-black tracking-tight text-transparent transition-all duration-700 sm:text-4xl inline-block"
+              className="bg-gradient-to-br from-foreground via-foreground/90 to-muted bg-clip-text text-2xl font-black tracking-tight text-transparent sm:text-3xl"
               style={{
                 opacity: fading ? 0 : 1,
-                transform: fading ? "translateY(8px) scale(0.98)" : "translateY(0) scale(1)",
-                filter: fading ? "blur(4px)" : "blur(0)"
+                transform: fading ? "translateY(6px) scale(0.99)" : "translateY(0) scale(1)",
+                filter: fading ? "blur(3px)" : "blur(0)",
+                transition: "opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease"
               }}
             >
               {phrases[phraseIndex]}
             </h2>
-            <p className="text-xs text-muted mt-2 font-medium tracking-wide">Selecione uma sugestão operacional ou digite sua instrução abaixo.</p>
           </div>
 
-          {/* Exemplos de uso Cards Grid - Field.io Motion Poetics */}
-          <div className="text-left space-y-3">
-            <span className="text-[10px] font-bold text-muted/80 uppercase tracking-widest pl-1 select-none">Exemplos de uso</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {[
-                {
-                  title: "Criar um roteiro",
-                  desc: "Estruture roteiros de alta retenção para YouTube e Reels.",
-                  prompt: "Escreva um roteiro completo de alta conversão sobre: ",
-                  icon: Video
-                },
-                {
-                  title: "Analisar código",
-                  desc: "Revise algoritmos, otimize consultas SQL e cace bugs.",
-                  prompt: "Analise o seguinte trecho de código em busca de erros e otimizações:\n\n```\n\n```",
-                  icon: Code
-                },
-                {
-                  title: "Gerar ideias criativas",
-                  desc: "Faça brainstorm de negócios, marketing e novas campanhas.",
-                  prompt: "Faça um brainstorm estratégico com 5 ideias inovadoras para: ",
-                  icon: Lightbulb
-                },
-                {
-                  title: "Responder perguntas",
-                  desc: "Esclareça dúvidas complexas e sintetize relatórios técnicos.",
-                  prompt: "Explique de forma didática e aprofundada como funciona: ",
-                  icon: HelpCircle
-                }
-              ].map((card, idx) => {
-                const CardIcon = card.icon;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setInput(card.prompt);
-                      textareaRef.current?.focus();
-                    }}
-                    className="group relative overflow-hidden flex items-start gap-4 rounded-2xl border border-line/40 bg-surface/40 backdrop-blur-md p-4 text-left transition-all duration-500 hover:-translate-y-1 cursor-pointer hover:border-brand/40 hover:shadow-[0_10px_40px_-10px_rgba(245,158,11,0.2)] hover:bg-brand/[0.02]"
-                  >
-                    {/* Hover Amber Glow Background Layer */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-brand/0 via-brand/0 to-brand/10 opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100 pointer-events-none" />
-
-                    <div className="relative z-10 grid size-10 shrink-0 place-items-center rounded-xl bg-surface-strong border border-line/30 shadow-sm transition-all duration-500 ease-out group-hover:bg-brand/15 group-hover:border-brand/40 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.25)] group-hover:scale-110">
-                      <CardIcon size={16} className="text-muted transition-colors duration-500 group-hover:text-brand" />
-                    </div>
-                    <div className="relative z-10 space-y-1.5 pt-0.5">
-                      <h3 className="text-xs font-extrabold text-foreground transition duration-500">{card.title}</h3>
-                      <p className="text-[11px] text-muted leading-relaxed font-medium transition duration-500 group-hover:text-foreground/85">{card.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Input Box in the middle of screen */}
-          <div className="pt-2">
+          {/* Input Box centered */}
+          <div className="pt-1">
             {renderInputBox(true)}
           </div>
+
+          {/* Premium Suggestion Pills */}
+          <div className="flex flex-wrap justify-center gap-2 pt-1">
+            {visiblePills.map((card, idx) => {
+              const CardIcon = card.icon;
+              const pillColors = [
+                "hover:border-amber-400/60 hover:bg-amber-400/[0.06] hover:shadow-[0_4px_20px_-4px_rgba(251,191,36,0.25)] group-hover:text-amber-500",
+                "hover:border-violet-400/60 hover:bg-violet-400/[0.06] hover:shadow-[0_4px_20px_-4px_rgba(167,139,250,0.25)] group-hover:text-violet-400",
+                "hover:border-emerald-400/60 hover:bg-emerald-400/[0.06] hover:shadow-[0_4px_20px_-4px_rgba(52,211,153,0.25)] group-hover:text-emerald-400",
+                "hover:border-sky-400/60 hover:bg-sky-400/[0.06] hover:shadow-[0_4px_20px_-4px_rgba(56,189,248,0.25)] group-hover:text-sky-400",
+              ];
+              const iconColors = [
+                "group-hover:text-amber-500",
+                "group-hover:text-violet-400",
+                "group-hover:text-emerald-400",
+                "group-hover:text-sky-400",
+              ];
+              const colorClass = pillColors[idx % pillColors.length];
+              const iconClass = iconColors[idx % iconColors.length];
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setInput(card.prompt);
+                    textareaRef.current?.focus();
+                  }}
+                  className={`group flex items-center gap-2 rounded-xl border border-line/40 bg-surface-strong/50 backdrop-blur-sm px-3.5 py-2 text-xs font-semibold text-muted hover:text-foreground transition-all duration-300 cursor-pointer ${colorClass}`}
+                >
+                  <CardIcon size={13} className={`text-muted/60 transition-colors duration-300 ${iconClass}`} />
+                  <span className="transition-colors duration-300">{card.title}</span>
+                </button>
+              );
+            })}
+          </div>
+
         </div>
       </div>
     );
@@ -929,8 +1002,8 @@ export function ChatClient() {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* Ambient Light Orbs for Void Mode Legibility */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
-      <div className="absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
+      <div className="hidden dark:block absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand/10 blur-[130px] rounded-full pointer-events-none z-0" />
+      <div className="hidden dark:block absolute top-40 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
 
       <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3">
         <div>

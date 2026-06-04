@@ -1,0 +1,6 @@
+# Antigravity Skill
+# Description: Provides quick access to local AI model (phi) via @antigravity.
+# Commands:
+#   @antigravity <prompt> – Runs prompt through the local phi model (Ollama).
+#   antigravity dev – Starts Next.js dev server.
+#   antigravity lint – Runs ESLint.

@@ -1,0 +1,10 @@
+# Impeccable Skill
+# Description: Impeccable UI/UX refinement suite.
+# Commands:
+#   @impeccable teach       – Start the one-time design context gathering.
+#   @impeccable audit       – Audit styling, layout, typography, and accessibility.
+#   @impeccable animate     – Add micro-interactions and animations.
+#   @impeccable polish      – Refine styling details and pixel alignment.
+#   @impeccable simplify    – Simplify components and reduce bloat.
+#   @impeccable colorize    – Adjust color palette and gradients.
+#   @impeccable critique    – Review UI code against best UX practices.

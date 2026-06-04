@@ -22,10 +22,8 @@ type Env = {
   OLLAMA_MODEL?: string;
   OLLAMA_CODE_MODEL?: string;
   OLLAMA_FAST_MODEL?: string;
-  OPENCLAW_URL?: string;
   MSTY_URL?: string;
   ENABLE_OLLAMA?: string;
-  ENABLE_OPENCLAW?: string;
   ENABLE_MSTY?: string;
   AI?: {
     run(model: string, input: Record<string, unknown>): Promise<unknown>;

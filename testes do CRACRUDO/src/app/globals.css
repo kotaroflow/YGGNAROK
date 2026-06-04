@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700;0,400&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+@import "tailwindcss";
+
+
+@theme {
+  --animate-fade-in: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  YGGNAROK — Regra de Inversao
+  AMBER (light) → fundo claro, detalhes/glow/aura VIOLETA
+  VOID  (dark)  → fundo escuro, detalhes/glow/aura AMBAR
+*/
+:root {
+  --z-content: 1;
+  --z-amber-ambient: 4;
+  --z-amber-aura: 5;
+  --z-page-effects: 10;
+  --z-sidebar: 1000;
+  --z-sidebar-popup: 1010;
+  --z-mobile-hamburger: 1020;
+  --z-dropdown: 1100;
+  --z-popover: 1150;
+  --z-modal-backdrop: 1200;
+  --z-modal: 1210;
+  --z-toast: 1300;
+  --z-tooltip: 1400;
+
+  --background: #FAF8F2; /* Warm alabaster/ivory background */
+  --foreground: #2A2216; /* Warm dark espresso text */
+  --surface-base: #FAF8F2;
+  --surface: rgba(255, 254, 250, 0.92);
+  --surface-strong: #FFFFFF;
+  --surface-overlay: rgba(255, 255, 254, 0.98);
+  --line: rgba(180, 110, 10, 0.09); /* Gold-tinted border lines */
+  --line-strong: rgba(180, 110, 10, 0.18);
+  --muted: #6B5E4D; /* Elegant warm golden-brown muted text */
+  --brand: #7c3aed; /* Keeping brand/detail accent as Violet */
+  --brand-strong: #6d28d9;
+
+  --sidebar-bg: #F5EFEB; /* Warm sand/linen sidebar background */
+  --sidebar-hover: #EBE0D5; /* Rich warm sand hover */
+  --sidebar-active-bg: rgba(124, 58, 237, 0.08);
+  --sidebar-active-text: #7c3aed;
+  --sidebar-text: #3D3325;
+  --sidebar-text-muted: #8A7A68;
+
+  --core-opacity: 0.14;
+  --ambient-opacity: 0.06;
+  --ambient-bg-start: rgba(124, 58, 237, 0.06);
+  --ambient-bg-end: rgba(250, 240, 255, 0.02);
+  --pulse-from: 0.03;
+  --pulse-to: 0.06;
+  --aura-color: 124, 58, 237;
+  --font-serif: 'Playfair Display', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.dark {
+  --background: #121214;
+  --foreground: #F5F5F5;
+  --surface-base: #121214;
+  --surface: rgba(30, 30, 32, 0.65);
+  --surface-strong: rgba(36, 36, 38, 0.85);
+  --surface-overlay: rgba(42, 42, 44, 0.94);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --muted: #A3A3A3;
+  --brand: #f8c366; /* Softer Pantone 14-1045 TCX Amber */
+  --brand-strong: #f5a623; /* Pantone 14-1045 TCX Amber */
+
+  --sidebar-bg: #141416;
+  --sidebar-hover: #1F1B16;
+  --sidebar-active-bg: rgba(248, 195, 102, 0.10);
+  --sidebar-active-text: #f8c366;
+  --sidebar-text: #E5E5E5;
+  --sidebar-text-muted: #A3A3A3;
+
+  --core-opacity: 0.18;
+  --ambient-opacity: 0.06;
+  --ambient-bg-start: rgba(40, 28, 8, 0.10);
+  --ambient-bg-end: rgba(50, 35, 10, 0.06);
+  --pulse-from: 0.03;
+  --pulse-to: 0.06;
+  --aura-color: 248, 195, 102;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface-base: var(--surface-base);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --font-sans: var(--font-serif);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+  --font-divine: var(--font-serif);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.6;
+}
+/* EFEITO DE GLOW REMOVIDO - Anteriormente: body::before e body::after com radial-gradient que seguia o mouse */
+body::before, body::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
+}
+
+
+button, a, input, select, textarea {
+  outline-color: var(--brand);
+}
+
+::selection {
+  background: var(--brand);
+  color: #171717;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+nextjs-portal,
+#nextjs-dev-badge,
+[data-nextjs-dialog-overlay] {
+  display: none !important;
+}

@@ -47,20 +47,7 @@ async function checkN8n(): Promise<ServiceStatus> {
   }
 }
 
-async function checkOpenClaw(): Promise<ServiceStatus> {
-  try {
-    const res = await fetch("http://localhost:9090/health", { signal: AbortSignal.timeout(3000) });
-    return res.ok ? "connected" : "error";
-  } catch {
-    // try alternative port
-    try {
-      const res2 = await fetch("http://localhost:8080/health", { signal: AbortSignal.timeout(3000) });
-      return res2.ok ? "connected" : "error";
-    } catch {
-      return "error";
-    }
-  }
-}
+
 
 const STORAGE_KEYS = {
   openrouter: "ygn-openrouter-key",
@@ -98,7 +85,6 @@ export default function ConfiguracoesClient() {
   const [ollamaStatus, setOllamaStatus] = useState<ServiceStatus>("checking");
   const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [n8nStatus, setN8nStatus] = useState<ServiceStatus>("checking");
-  const [openclawStatus, setOpenClawStatus] = useState<ServiceStatus>("checking");
 
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({
     nextjs: "16.2.6",
@@ -133,16 +119,14 @@ export default function ConfiguracoesClient() {
     let cancelled = false;
 
     const run = async () => {
-      const [ollama, n8n, openclaw] = await Promise.all([
+      const [ollama, n8n] = await Promise.all([
         checkOllama(),
         checkN8n(),
-        checkOpenClaw(),
       ]);
       if (cancelled) return;
       setOllamaStatus(ollama.status);
       setOllamaModels(ollama.models);
       setN8nStatus(n8n);
-      setOpenClawStatus(openclaw);
     };
 
     run();
@@ -183,7 +167,6 @@ export default function ConfiguracoesClient() {
   const activeProviders = [];
   if (ollamaStatus === "connected") activeProviders.push("Ollama");
   if (openrouterKey) activeProviders.push("OpenRouter");
-  if (openclawStatus === "connected") activeProviders.push("OpenClaw");
   if (n8nStatus === "connected") activeProviders.push("n8n");
 
   return (
@@ -378,22 +361,6 @@ export default function ConfiguracoesClient() {
                   </div>
                 </div>
                 {statusIcon(n8nStatus)}
-              </div>
-
-              {/* OPENCLAW */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-line bg-surface-strong/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-surface border border-line">
-                    <Globe size={16} className="text-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">OPENCLAW Gateway</p>
-                    <p className={`text-[10px] font-mono ${statusLabel[openclawStatus].className}`}>
-                      {statusLabel[openclawStatus].text}
-                    </p>
-                  </div>
-                </div>
-                {statusIcon(openclawStatus)}
               </div>
             </div>
           </section>

@@ -1,0 +1,5 @@
+# Huashu Design Skill
+# Description: High-fidelity UI/UX design assistant skill based on the SKILL.md rules.
+# Commands:
+#   @huashu <prompt>         – Embody the Junior Designer workflow and generate premium prototypes.
+#   @huashu-design <prompt>  – Alternative command to trigger the high-fidelity designer mode.
