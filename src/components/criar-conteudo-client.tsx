@@ -336,6 +336,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const nextCreativeNodeId = useRef(100);
+  const nextCreativeEdgeId = useRef(100);
 
   // Inspector & Interactive Messaging States
   const [chatMessageText, setChatMessageText] = useState("");
@@ -520,7 +521,8 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
     setSelectedCanvasNodeId(nodeId);
     if (connectingFromId && connectingFromId !== nodeId) {
-      const edgeId = `e-${Date.now()}`;
+      nextCreativeEdgeId.current += 1;
+      const edgeId = `e-${nextCreativeEdgeId.current}`;
       setCanvasEdges(prev => [...prev, { id: edgeId, source: connectingFromId, target: nodeId }]);
       setConnectingFromId(null);
       showToast("Conexão visual criada!");
@@ -589,7 +591,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
         return canvasNodes.find((node) => node.id === connectedId);
       })
       .filter((node): node is CreativeNode => Boolean(node));
-  }, [canvasEdges, selectedCanvasNode, canvasNodes]);
+  }, [canvasEdges, selectedCanvasNodeId, canvasNodes]);
 
   // Dormant Node Layer Mechanics (Archive/Restore/Delete)
   const archiveCanvasNode = (id: string) => {
@@ -799,7 +801,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
     const stored = window.localStorage.getItem(`yggnarok.${username}.ltm_memories`);
     if (!stored) return [];
     try {
-      return JSON.parse(stored).slice(0, 4);
+      return (JSON.parse(stored) as Array<{ id: string | number; confidence: number | string; fact: string }>).slice(0, 4);
     } catch (e) {
       console.error(e);
       return [];
@@ -1592,7 +1594,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                     </span>
                     <div className="bg-surface-strong/30 rounded-xl p-3 border border-line/30 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
                       {ltmMemories.length > 0 ? (
-                        ltmMemories.map((mem: any) => (
+                        ltmMemories.map((mem) => (
                           <div key={mem.id} className="text-[9.5px] leading-relaxed text-muted border-b border-line/5 pb-1.5 last:border-0 last:pb-0">
                             <span className="font-extrabold text-neutral-400 block mb-0.5">Confiança: {mem.confidence}%</span>
                             {mem.fact}

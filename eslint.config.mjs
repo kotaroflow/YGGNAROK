@@ -14,7 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".agents/**",
     "staging/**",
+    "testes do CRACRUDO/**",
     "temp_design/**",
+    "scratch/**",
+    "scripts/**",
   ]),
   {
     rules: {

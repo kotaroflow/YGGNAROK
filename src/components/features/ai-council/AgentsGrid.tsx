@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { 
+  LucideIcon,
   PenTool, 
   Users, 
   Briefcase, 
@@ -81,7 +82,7 @@ const agentsData: AgentData[] = [
   }
 ];
 
-const iconMap: Record<string, React.FC<any>> = {
+const iconMap: Record<string, LucideIcon> = {
   "hefesto": PenTool,
   "gaia": Users,
   "morax": Briefcase,
