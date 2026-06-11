@@ -30,15 +30,19 @@ export type HermesExecutionResult = HermesCommandResult & {
 };
 
 function buildOpenRouterMessages(req: HermesExecutionRequest): OpenRouterChatMessage[] {
-  const messages = req.context.messages
+  const messages = req.context.compressedContext.messages
     .filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
     .map(({ role, content }) => ({ role, content }));
 
-  if (messages.length > 0) {
-    return messages;
+  if (req.context.currentUserMessage) {
+    messages.push({ role: "user", content: req.context.currentUserMessage });
   }
 
-  return [{ role: "user", content: req.context.currentUserMessage }];
+  return messages.length > 0 ? messages : [{ role: "user", content: req.context.compressedContext.prompt }];
+}
+
+function buildHermesCliPrompt(req: HermesExecutionRequest) {
+  return req.context.compressedContext.prompt || req.context.currentUserMessage;
 }
 
 async function executePrimary(req: HermesExecutionRequest) {
@@ -54,7 +58,7 @@ async function executePrimary(req: HermesExecutionRequest) {
     };
   }
 
-  const args = ["chat", "-q", req.context.currentUserMessage];
+  const args = ["chat", "-q", buildHermesCliPrompt(req)];
 
   if (req.contextFiles && req.contextFiles.length > 0) {
     args.push("--context", ...req.contextFiles);
