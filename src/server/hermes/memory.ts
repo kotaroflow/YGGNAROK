@@ -34,6 +34,12 @@ export type PrepareHermesContextInput = {
 
 const MAX_CONTEXT_MESSAGES = 8;
 const MAX_CONTEXT_CHARS = 6000;
+const MAX_SUMMARY_MESSAGES = 6;
+const MAX_SUMMARY_CHARS = 1600;
+const SUMMARY_SIGNAL_PATTERN =
+  /\b(decis[aã]o|decidid|aprovad|etapa|modelo|model|openrouter|hermes|fallback|arquivo|file|erro|falha|bug|typecheck|commit|pr[oó]ximo|next|todo)\b/i;
+const SENSITIVE_PATTERN =
+  /(api[_-]?key|authorization|bearer|password|senha|secret|token)\b\s*[:=]/i;
 
 function normalizeMessage(item: unknown): HermesContextMessage | null {
   if (!item || typeof item !== "object") return null;
@@ -100,14 +106,68 @@ function isCurrentUserMessage(message: HermesContextMessage, currentUserMessage:
   return message.role === "user" && message.content.trim() === currentUserMessage.trim();
 }
 
+function sanitizeSummaryContent(content: string) {
+  return content
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      return (
+        trimmed &&
+        !SENSITIVE_PATTERN.test(trimmed) &&
+        !trimmed.startsWith("at ") &&
+        !trimmed.startsWith("Traceback")
+      );
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildConversationSummary(messages: HermesContextMessage[], currentUserMessage: string) {
+  const candidates = messages
+    .filter((message) => message.content.trim())
+    .filter((message) => !isCurrentUserMessage(message, currentUserMessage))
+    .map((message) => ({
+      role: message.role,
+      content: sanitizeSummaryContent(message.content),
+    }))
+    .filter((message) => message.content && SUMMARY_SIGNAL_PATTERN.test(message.content))
+    .slice(-MAX_SUMMARY_MESSAGES);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const lines: string[] = [];
+  let charCount = 0;
+
+  for (const message of candidates) {
+    const line = `- ${message.role}: ${message.content}`;
+
+    if (charCount + line.length > MAX_SUMMARY_CHARS) {
+      break;
+    }
+
+    lines.push(line);
+    charCount += line.length;
+  }
+
+  return lines.length > 0 ? lines.join("\n") : null;
+}
+
 function compactConversationMessages(
   recoveredMessages: HermesContextMessage[],
   clientMessages: HermesContextMessage[],
   currentUserMessage: string,
+  summary: string | null,
 ) {
   const source = recoveredMessages.length > 0 ? recoveredMessages : clientMessages;
   const candidates = source
-    .filter((message) => message.content.trim())
+    .map((message) => ({
+      ...message,
+      content: sanitizeSummaryContent(message.content),
+    }))
+    .filter((message) => message.content)
     .filter((message) => !isCurrentUserMessage(message, currentUserMessage));
 
   const selected: HermesContextMessage[] = [];
@@ -127,19 +187,22 @@ function compactConversationMessages(
     charCount += contentLength;
   }
 
-  const prompt = selected.length
-    ? [
+  const promptParts = [
+    ...(summary ? ["Resumo da conversa:", summary, ""] : []),
+    ...(selected.length
+      ? [
         "Contexto recente da conversa:",
         ...selected.map((message) => `${message.role}: ${message.content}`),
         "",
-        "Mensagem atual:",
-        currentUserMessage,
-      ].join("\n")
-    : currentUserMessage;
+      ]
+      : []),
+    "Mensagem atual:",
+    currentUserMessage,
+  ];
 
   return {
     messages: selected,
-    prompt,
+    prompt: promptParts.join("\n"),
     maxMessages: MAX_CONTEXT_MESSAGES,
     maxChars: MAX_CONTEXT_CHARS,
     truncated,
@@ -151,14 +214,15 @@ export function createHermesContextFromMessage(message: string): HermesContextPa
   const messages: HermesContextMessage[] = currentUserMessage
     ? [{ role: "user", content: currentUserMessage }]
     : [];
-  const compressedContext = compactConversationMessages([], messages, currentUserMessage);
+  const summary = buildConversationSummary(messages, currentUserMessage);
+  const compressedContext = compactConversationMessages([], messages, currentUserMessage, summary);
 
   return {
     currentUserMessage,
     messages,
     recoveredMessages: [],
     compressedContext,
-    summary: null,
+    summary,
     metadata: {
       allowLocalOllama: false,
       messageCount: messages.length,
@@ -176,7 +240,9 @@ export async function prepareHermesContext({
   const messages = normalizeMessages(body);
   const currentUserMessage = extractCurrentUserMessage(body, messages);
   const recoveredMessages = await recoverConversationMessages(userId, conversationId);
-  const compressedContext = compactConversationMessages(recoveredMessages, messages, currentUserMessage);
+  const summarySource = recoveredMessages.length > 0 ? recoveredMessages : messages;
+  const summary = buildConversationSummary(summarySource, currentUserMessage);
+  const compressedContext = compactConversationMessages(recoveredMessages, messages, currentUserMessage, summary);
 
   return {
     conversationId,
@@ -184,7 +250,7 @@ export async function prepareHermesContext({
     messages,
     recoveredMessages,
     compressedContext,
-    summary: null,
+    summary,
     metadata: {
       requestedModel: typeof body.model === "string" ? body.model : undefined,
       allowLocalOllama: body.allowLocalOllama === true,

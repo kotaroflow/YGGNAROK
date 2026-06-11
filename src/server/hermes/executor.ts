@@ -30,9 +30,13 @@ export type HermesExecutionResult = HermesCommandResult & {
 };
 
 function buildOpenRouterMessages(req: HermesExecutionRequest): OpenRouterChatMessage[] {
-  const messages = req.context.compressedContext.messages
+  const messages: OpenRouterChatMessage[] = req.context.summary
+    ? [{ role: "system", content: `Resumo da conversa:\n${req.context.summary}` }]
+    : [];
+
+  messages.push(...req.context.compressedContext.messages
     .filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
-    .map(({ role, content }) => ({ role, content }));
+    .map(({ role, content }) => ({ role, content })));
 
   if (req.context.currentUserMessage) {
     messages.push({ role: "user", content: req.context.currentUserMessage });
