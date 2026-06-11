@@ -2,6 +2,7 @@ import { executeHermesCli } from "./connectors";
 import { classifyIntent } from "./intent";
 import { recordBridgeLog } from "./local-store";
 import type { HermesContextPackage } from "./memory";
+import { selectHermesModel } from "./model-selector";
 import { checkHermesPermission } from "./permissions";
 
 export type HermesRouteRequest = {
@@ -28,6 +29,7 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
   const message = context.currentUserMessage;
 
   const intent = classifyIntent(message);
+  const modelDecision = selectHermesModel(context, intent);
   const permission = checkHermesPermission(intent, userRole);
 
   if (!permission.allowed) {
@@ -54,6 +56,8 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
 
   await recordBridgeLog(userId, "chat_success", {
     messagePreview: message.substring(0, 50),
+    provider: modelDecision.provider,
+    model: modelDecision.model,
     success: result.success,
     error: result.error,
   });
