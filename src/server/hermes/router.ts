@@ -58,11 +58,13 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
     model: result.model,
     success: result.success,
     error: result.error,
+    internalError: result.internalError,
+    failureReason: result.failureReason,
   });
 
   if (!result.success) {
     return {
-      response: result.fallback?.userSafeMessage ?? `Falha na comunicação com o Hermes Agent: ${result.error}`,
+      response: result.userSafeMessage ?? "Falha na comunicação com o Hermes Agent.",
       intent: intent.category,
       wasBlocked: false,
     };

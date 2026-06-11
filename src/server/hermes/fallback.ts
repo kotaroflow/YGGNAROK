@@ -5,9 +5,11 @@ import type { HermesModelDecision } from "./model-selector";
 export type HermesFallbackDecision = {
   shouldFallback: boolean;
   reason: string;
+  failureReason: "primary_executor_failed" | "fallback_not_configured" | "none";
   nextProvider?: HermesModelDecision["provider"];
   nextPlan?: string;
   userSafeMessage: string;
+  internalError?: string;
 };
 
 export type HermesFallbackInput = {
@@ -28,6 +30,7 @@ export function decideHermesFallback({ result, modelDecision }: HermesFallbackIn
     return {
       shouldFallback: false,
       reason: "Execução principal concluída com sucesso.",
+      failureReason: "none",
       userSafeMessage: "",
     };
   }
@@ -35,6 +38,8 @@ export function decideHermesFallback({ result, modelDecision }: HermesFallbackIn
   return {
     shouldFallback: false,
     reason: `Executor principal ${modelDecision.provider} falhou e não há fallback configurado.`,
+    failureReason: "fallback_not_configured",
     userSafeMessage: DEFAULT_SAFE_MESSAGE,
+    internalError: result.error || result.output || "Hermes CLI failed without diagnostic output.",
   };
 }

@@ -17,6 +17,9 @@ export type HermesExecutionRequest = {
 export type HermesExecutionResult = HermesCommandResult & {
   provider: HermesModelDecision["provider"];
   model: string;
+  userSafeMessage?: string;
+  internalError?: string;
+  failureReason?: HermesFallbackDecision["failureReason"];
   fallback?: HermesFallbackDecision;
 };
 
@@ -47,6 +50,9 @@ export async function executeHermesDecision(req: HermesExecutionRequest): Promis
   return {
     ...result,
     error: fallback?.userSafeMessage || result.error,
+    userSafeMessage: fallback?.userSafeMessage,
+    internalError: fallback?.internalError,
+    failureReason: fallback?.failureReason,
     provider: req.modelDecision.provider,
     model: req.modelDecision.model,
     fallback,
