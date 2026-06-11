@@ -14,6 +14,10 @@ export type HermesModelDecision = {
 
 const DEFAULT_HERMES_MODEL = "hermes/yggnarok-bunker";
 
+function normalizeRequestedModel(value: string) {
+  return value.startsWith("openrouter:") ? value.slice("openrouter:".length) : value;
+}
+
 /**
  * Contrato mínimo de seleção de modelo.
  * Nesta etapa, preserva o comportamento existente: todo chat segue para Hermes CLI.
@@ -23,11 +27,14 @@ export function selectHermesModel(
   intent: IntentClassification,
 ): HermesModelDecision {
   const requestedModel = context.metadata.requestedModel?.trim();
+  const wantsOpenRouter = requestedModel?.startsWith("openrouter:");
 
   return {
-    provider: "hermes-cli",
-    model: requestedModel || DEFAULT_HERMES_MODEL,
-    reason: requestedModel
+    provider: wantsOpenRouter ? "openrouter" : "hermes-cli",
+    model: requestedModel ? normalizeRequestedModel(requestedModel) : DEFAULT_HERMES_MODEL,
+    reason: wantsOpenRouter
+      ? "Modelo OpenRouter solicitado explicitamente pelo frontend."
+      : requestedModel
       ? "Modelo solicitado pelo frontend preservado como decisão inicial."
       : "Modelo padrão Hermes usado porque o frontend não enviou modelo.",
     allowLocal: context.metadata.allowLocalOllama,

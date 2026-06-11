@@ -1,4 +1,9 @@
-import { executeHermesCli, type HermesCommandResult } from "./connectors";
+import {
+  executeHermesCli,
+  executeOpenRouterChat,
+  type HermesCommandResult,
+  type OpenRouterChatMessage,
+} from "./connectors";
 import { decideHermesFallback, type HermesFallbackDecision } from "./fallback";
 import type { IntentClassification } from "./intent";
 import type { HermesContextPackage } from "./memory";
@@ -23,11 +28,31 @@ export type HermesExecutionResult = HermesCommandResult & {
   fallback?: HermesFallbackDecision;
 };
 
-/**
- * Executa a decisão planejada pelo router/model-selector.
- * Nesta etapa, apenas Hermes CLI é suportado para preservar comportamento.
- */
-export async function executeHermesDecision(req: HermesExecutionRequest): Promise<HermesExecutionResult> {
+function buildOpenRouterMessages(req: HermesExecutionRequest): OpenRouterChatMessage[] {
+  const messages = req.context.messages
+    .filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
+    .map(({ role, content }) => ({ role, content }));
+
+  if (messages.length > 0) {
+    return messages;
+  }
+
+  return [{ role: "user", content: req.context.currentUserMessage }];
+}
+
+async function executePrimary(req: HermesExecutionRequest) {
+  if (req.modelDecision.provider === "openrouter") {
+    return executeOpenRouterChat(req.modelDecision.model, buildOpenRouterMessages(req));
+  }
+
+  if (req.modelDecision.provider !== "hermes-cli") {
+    return {
+      success: false,
+      output: "",
+      error: `Provider ${req.modelDecision.provider} is not implemented in Hermes executor.`,
+    };
+  }
+
   const args = ["chat", "-q", req.context.currentUserMessage];
 
   if (req.contextFiles && req.contextFiles.length > 0) {
@@ -38,7 +63,15 @@ export async function executeHermesDecision(req: HermesExecutionRequest): Promis
     args.push("--system", req.systemOverride);
   }
 
-  const result = await executeHermesCli(args, { timeoutMs: 120000 });
+  return executeHermesCli(args, { timeoutMs: 120000 });
+}
+
+/**
+ * Executa a decisão planejada pelo router/model-selector.
+ * OpenRouter só é usado quando o model-selector decidir explicitamente esse provider.
+ */
+export async function executeHermesDecision(req: HermesExecutionRequest): Promise<HermesExecutionResult> {
+  const result = await executePrimary(req);
   const fallback = result.success
     ? undefined
     : decideHermesFallback({

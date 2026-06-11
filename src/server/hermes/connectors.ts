@@ -10,6 +10,11 @@ export type HermesCommandResult = {
   error?: string;
 };
 
+export type OpenRouterChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export type ConnectorHealth = {
   key: string;
   label: string;
@@ -47,6 +52,74 @@ export async function executeHermesCli(
       success: false,
       output: err.stdout || "",
       error: err.stderr || err.message,
+    };
+  }
+}
+
+export async function executeOpenRouterChat(
+  model: string,
+  messages: OpenRouterChatMessage[],
+  options: { temperature?: number; maxTokens?: number } = {},
+): Promise<HermesCommandResult> {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+
+  if (!apiKey) {
+    return {
+      success: false,
+      output: "",
+      error: "OPENROUTER_API_KEY is not configured.",
+    };
+  }
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.OPENROUTER_APP_URL || "http://localhost:3000",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "YGGNAROK",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.maxTokens,
+      }),
+    });
+
+    const body = await response.json().catch(() => null) as {
+      choices?: Array<{ message?: { content?: unknown } }>;
+      error?: { message?: unknown };
+    } | null;
+
+    if (!response.ok) {
+      const detail = typeof body?.error?.message === "string" ? body.error.message : response.statusText;
+      return {
+        success: false,
+        output: "",
+        error: `OpenRouter failed (${response.status}): ${detail}`,
+      };
+    }
+
+    const output = body?.choices?.[0]?.message?.content;
+    if (typeof output !== "string" || !output.trim()) {
+      return {
+        success: false,
+        output: "",
+        error: "OpenRouter returned an empty response.",
+      };
+    }
+
+    return {
+      success: true,
+      output: output.trim(),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      output: "",
+      error: err?.message || "OpenRouter request failed.",
     };
   }
 }
