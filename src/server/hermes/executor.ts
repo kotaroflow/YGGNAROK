@@ -1,0 +1,43 @@
+import { executeHermesCli, type HermesCommandResult } from "./connectors";
+import type { IntentClassification } from "./intent";
+import type { HermesContextPackage } from "./memory";
+import type { HermesModelDecision } from "./model-selector";
+
+export type HermesExecutionRequest = {
+  context: HermesContextPackage;
+  intent: IntentClassification;
+  modelDecision: HermesModelDecision;
+  userRole: "user" | "admin";
+  userId: string;
+  contextFiles?: string[];
+  systemOverride?: string;
+};
+
+export type HermesExecutionResult = HermesCommandResult & {
+  provider: HermesModelDecision["provider"];
+  model: string;
+};
+
+/**
+ * Executa a decisão planejada pelo router/model-selector.
+ * Nesta etapa, apenas Hermes CLI é suportado para preservar comportamento.
+ */
+export async function executeHermesDecision(req: HermesExecutionRequest): Promise<HermesExecutionResult> {
+  const args = ["chat", "-q", req.context.currentUserMessage];
+
+  if (req.contextFiles && req.contextFiles.length > 0) {
+    args.push("--context", ...req.contextFiles);
+  }
+
+  if (req.systemOverride && req.userRole === "admin") {
+    args.push("--system", req.systemOverride);
+  }
+
+  const result = await executeHermesCli(args, { timeoutMs: 120000 });
+
+  return {
+    ...result,
+    provider: req.modelDecision.provider,
+    model: req.modelDecision.model,
+  };
+}

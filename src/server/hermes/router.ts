@@ -1,4 +1,4 @@
-import { executeHermesCli } from "./connectors";
+import { executeHermesDecision } from "./executor";
 import { classifyIntent } from "./intent";
 import { recordBridgeLog } from "./local-store";
 import type { HermesContextPackage } from "./memory";
@@ -42,22 +42,20 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
     };
   }
 
-  const args = ["chat", "-q", message];
-
-  if (contextFiles && contextFiles.length > 0) {
-    args.push("--context", ...contextFiles);
-  }
-
-  if (req.systemOverride && userRole === "admin") {
-    args.push("--system", req.systemOverride);
-  }
-
-  const result = await executeHermesCli(args, { timeoutMs: 120000 });
+  const result = await executeHermesDecision({
+    context,
+    intent,
+    modelDecision,
+    userRole,
+    userId,
+    contextFiles,
+    systemOverride: req.systemOverride,
+  });
 
   await recordBridgeLog(userId, "chat_success", {
     messagePreview: message.substring(0, 50),
-    provider: modelDecision.provider,
-    model: modelDecision.model,
+    provider: result.provider,
+    model: result.model,
     success: result.success,
     error: result.error,
   });
