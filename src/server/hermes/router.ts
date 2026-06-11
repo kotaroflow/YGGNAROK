@@ -1,6 +1,7 @@
 import { executeHermesDecision } from "./executor";
 import { classifyIntent } from "./intent";
 import { recordBridgeLog } from "./local-store";
+import { sanitizeHermesLogError } from "./log-sanitizer";
 import type { HermesContextPackage } from "./memory";
 import { selectHermesModel } from "./model-selector";
 import { checkHermesPermission } from "./permissions";
@@ -59,7 +60,7 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
     fallbackUsed: result.fallbackUsed,
     success: result.success,
     error: result.error,
-    internalError: result.internalError,
+    internalError: sanitizeHermesLogError(result.internalError),
     failureReason: result.failureReason,
   });
 
