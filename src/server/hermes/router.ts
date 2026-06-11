@@ -1,10 +1,11 @@
 import { executeHermesCli } from "./connectors";
 import { classifyIntent } from "./intent";
 import { recordBridgeLog } from "./local-store";
+import type { HermesContextPackage } from "./memory";
 import { checkHermesPermission } from "./permissions";
 
 export type HermesRouteRequest = {
-  message: string;
+  context: HermesContextPackage;
   userRole: "user" | "admin";
   userId: string;
   contextFiles?: string[];
@@ -23,7 +24,8 @@ export type HermesRouteResponse = {
  * Nesta etapa, preserva o comportamento existente: Hermes CLI é a única rota executora.
  */
 export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRouteResponse> {
-  const { message, userRole, userId, contextFiles } = req;
+  const { context, userRole, userId, contextFiles } = req;
+  const message = context.currentUserMessage;
 
   const intent = classifyIntent(message);
   const permission = checkHermesPermission(intent, userRole);

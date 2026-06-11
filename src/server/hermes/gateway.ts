@@ -1,3 +1,4 @@
+import { prepareHermesContext } from "./memory";
 import { isHermesAdmin } from "./permissions";
 import { routeHermesChat } from "./router";
 
@@ -18,48 +19,22 @@ export type HermesGatewayRequest = {
   user: any;
 };
 
-function extractMessage(bodyObject: Record<string, unknown>) {
-  if (typeof bodyObject.message === "string") {
-    return bodyObject.message.trim();
-  }
-
-  if (!Array.isArray(bodyObject.messages)) {
-    return "";
-  }
-
-  for (let index = bodyObject.messages.length - 1; index >= 0; index -= 1) {
-    const item = bodyObject.messages[index];
-    if (!item || typeof item !== "object") continue;
-    const message = item as Record<string, unknown>;
-    if (message.role === "user" && typeof message.content === "string") {
-      return message.content.trim();
-    }
-  }
-
-  return "";
-}
-
-function extractConversationId(bodyObject: Record<string, unknown>) {
-  return typeof bodyObject.conversationId === "string" ? bodyObject.conversationId : undefined;
-}
-
 function jsonError(message: string, status = 400) {
   return Response.json({ error: message }, { status });
 }
 
 export async function runHermesGateway({ body, user }: HermesGatewayRequest): Promise<HermesGatewayResult> {
-  const message = extractMessage(body);
   const role = isHermesAdmin(user) ? "admin" : "user";
   const userId = user.id || user.email;
-  const conversationId = extractConversationId(body);
+  const context = await prepareHermesContext({ body, userId });
 
-  if (!message) {
+  if (!context.currentUserMessage) {
     return { ok: false, error: "Mensagem vazia.", status: 400 };
   }
 
   try {
     const result = await routeHermesChat({
-      message,
+      context,
       userRole: role,
       userId,
     });
@@ -68,7 +43,7 @@ export async function runHermesGateway({ body, user }: HermesGatewayRequest): Pr
       return { ok: false, error: result.response, status: 403 };
     }
 
-    return { ok: true, text: result.response, conversationId };
+    return { ok: true, text: result.response, conversationId: context.conversationId };
   } catch (error: any) {
     return { ok: false, error: error.message || "Erro no Hermes", status: 500 };
   }

@@ -1,13 +1,19 @@
+import { createHermesContextFromMessage } from "./memory";
 import { routeHermesChat, type HermesRouteRequest, type HermesRouteResponse } from "./router";
 
-export type HermesChatRequest = HermesRouteRequest;
+export type HermesChatRequest = Omit<HermesRouteRequest, "context"> & {
+  message: string;
+};
 export type HermesChatResponse = HermesRouteResponse;
 
 /**
  * Compatibilidade legada: o fluxo principal agora vive no Hermes Router.
  */
 export async function sendChatMessage(req: HermesChatRequest): Promise<HermesChatResponse> {
-  return routeHermesChat(req);
+  return routeHermesChat({
+    ...req,
+    context: createHermesContextFromMessage(req.message),
+  });
 }
 
 // Stub legado para autopilot
