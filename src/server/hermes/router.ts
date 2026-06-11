@@ -56,6 +56,7 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
     messagePreview: message.substring(0, 50),
     provider: result.provider,
     model: result.model,
+    fallbackUsed: result.fallbackUsed,
     success: result.success,
     error: result.error,
     internalError: result.internalError,

@@ -22,6 +22,7 @@ export type HermesExecutionRequest = {
 export type HermesExecutionResult = HermesCommandResult & {
   provider: HermesModelDecision["provider"];
   model: string;
+  fallbackUsed?: boolean;
   userSafeMessage?: string;
   internalError?: string;
   failureReason?: HermesFallbackDecision["failureReason"];
@@ -66,13 +67,27 @@ async function executePrimary(req: HermesExecutionRequest) {
   return executeHermesCli(args, { timeoutMs: 120000 });
 }
 
+async function executeFallback(req: HermesExecutionRequest, fallback: HermesFallbackDecision) {
+  if (fallback.nextProvider === "openrouter" && fallback.nextModel) {
+    const result = await executeOpenRouterChat(fallback.nextModel, buildOpenRouterMessages(req));
+
+    return {
+      ...result,
+      provider: "openrouter" as const,
+      model: fallback.nextModel,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Executa a decisão planejada pelo router/model-selector.
  * OpenRouter só é usado quando o model-selector decidir explicitamente esse provider.
  */
 export async function executeHermesDecision(req: HermesExecutionRequest): Promise<HermesExecutionResult> {
   const result = await executePrimary(req);
-  const fallback = result.success
+  const fallbackDecision = result.success
     ? undefined
     : decideHermesFallback({
         result,
@@ -80,14 +95,41 @@ export async function executeHermesDecision(req: HermesExecutionRequest): Promis
         modelDecision: req.modelDecision,
       });
 
+  if (fallbackDecision?.shouldFallback) {
+    const fallbackResult = await executeFallback(req, fallbackDecision);
+
+    if (fallbackResult?.success) {
+      return {
+        ...fallbackResult,
+        fallbackUsed: true,
+        fallback: fallbackDecision,
+      };
+    }
+
+    const fallbackError = fallbackResult?.error || "Fallback provider failed without diagnostic output.";
+
+    return {
+      success: false,
+      output: fallbackResult?.output || "",
+      error: fallbackDecision.userSafeMessage,
+      provider: fallbackResult?.provider || req.modelDecision.provider,
+      model: fallbackResult?.model || req.modelDecision.model,
+      fallbackUsed: true,
+      userSafeMessage: fallbackDecision.userSafeMessage,
+      internalError: `${fallbackDecision.internalError || ""}\nFallback error: ${fallbackError}`.trim(),
+      failureReason: fallbackDecision.failureReason,
+      fallback: fallbackDecision,
+    };
+  }
+
   return {
     ...result,
-    error: fallback?.userSafeMessage || result.error,
-    userSafeMessage: fallback?.userSafeMessage,
-    internalError: fallback?.internalError,
-    failureReason: fallback?.failureReason,
+    error: fallbackDecision?.userSafeMessage || result.error,
+    userSafeMessage: fallbackDecision?.userSafeMessage,
+    internalError: fallbackDecision?.internalError,
+    failureReason: fallbackDecision?.failureReason,
     provider: req.modelDecision.provider,
     model: req.modelDecision.model,
-    fallback,
+    fallback: fallbackDecision,
   };
 }
