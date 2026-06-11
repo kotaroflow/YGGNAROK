@@ -1,5 +1,5 @@
-import { sendChatMessage } from "./chat";
 import { isHermesAdmin } from "./permissions";
+import { routeHermesChat } from "./router";
 
 export type HermesGatewayResult =
   | {
@@ -58,7 +58,7 @@ export async function runHermesGateway({ body, user }: HermesGatewayRequest): Pr
   }
 
   try {
-    const result = await sendChatMessage({
+    const result = await routeHermesChat({
       message,
       userRole: role,
       userId,
