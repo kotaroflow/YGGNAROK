@@ -1,4 +1,5 @@
 import { executeHermesCli, type HermesCommandResult } from "./connectors";
+import { decideHermesFallback, type HermesFallbackDecision } from "./fallback";
 import type { IntentClassification } from "./intent";
 import type { HermesContextPackage } from "./memory";
 import type { HermesModelDecision } from "./model-selector";
@@ -16,6 +17,7 @@ export type HermesExecutionRequest = {
 export type HermesExecutionResult = HermesCommandResult & {
   provider: HermesModelDecision["provider"];
   model: string;
+  fallback?: HermesFallbackDecision;
 };
 
 /**
@@ -34,10 +36,19 @@ export async function executeHermesDecision(req: HermesExecutionRequest): Promis
   }
 
   const result = await executeHermesCli(args, { timeoutMs: 120000 });
+  const fallback = result.success
+    ? undefined
+    : decideHermesFallback({
+        result,
+        context: req.context,
+        modelDecision: req.modelDecision,
+      });
 
   return {
     ...result,
+    error: fallback?.userSafeMessage || result.error,
     provider: req.modelDecision.provider,
     model: req.modelDecision.model,
+    fallback,
   };
 }

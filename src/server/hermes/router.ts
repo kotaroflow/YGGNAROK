@@ -62,7 +62,7 @@ export async function routeHermesChat(req: HermesRouteRequest): Promise<HermesRo
 
   if (!result.success) {
     return {
-      response: `Falha na comunicação com o Hermes Agent: ${result.error}`,
+      response: result.fallback?.userSafeMessage ?? `Falha na comunicação com o Hermes Agent: ${result.error}`,
       intent: intent.category,
       wasBlocked: false,
     };
