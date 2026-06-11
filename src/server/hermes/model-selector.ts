@@ -18,9 +18,72 @@ function normalizeRequestedModel(value: string) {
   return value.startsWith("openrouter:") ? value.slice("openrouter:".length) : value;
 }
 
+function isTechnicalContext(context: HermesContextPackage, intent: IntentClassification) {
+  if (intent.category === "architecture_analysis" || intent.category === "local_execution") {
+    return true;
+  }
+
+  const text = `${context.currentUserMessage}\n${context.summary ?? ""}`.toLowerCase();
+
+  return [
+    "arquitetura",
+    "architecture",
+    "código",
+    "codigo",
+    "code",
+    "typecheck",
+    "build",
+    "diff",
+    "commit",
+    "fallback",
+    "router",
+    "executor",
+    "gateway",
+    "memory",
+    "model selector",
+  ].some((signal) => text.includes(signal));
+}
+
+function isLightContext(context: HermesContextPackage, intent: IntentClassification) {
+  if (intent.category !== "chat" || intent.riskLevel !== "low") {
+    return false;
+  }
+
+  const text = context.currentUserMessage.trim().toLowerCase();
+
+  return text.length <= 80 && /^(oi|ol[aá]|bom dia|boa tarde|boa noite|ok|obrigad|valeu|sim|não|nao)\b/.test(text);
+}
+
+function buildSelectionReason(input: {
+  requestedModel?: string;
+  wantsOpenRouter?: boolean;
+  technicalContext: boolean;
+  lightContext: boolean;
+}) {
+  if (input.wantsOpenRouter) {
+    return "Modelo OpenRouter solicitado explicitamente pelo frontend.";
+  }
+
+  if (input.requestedModel) {
+    return input.technicalContext
+      ? "Modelo solicitado pelo frontend preservado; Hermes marcou contexto técnico/arquitetural para telemetria."
+      : "Modelo solicitado pelo frontend preservado como decisão inicial.";
+  }
+
+  if (input.technicalContext) {
+    return "Modelo padrão Hermes usado para contexto técnico/arquitetural sem modelo explícito.";
+  }
+
+  if (input.lightContext) {
+    return "Modelo padrão Hermes mantido para tarefa leve sem modelo explícito.";
+  }
+
+  return "Modelo padrão Hermes usado porque o frontend não enviou modelo.";
+}
+
 /**
  * Contrato mínimo de seleção de modelo.
- * Nesta etapa, preserva o comportamento existente: todo chat segue para Hermes CLI.
+ * Regras leves vivem no Hermes, preservando modelo/provider explícitos do frontend.
  */
 export function selectHermesModel(
   context: HermesContextPackage,
@@ -28,17 +91,15 @@ export function selectHermesModel(
 ): HermesModelDecision {
   const requestedModel = context.metadata.requestedModel?.trim();
   const wantsOpenRouter = requestedModel?.startsWith("openrouter:");
+  const technicalContext = isTechnicalContext(context, intent);
+  const lightContext = isLightContext(context, intent);
 
   return {
     provider: wantsOpenRouter ? "openrouter" : "hermes-cli",
     model: requestedModel ? normalizeRequestedModel(requestedModel) : DEFAULT_HERMES_MODEL,
-    reason: wantsOpenRouter
-      ? "Modelo OpenRouter solicitado explicitamente pelo frontend."
-      : requestedModel
-      ? "Modelo solicitado pelo frontend preservado como decisão inicial."
-      : "Modelo padrão Hermes usado porque o frontend não enviou modelo.",
+    reason: buildSelectionReason({ requestedModel, wantsOpenRouter, technicalContext, lightContext }),
     allowLocal: context.metadata.allowLocalOllama,
     riskLevel: intent.riskLevel,
-    confidence: requestedModel ? "medium" : "low",
+    confidence: wantsOpenRouter ? "high" : requestedModel || technicalContext ? "medium" : "low",
   };
 }
