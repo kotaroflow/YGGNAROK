@@ -23,6 +23,15 @@ export type ConnectorHealth = {
   urlConfigured: boolean;
 };
 
+function getErrorField(error: unknown, field: "stdout" | "stderr" | "message") {
+  if (!error || typeof error !== "object") {
+    return "";
+  }
+
+  const value = (error as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : "";
+}
+
 /**
  * Executa um comando do Hermes localmente em modo CLI.
  * Esta é a ponte primária enquanto não ativamos o MCP ou Gateway local.
@@ -47,11 +56,11 @@ export async function executeHermesCli(
     }
 
     return { success: true, output: stdout.trim() };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
-      output: err.stdout || "",
-      error: err.stderr || err.message,
+      output: getErrorField(err, "stdout"),
+      error: getErrorField(err, "stderr") || getErrorField(err, "message"),
     };
   }
 }
@@ -115,11 +124,11 @@ export async function executeOpenRouterChat(
       success: true,
       output: output.trim(),
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
       output: "",
-      error: err?.message || "OpenRouter request failed.",
+      error: getErrorField(err, "message") || "OpenRouter request failed.",
     };
   }
 }

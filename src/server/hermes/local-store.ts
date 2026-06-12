@@ -14,19 +14,27 @@ type BridgeLogEntry = {
   timestamp: string;
   userId: string;
   action: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
 };
 
 export type LocalBunkerState = {
   status: string;
-  generation_requests: any[];
-  campaigns: any[];
-  content_items: any[];
-  post_queue: any[];
-  ai_jobs: any[];
-  assets: any[];
-  publishing_logs: any[];
+  generation_requests: Record<string, unknown>[];
+  campaigns: Record<string, unknown>[];
+  content_items: Record<string, unknown>[];
+  post_queue: Record<string, unknown>[];
+  ai_jobs: Record<string, unknown>[];
+  assets: Record<string, unknown>[];
+  publishing_logs: Record<string, unknown>[];
   updated_at?: string;
+};
+
+type LocalGenerationRequestInput = Record<string, unknown> & {
+  title?: string;
+  prompt?: string;
+  contentType?: string;
+  platform?: string | null;
+  autopilotEnabled?: boolean;
 };
 
 // Em produção real da V1, este store pode se conectar ao Supabase do YGGNAROK
@@ -45,7 +53,7 @@ const inMemoryBunkerState: LocalBunkerState = {
   publishing_logs: [],
 };
 
-export async function recordBridgeLog(userId: string, action: string, details: Record<string, any>) {
+export async function recordBridgeLog(userId: string, action: string, details: Record<string, unknown>) {
   const log: BridgeLogEntry = {
     timestamp: new Date().toISOString(),
     userId,
@@ -78,12 +86,12 @@ export async function writeLocalBunkerState(data: Partial<LocalBunkerState>) {
   return true;
 }
 
-export async function appendLocalMediaAsset(asset: any) {
+export async function appendLocalMediaAsset(asset: Record<string, unknown>) {
   inMemoryBunkerState.assets.push(asset);
   return true;
 }
 
-export async function createLocalGenerationRequest(request: any) {
+export async function createLocalGenerationRequest(request: LocalGenerationRequestInput) {
   const now = new Date().toISOString();
   const generationRequest = {
     id: `req_${crypto.randomUUID()}`,

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { rateLimitByIp } from "@/lib/rate-limit";
 import { handleHermesChatRequest } from "@/server/hermes/gateway";
+import type { HermesUser } from "@/server/hermes/permissions";
 
 function jsonError(message: string, status = 400) {
   return Response.json({ error: message }, { status });
@@ -18,11 +19,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   
   const isBunkerMode = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").includes("example.supabase.co");
-  let activeUser = user;
+  let activeUser: HermesUser | null = user;
   
   if (!activeUser && isBunkerMode) {
     // In local offline bunker mode, mock the master admin user
-    activeUser = { email: "admin@yggnarok.local" } as any;
+    activeUser = { email: "admin@yggnarok.local" };
   }
 
   if (!activeUser) {

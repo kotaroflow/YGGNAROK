@@ -10,6 +10,19 @@ export type HermesHealthStatus = {
   error?: string;
 };
 
+const HERMES_MODES = ["cli", "gateway", "mcp", "proxy", "dashboard"] as const;
+
+function getHermesBridgeMode(): HermesHealthStatus["mode"] {
+  const mode = process.env.HERMES_BRIDGE_MODE;
+  return mode && (HERMES_MODES as readonly string[]).includes(mode)
+    ? (mode as HermesHealthStatus["mode"])
+    : "cli";
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function getHermesCommand(): string {
   // Default to what we discovered, but allow override
   return process.env.HERMES_COMMAND || "C:\\Users\\Administrador\\HERMES\\hermes-agent\\venv\\Scripts\\hermes.exe";
@@ -20,7 +33,7 @@ export function checkHermesRuntime(): HermesHealthStatus {
   const status: HermesHealthStatus = {
     isInstalled: false,
     version: null,
-    mode: (process.env.HERMES_BRIDGE_MODE as any) || "cli",
+    mode: getHermesBridgeMode(),
     isAccessible: false,
   };
 
@@ -45,8 +58,8 @@ export function checkHermesRuntime(): HermesHealthStatus {
     const versionOutput = execSync(`"${hermesCmd}" --version`).toString();
     status.version = versionOutput.trim();
     status.isAccessible = true;
-  } catch (error: any) {
-    status.error = error.message;
+  } catch (error: unknown) {
+    status.error = getErrorMessage(error);
   }
 
   return status;

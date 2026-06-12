@@ -1,5 +1,5 @@
 import { prepareHermesContext } from "./memory";
-import { isHermesAdmin } from "./permissions";
+import { isHermesAdmin, type HermesUser } from "./permissions";
 import { routeHermesChat } from "./router";
 
 export type HermesGatewayResult =
@@ -16,7 +16,7 @@ export type HermesGatewayResult =
 
 export type HermesGatewayRequest = {
   body: Record<string, unknown>;
-  user: any;
+  user: HermesUser;
 };
 
 function jsonError(message: string, status = 400) {
@@ -25,7 +25,7 @@ function jsonError(message: string, status = 400) {
 
 export async function runHermesGateway({ body, user }: HermesGatewayRequest): Promise<HermesGatewayResult> {
   const role = isHermesAdmin(user) ? "admin" : "user";
-  const userId = user.id || user.email;
+  const userId = user.id || user.email || "anonymous";
   const context = await prepareHermesContext({ body, userId });
 
   if (!context.currentUserMessage) {
@@ -43,9 +43,12 @@ export async function runHermesGateway({ body, user }: HermesGatewayRequest): Pr
       return { ok: false, error: result.response, status: 403 };
     }
 
-    return { ok: true, text: result.response, conversationId: context.conversationId };
-  } catch (error: any) {
-    return { ok: false, error: error.message || "Erro no Hermes", status: 500 };
+    return context.conversationId
+      ? { ok: true, text: result.response, conversationId: context.conversationId }
+      : { ok: true, text: result.response };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro no Hermes";
+    return { ok: false, error: message || "Erro no Hermes", status: 500 };
   }
 }
 

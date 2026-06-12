@@ -1,5 +1,10 @@
 import { IntentClassification } from "./intent";
 
+export type HermesUser = {
+  id?: string;
+  email?: string;
+};
+
 export type PermissionCheck = {
   allowed: boolean;
   reason?: string;
@@ -25,6 +30,6 @@ export function checkHermesPermission(intent: IntentClassification, role: "user"
   return { allowed: true };
 }
 
-export function isHermesAdmin(user: any) {
+export function isHermesAdmin(user: HermesUser) {
   return user?.email === "admin@yggnarok.local" || user?.email === "matheus.art1@gmail.com";
 }
