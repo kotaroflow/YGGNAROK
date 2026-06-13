@@ -4,15 +4,11 @@ import type { Database } from "@/types/database";
 import { assertPublicSupabaseEnv } from "./env";
 import { createStubClient } from "./stub";
 
-let cachedClient: ReturnType<typeof createServerClient<Database>> | null = null;
-
 function isPlaceholderUrl(url: string) {
   return !url || url.includes("example.supabase.co") || url === "https://placeholder.supabase.co";
 }
 
 export async function createSupabaseServerClient() {
-  if (cachedClient) return cachedClient;
-
   const env = assertPublicSupabaseEnv();
   if (isPlaceholderUrl(env.url)) {
     return createStubClient<Database>() as unknown as ReturnType<typeof createServerClient<Database>>;
@@ -20,7 +16,7 @@ export async function createSupabaseServerClient() {
 
   const cookieStore = await cookies();
 
-  cachedClient = createServerClient<Database>(env.url, env.anonKey, {
+  return createServerClient<Database>(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -32,6 +28,4 @@ export async function createSupabaseServerClient() {
       },
     },
   });
-
-  return cachedClient;
 }
