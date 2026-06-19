@@ -48,5 +48,8 @@ next-env.d.ts
 /temp_design/
 eslint-output.txt
 
+# supabase runtime metadata (project ref, connection strings)
+supabase/.temp/
+
 # local agent workspace
 /.agent/

@@ -1,7 +1,11 @@
 import type { IntentClassification } from "./intent";
 import type { HermesContextPackage } from "./memory";
 
-export type HermesExecutionProvider = "hermes-cli" | "openrouter" | "ollama" | "worker";
+export type HermesExecutionProvider =
+  | "hermes-cli"
+  | "openrouter"
+  | "ollama"
+  | "worker";
 
 export type HermesModelDecision = {
   provider: HermesExecutionProvider;
@@ -15,15 +19,24 @@ export type HermesModelDecision = {
 const DEFAULT_HERMES_MODEL = "hermes/yggnarok-bunker";
 
 function normalizeRequestedModel(value: string) {
-  return value.startsWith("openrouter:") ? value.slice("openrouter:".length) : value;
+  return value.startsWith("openrouter:")
+    ? value.slice("openrouter:".length)
+    : value;
 }
 
-function isTechnicalContext(context: HermesContextPackage, intent: IntentClassification) {
-  if (intent.category === "architecture_analysis" || intent.category === "local_execution") {
+function isTechnicalContext(
+  context: HermesContextPackage,
+  intent: IntentClassification,
+) {
+  if (
+    intent.category === "architecture_analysis" ||
+    intent.category === "local_execution"
+  ) {
     return true;
   }
 
-  const text = `${context.currentUserMessage}\n${context.summary ?? ""}`.toLowerCase();
+  const text =
+    `${context.currentUserMessage}\n${context.summary ?? ""}`.toLowerCase();
 
   return [
     "arquitetura",
@@ -44,14 +57,22 @@ function isTechnicalContext(context: HermesContextPackage, intent: IntentClassif
   ].some((signal) => text.includes(signal));
 }
 
-function isLightContext(context: HermesContextPackage, intent: IntentClassification) {
+function isLightContext(
+  context: HermesContextPackage,
+  intent: IntentClassification,
+) {
   if (intent.category !== "chat" || intent.riskLevel !== "low") {
     return false;
   }
 
   const text = context.currentUserMessage.trim().toLowerCase();
 
-  return text.length <= 80 && /^(oi|ol[aá]|bom dia|boa tarde|boa noite|ok|obrigad|valeu|sim|não|nao)\b/.test(text);
+  return (
+    text.length <= 80 &&
+    /^(oi|ol[aá]|bom dia|boa tarde|boa noite|ok|obrigad|valeu|sim|não|nao)\b/.test(
+      text,
+    )
+  );
 }
 
 function buildSelectionReason(input: {
@@ -94,12 +115,28 @@ export function selectHermesModel(
   const technicalContext = isTechnicalContext(context, intent);
   const lightContext = isLightContext(context, intent);
 
+  const useLocal = process.env.OLLAMA_ENABLED === "true";
+  const provider = wantsOpenRouter
+    ? "openrouter"
+    : useLocal
+      ? "hermes-cli"
+      : "openrouter";
+  const model = requestedModel
+    ? normalizeRequestedModel(requestedModel)
+    : useLocal
+      ? DEFAULT_HERMES_MODEL
+      : "google/gemini-2.5-flash";
+
   return {
-    provider: wantsOpenRouter ? "openrouter" : "hermes-cli",
-    model: requestedModel ? normalizeRequestedModel(requestedModel) : DEFAULT_HERMES_MODEL,
-    reason: buildSelectionReason({ requestedModel, wantsOpenRouter, technicalContext, lightContext }),
-    allowLocal: context.metadata.allowLocalOllama,
+    provider,
+    model,
+    reason: requestedModel
+      ? "explicit_request"
+      : useLocal
+        ? "local_preferred"
+        : "cloud_default",
+    allowLocal: provider === "hermes-cli",
     riskLevel: intent.riskLevel,
-    confidence: wantsOpenRouter ? "high" : requestedModel || technicalContext ? "medium" : "low",
+    confidence: requestedModel ? "high" : "medium",
   };
 }
