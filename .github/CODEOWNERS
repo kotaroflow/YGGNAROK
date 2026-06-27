@@ -1,0 +1,4 @@
+# YGGNAROK code ownership baseline
+# Necessário para que `require_code_owner_reviews` em branch protection funcione.
+
+* @kotaroflow
