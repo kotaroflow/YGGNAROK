@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { authSchema } from "@/lib/validators/schemas";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthAppUrl, isExplicitAuthDevBypassEnabled } from "@/lib/supabase/env";
 
 export async function signIn(formData: FormData) {
   const parsed = authSchema.safeParse({
@@ -14,13 +15,12 @@ export async function signIn(formData: FormData) {
     redirect("/login?error=validacao");
   }
 
-  // Dev bypass: skip Supabase when URL is a placeholder
-  if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("localhost")) {
+  if (isExplicitAuthDevBypassEnabled()) {
     redirect("/");
   }
 
   const input = parsed.data;
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createAuthClientOrRedirect("/login?error=configuracao");
   const { error } = await supabase.auth.signInWithPassword(input);
 
   if (error) {
@@ -41,11 +41,11 @@ export async function signUp(formData: FormData) {
   }
 
   const input = parsed.data;
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createAuthClientOrRedirect("/cadastro?error=configuracao");
   const { data, error } = await supabase.auth.signUp({
     ...input,
     options: {
-      emailRedirectTo: `${getAppUrl()}/setup`,
+      emailRedirectTo: `${getAuthAppUrlOrRedirect("/cadastro?error=configuracao")}/setup`,
     },
   });
 
@@ -66,12 +66,29 @@ export async function signUp(formData: FormData) {
   redirect("/login?status=confirmar-email");
 }
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://yggnarok-v1.vercel.app";
+export async function signOut() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Configuração ausente não deve impedir a saída da interface.
+  }
+
+  redirect("/login");
 }
 
-export async function signOut() {
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
-  redirect("/login");
+async function createAuthClientOrRedirect(errorUrl: string) {
+  try {
+    return await createSupabaseServerClient();
+  } catch {
+    redirect(errorUrl);
+  }
+}
+
+function getAuthAppUrlOrRedirect(errorUrl: string) {
+  try {
+    return getAuthAppUrl();
+  } catch {
+    redirect(errorUrl);
+  }
 }

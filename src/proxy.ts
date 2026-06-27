@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasUsablePublicSupabaseEnv, isExplicitAuthDevBypassEnabled } from "@/lib/supabase/env";
 
 const publicRoutes = new Set(["/login", "/cadastro"]);
 
@@ -9,8 +10,8 @@ export async function proxy(request: NextRequest) {
   });
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.has(pathname);
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
   // THEME HANDLING - Retire o script inline
   const themeCookie = request.cookies.get("ygn-theme")?.value;
@@ -23,9 +24,14 @@ export async function proxy(request: NextRequest) {
     });
   }
 
-  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("example.supabase.co")) {
-    // Bypass auth se as variaveis nao existirem no ambiente local ou se for o template
-    // Isso permite testar a UI do Dashboard vazio.
+  if (!hasUsablePublicSupabaseEnv()) {
+    if (!isPublicRoute && !isExplicitAuthDevBypassEnabled()) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "configuracao");
+      return NextResponse.redirect(url);
+    }
+
     return response;
   }
 
