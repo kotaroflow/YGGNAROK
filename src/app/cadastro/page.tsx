@@ -33,6 +33,7 @@ export default async function CadastroPage({ searchParams }: { searchParams: Pro
 function getCadastroError(error?: string) {
   if (error === "validacao") return "Use um e-mail valido e uma senha com pelo menos 8 caracteres.";
   if (error === "cadastro") return "Nao foi possivel criar a conta. Tente entrar se esse e-mail ja foi cadastrado.";
+  if (error === "configuracao") return "Configuracao do Supabase indisponivel neste ambiente.";
   if (error) return "Nao foi possivel criar a conta.";
   return undefined;
 }
