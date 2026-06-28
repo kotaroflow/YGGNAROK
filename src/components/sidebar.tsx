@@ -426,27 +426,11 @@ export function Sidebar({
   defaultWidth?: number;
 }) {
   const user: PermissionContext = _user ?? {
-    userId: "mock-user-id",
-    email: "kotaro@yggnarok.com",
-    roles: ["owner"],
-    permissions: [
-      "admin.access",
-      "ai_jobs.view_own",
-      "profiles.view",
-      "reports.view",
-      "content.create",
-      "ai_jobs.create",
-      "content.view",
-      "library.view",
-      "library.restore",
-      "posting.view",
-      "ai_jobs.manage_all",
-      "admin.manage_roles",
-      "admin.manage_permissions",
-      "admin.system_health",
-      "admin.view_logs",
-    ],
-    profileIds: ["mock-profile-id"],
+    userId: "anonymous",
+    email: null,
+    roles: [],
+    permissions: [],
+    profileIds: [],
   };
   const router = useRouter();
   const pathname = usePathname();
