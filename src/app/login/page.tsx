@@ -40,6 +40,8 @@ function getLoginError(error?: string) {
   if (error === "credenciais") return "E-mail ou senha incorretos.";
   if (error === "sessao") return "Entre na sua conta para acessar o YGGNAROK.";
   if (error === "configuracao") return "Configuracao do Supabase indisponivel neste ambiente.";
+  if (error === "sem-acesso") return "Sua conta ainda nao tem acesso a este workspace.";
+  if (error === "setup") return "Nao foi possivel concluir o setup do workspace.";
   if (error) return "Nao foi possivel entrar agora.";
   return undefined;
 }

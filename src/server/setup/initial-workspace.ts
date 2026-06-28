@@ -2,42 +2,52 @@ import { redirect } from "next/navigation";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type SupabaseAdminClient = ReturnType<typeof createSupabaseServiceClient>;
+
 export async function ensureInitialWorkspace() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSetupServerClient();
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login?error=sessao");
   }
 
-  const admin = createSupabaseServiceClient();
-  const isSystemOwner = await isFirstAuthUser(admin, user.id);
+  const admin = createSetupAdminClient();
+  const existingMembership = await getActiveMembership(admin, user.id);
 
-  if (!isSystemOwner) {
-    const { data: primaryProfile } = await admin
-      .from("profiles")
-      .select("id")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (primaryProfile?.id) {
-      await ensureProfileMembership(admin, primaryProfile.id, user.id, "viewer");
-    }
-
+  if (existingMembership) {
     redirect("/");
   }
 
-  const { data: existing } = await admin
+  const isSystemOwner = await isFirstAuthUser(admin, user.id);
+  if (!isSystemOwner) {
+    redirect("/login?error=sem-acesso");
+  }
+
+  const ownerRoleId = await getRequiredRoleId(admin, "owner");
+  const existingOwner = await getExistingOwnerMembership(admin, ownerRoleId);
+
+  if (existingOwner && existingOwner.user_id !== user.id) {
+    redirect("/login?error=setup");
+  }
+
+  const { data: existing, error: existingProfileError } = await admin
     .from("profiles")
     .select("id")
     .eq("owner_id", user.id)
-    .limit(1);
+    .limit(1)
+    .maybeSingle();
 
-  if (existing?.length) {
-    await ensureProfileMembership(admin, existing[0].id, user.id, "owner");
+  if (existingProfileError) {
+    redirect("/login?error=setup");
+  }
+
+  if (existing?.id) {
+    await ensureProfileMembership(admin, existing.id, user.id, ownerRoleId);
+    await assertOwnerMembership(admin, user.id, ownerRoleId);
     redirect("/");
   }
 
@@ -55,10 +65,11 @@ export async function ensureInitialWorkspace() {
     .single();
 
   if (error || !profile) {
-    redirect("/perfis");
+    redirect("/login?error=setup");
   }
 
-  await ensureProfileMembership(admin, profile.id, user.id, "owner");
+  await ensureProfileMembership(admin, profile.id, user.id, ownerRoleId);
+  await assertOwnerMembership(admin, user.id, ownerRoleId);
 
   await admin.from("profile_tags").insert([
     { profile_id: profile.id, tag_group: "tipo", tag_key: "conteudo" },
@@ -77,44 +88,129 @@ export async function ensureInitialWorkspace() {
   redirect("/");
 }
 
-async function ensureProfileMembership(
-  admin: ReturnType<typeof createSupabaseServiceClient>,
-  profileId: string,
-  userId: string,
-  roleKey: "owner" | "viewer",
-) {
-  const { data: roleData } = await admin.from("roles").select("id").eq("key", roleKey).single();
-  const role = roleData as { id: string } | null;
+async function createSetupServerClient() {
+  try {
+    return await createSupabaseServerClient();
+  } catch {
+    redirect("/login?error=configuracao");
+  }
+}
 
-  if (!role) {
-    return;
+function createSetupAdminClient() {
+  try {
+    return createSupabaseServiceClient();
+  } catch {
+    redirect("/login?error=configuracao");
+  }
+}
+
+async function getActiveMembership(admin: SupabaseAdminClient, userId: string) {
+  const { data, error } = await admin
+    .from("profile_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    redirect("/login?error=setup");
   }
 
-  const { data: existingMember } = await admin
+  return data;
+}
+
+async function getRequiredRoleId(admin: SupabaseAdminClient, roleKey: "owner" | "viewer") {
+  const { data, error } = await admin.from("roles").select("id").eq("key", roleKey).maybeSingle();
+  const role = data as { id: string } | null;
+
+  if (error || !role?.id) {
+    redirect("/login?error=configuracao");
+  }
+
+  return role.id;
+}
+
+async function getExistingOwnerMembership(admin: SupabaseAdminClient, ownerRoleId: string) {
+  const { data, error } = await admin
+    .from("profile_members")
+    .select("id, user_id")
+    .eq("role_id", ownerRoleId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    redirect("/login?error=setup");
+  }
+
+  return data;
+}
+
+async function ensureProfileMembership(
+  admin: SupabaseAdminClient,
+  profileId: string,
+  userId: string,
+  roleId: string,
+) {
+  const { data: existingMember, error: existingMemberError } = await admin
     .from("profile_members")
     .select("id")
     .eq("profile_id", profileId)
     .eq("user_id", userId)
     .limit(1);
 
+  if (existingMemberError) {
+    redirect("/login?error=setup");
+  }
+
   if (existingMember?.length) {
-    await admin
+    const { error } = await admin
       .from("profile_members")
-      .update({ role_id: role.id, status: "active" })
+      .update({ role_id: roleId, status: "active" })
       .eq("id", existingMember[0].id);
+
+    if (error) {
+      redirect("/login?error=setup");
+    }
+
     return;
   }
 
-  await admin.from("profile_members").insert({
+  const { error } = await admin.from("profile_members").insert({
     profile_id: profileId,
     user_id: userId,
-    role_id: role.id,
+    role_id: roleId,
     status: "active",
   });
+
+  if (error) {
+    redirect("/login?error=setup");
+  }
 }
 
-async function isFirstAuthUser(admin: ReturnType<typeof createSupabaseServiceClient>, userId: string) {
-  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+async function assertOwnerMembership(admin: SupabaseAdminClient, userId: string, ownerRoleId: string) {
+  const { data, error } = await admin
+    .from("profile_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("role_id", ownerRoleId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    redirect("/login?error=setup");
+  }
+}
+
+async function isFirstAuthUser(admin: SupabaseAdminClient, userId: string) {
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+  if (error) {
+    redirect("/login?error=setup");
+  }
+
   const users = [...data.users].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   return users[0]?.id === userId;
 }
