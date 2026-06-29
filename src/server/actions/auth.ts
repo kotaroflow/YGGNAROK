@@ -1,11 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { authSchema } from "@/lib/validators/schemas";
+import { signInSchema, signUpSchema } from "@/lib/validators/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function signIn(formData: FormData) {
-  const parsed = authSchema.safeParse({
+  const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -31,7 +31,7 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signUp(formData: FormData) {
-  const parsed = authSchema.safeParse({
+  const parsed = signUpSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
