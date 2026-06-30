@@ -18,6 +18,10 @@ function normalizeRequestedModel(value: string) {
   return value.startsWith("openrouter:") ? value.slice("openrouter:".length) : value;
 }
 
+function isOpenRouterModel(value: string) {
+  return value.includes("/") && !value.startsWith("hermes/");
+}
+
 function isTechnicalContext(context: HermesContextPackage, intent: IntentClassification) {
   if (intent.category === "architecture_analysis" || intent.category === "local_execution") {
     return true;
@@ -57,11 +61,16 @@ function isLightContext(context: HermesContextPackage, intent: IntentClassificat
 function buildSelectionReason(input: {
   requestedModel?: string;
   wantsOpenRouter?: boolean;
+  usesImplicitOpenRouter?: boolean;
   technicalContext: boolean;
   lightContext: boolean;
 }) {
   if (input.wantsOpenRouter) {
     return "Modelo OpenRouter solicitado explicitamente pelo frontend.";
+  }
+
+  if (input.usesImplicitOpenRouter) {
+    return "Modelo do frontend reconhecido como catalogo OpenRouter e preservado como provider remoto.";
   }
 
   if (input.requestedModel) {
@@ -91,15 +100,22 @@ export function selectHermesModel(
 ): HermesModelDecision {
   const requestedModel = context.metadata.requestedModel?.trim();
   const wantsOpenRouter = requestedModel?.startsWith("openrouter:");
+  const usesImplicitOpenRouter = requestedModel ? isOpenRouterModel(requestedModel) : false;
   const technicalContext = isTechnicalContext(context, intent);
   const lightContext = isLightContext(context, intent);
 
   return {
-    provider: wantsOpenRouter ? "openrouter" : "hermes-cli",
+    provider: wantsOpenRouter || usesImplicitOpenRouter ? "openrouter" : "hermes-cli",
     model: requestedModel ? normalizeRequestedModel(requestedModel) : DEFAULT_HERMES_MODEL,
-    reason: buildSelectionReason({ requestedModel, wantsOpenRouter, technicalContext, lightContext }),
+    reason: buildSelectionReason({
+      requestedModel,
+      wantsOpenRouter,
+      usesImplicitOpenRouter,
+      technicalContext,
+      lightContext,
+    }),
     allowLocal: context.metadata.allowLocalOllama,
     riskLevel: intent.riskLevel,
-    confidence: wantsOpenRouter ? "high" : requestedModel || technicalContext ? "medium" : "low",
+    confidence: wantsOpenRouter || usesImplicitOpenRouter ? "high" : requestedModel || technicalContext ? "medium" : "low",
   };
 }

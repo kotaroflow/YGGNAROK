@@ -1,3 +1,4 @@
+import Image from "next/image";
 import styles from "./YggSidebarEmblem.module.css";
 
 export type YggSidebarEmblemProps = {
@@ -23,7 +24,7 @@ export function YggSidebarEmblem({ collapsed }: YggSidebarEmblemProps) {
         <span className={styles.ambient} aria-hidden="true" />
         <div className={styles.coin} aria-hidden="true">
           <div className={`${styles.face} ${styles.front}`}>
-            <img
+            <Image
               src="/assets/ygg/ygg_coin_front_circle.png?v=3"
               alt=""
               width={72}
@@ -32,7 +33,7 @@ export function YggSidebarEmblem({ collapsed }: YggSidebarEmblemProps) {
             />
           </div>
           <div className={`${styles.face} ${styles.back}`}>
-            <img
+            <Image
               src="/assets/ygg/ygg_coin_back_circle.png?v=3"
               alt=""
               width={72}
