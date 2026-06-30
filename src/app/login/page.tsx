@@ -1,53 +1,21 @@
 import type { Metadata } from "next";
-import { AuthFrame } from "@/components/auth-frame";
-import { getRandomAuthArt } from "@/lib/auth-art";
-import { signIn } from "@/server/actions/auth";
-
-export const dynamic = "force-dynamic";
+import React, { Suspense } from "react";
+import { AuthFloatingPanel } from "@/components/auth/auth-floating-panel";
+import { AuthHeroBackground } from "@/components/auth/auth-hero-background";
+import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
   title: "Entrar",
   description: "Acesse o YGGNAROK — gerencie perfis, trabalhos de IA, biblioteca e fila de postagem num workspace premium.",
 };
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; status?: string }>;
-}) {
-  const params = await searchParams;
-  const art = getRandomAuthArt();
-
+export default function LoginPage() {
   return (
-    <AuthFrame
-      variant="login"
-      title="Entrar"
-      description="Acesse seus perfis, trabalhos de IA, biblioteca e fila de postagem."
-      error={getLoginError(params.error)}
-      status={getLoginStatus(params.status)}
-      action={signIn}
-      buttonLabel="Entrar"
-      footerLabel="Ainda sem acesso?"
-      footerHref="/cadastro"
-      footerAction="Criar conta"
-      art={art}
-    />
+    <Suspense fallback={null}>
+      <AuthHeroBackground />
+      <AuthFloatingPanel title="Entrar" subtitle="Acesse sua conta para continuar">
+        <LoginForm />
+      </AuthFloatingPanel>
+    </Suspense>
   );
-}
-
-function getLoginError(error?: string) {
-  if (error === "validacao") return "Informe um e-mail valido e uma senha com pelo menos 8 caracteres.";
-  if (error === "credenciais") return "E-mail ou senha incorretos.";
-  if (error === "sessao") return "Entre na sua conta para acessar o YGGNAROK.";
-  if (error === "configuracao") return "Configuracao do Supabase indisponivel neste ambiente.";
-  if (error === "sem-acesso") return "Sua conta ainda nao tem acesso a este workspace.";
-  if (error === "setup") return "Nao foi possivel concluir o setup do workspace.";
-  if (error) return "Nao foi possivel entrar agora.";
-  return undefined;
-}
-
-function getLoginStatus(status?: string) {
-  if (status === "confirmar-email") return "Conta criada. Confirme seu e-mail antes de entrar, se o Supabase pedir confirmacao.";
-  if (status) return "Conta criada. Entre para continuar o setup automatico.";
-  return undefined;
 }

@@ -9,48 +9,49 @@ export async function proxy(request: NextRequest) {
     request,
   });
   const { pathname } = request.nextUrl;
-  const isPublicRoute = publicRoutes.has(pathname);
+  const isPublicRoute = publicRoutes.has(pathname) || pathname.startsWith("/auth");
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-  // THEME HANDLING - Retire o script inline
+  // THEME HANDLING
   const themeCookie = request.cookies.get("ygn-theme")?.value;
   if (!themeCookie) {
     const systemPrefersDark = request.headers.get("sec-ch-prefers-color-scheme") === "dark";
     const newTheme = systemPrefersDark ? "dark" : "light";
     response.cookies.set("ygn-theme", newTheme, {
       maxAge: 60 * 60 * 24 * 365,
-      path: "/"
+      path: "/",
     });
   }
 
+  if (isExplicitAuthDevBypassEnabled()) {
+    return response;
+  }
+
   if (!hasUsablePublicSupabaseEnv()) {
-    if (!isPublicRoute && !isExplicitAuthDevBypassEnabled()) {
+    if (!isPublicRoute) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("error", "configuracao");
       return NextResponse.redirect(url);
     }
-
     return response;
   }
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
       },
     },
-  );
+  });
 
   let user = null;
   try {
@@ -58,6 +59,11 @@ export async function proxy(request: NextRequest) {
     user = data.user;
   } catch (error) {
     console.error("Erro no middleware (proxy) ao buscar usuario:", error);
+    if (!isPublicRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (!user && !isPublicRoute) {

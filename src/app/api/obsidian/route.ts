@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const resolvedVault = user.role === "admin" ? "admin" : "user";
     const basePath = resolvedVault === "admin"
       ? adminVaultPath
-      : path.join(userVaultBasePath, `User_${user.id}`);
+      : path.join(/* turbopackIgnore: true */ userVaultBasePath, `User_${user.id}`);
 
     // Map node type to folder
     const folderMap: Record<string, string> = {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const folder = folderMap[node.type] || "Ideas";
 
     // Build subfolder path
-    const targetFolder = path.join(basePath, folder);
+    const targetFolder = path.join(/* turbopackIgnore: true */ basePath, folder);
     
     // Create folder if it doesn't exist
     if (!fs.existsSync(targetFolder)) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     // Sanitize title for filename
     const title = node.data?.title || node.title || `Untitled_${node.id}`;
     const sanitizedTitle = title.replace(/[\\/:*?"<>|]/g, "_");
-    const filePath = path.join(targetFolder, `${sanitizedTitle}.md`);
+    const filePath = path.join(/* turbopackIgnore: true */ targetFolder, `${sanitizedTitle}.md`);
 
     // Build Markdown content
     const markdown = buildMarkdown(node);
