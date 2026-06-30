@@ -11,7 +11,6 @@ import {
   ScrollText, Subtitles, Hash, Globe, Settings, Terminal, Share2, ZoomIn, ZoomOut
 } from "lucide-react";
 import { inputClass } from "@/components/field";
-import { useObsidian } from "@/hooks/useObsidian";
 import { useN8n } from "@/hooks/useN8n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { YggNode, YggNodeType, ConnectionType, User } from "@/types/yggnarok";
@@ -359,7 +358,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   const dragLatestPos = useRef<{ x: number; y: number } | null>(null);
 
   // Integration hooks
-  const { persistNode } = useObsidian();
   const { triggerWorkflow } = useN8n();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -450,12 +448,6 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
   }, [currentUser]);
 
   // Real Integration Handlers
-  const handleGerarNotaObsidian = async () => {
-    if (!selectedCanvasNode || !currentUser) return;
-    const yggNode = mapToYggNode(selectedCanvasNode);
-    await persistNode(yggNode, currentUser);
-  };
-
   const handleDispararPipelineN8n = async () => {
     if (!selectedCanvasNode || !currentUser) return;
     const yggNode = mapToYggNode(selectedCanvasNode);
@@ -1381,38 +1373,28 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                   {/* Obsidian & n8n System Actions */}
                   <div className="border-t border-line/20 pt-4 space-y-3.5">
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-2">Vault Obsidian (Backend Local)</span>
-                      {userRole === "admin" ? (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Vault</label>
-                              <input
-                                type="text"
-                                className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
-                                value={obsidianVault}
-                                onChange={(e) => setObsidianVault(e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Caminho</label>
-                              <input
-                                type="text"
-                                className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
-                                value={obsidianPath}
-                                onChange={(e) => setObsidianPath(e.target.value)}
-                              />
-                            </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-2">Vault Obsidian (Link Direto)</span>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Vault</label>
+                            <input
+                              type="text"
+                              className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
+                              value={obsidianVault}
+                              onChange={(e) => setObsidianVault(e.target.value)}
+                            />
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleGerarNotaObsidian}
-                            className="w-full h-8 text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 rounded transition"
-                          >
-                            Gerar Nota Obsidian
-                          </button>
+                          <div>
+                            <label className="text-[7.5px] font-black text-muted uppercase block mb-0.5">Caminho</label>
+                            <input
+                              type="text"
+                              className="h-8 w-full rounded border border-line bg-surface-strong/50 px-2 text-[10px] text-foreground font-semibold outline-none"
+                              value={obsidianPath}
+                              onChange={(e) => setObsidianPath(e.target.value)}
+                            />
+                          </div>
                         </div>
-                      ) : (
                         <a
                           href={`obsidian://open?vault=${encodeURIComponent(obsidianVault)}&file=${encodeURIComponent(obsidianPath + "/" + selectedCanvasNode.title)}`}
                           className="flex h-9 items-center justify-between rounded-lg border border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-950/30 px-3 text-[10px] font-black uppercase tracking-wide text-indigo-300 transition"
@@ -1420,7 +1402,7 @@ export function CriarConteudoClient({ profiles, initialContents, activeTab: curr
                           <span>Abrir Nota no Obsidian</span>
                           <ChevronRight size={11} />
                         </a>
-                      )}
+                      </div>
                     </div>
 
                     <div>
