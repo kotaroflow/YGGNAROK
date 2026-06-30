@@ -1,5 +1,6 @@
 import type { ChatMessage } from "@/lib/chat-storage";
 import { loadMessages } from "@/server/chat/repository";
+import { normalizeChatProfileContext, type ChatProfileContext } from "@/types/chat-profile";
 
 export type HermesContextMessage = Pick<ChatMessage, "role" | "content"> & {
   id?: string;
@@ -20,6 +21,7 @@ export type HermesContextPackage = {
   summary: string | null;
   metadata: {
     requestedModel?: string;
+    profileContext: ChatProfileContext;
     allowLocalOllama: boolean;
     messageCount: number;
     recoveredMessageCount: number;
@@ -86,6 +88,20 @@ function extractCurrentUserMessage(bodyObject: Record<string, unknown>, messages
 
 function extractConversationId(bodyObject: Record<string, unknown>) {
   return typeof bodyObject.conversationId === "string" ? bodyObject.conversationId : undefined;
+}
+
+function formatProfileContext(profileContext: ChatProfileContext) {
+  const lines = [`Perfil ativo: ${profileContext.profileName || "default"}`];
+
+  if (profileContext.profileId) {
+    lines.push(`Profile ID: ${profileContext.profileId}`);
+  }
+
+  if (profileContext.profileGoal) {
+    lines.push(`Objetivo do perfil: ${profileContext.profileGoal}`);
+  }
+
+  return lines.join("\n");
 }
 
 async function recoverConversationMessages(userId: string, conversationId?: string) {
@@ -160,6 +176,7 @@ function compactConversationMessages(
   clientMessages: HermesContextMessage[],
   currentUserMessage: string,
   summary: string | null,
+  profileContext: ChatProfileContext,
 ) {
   const source = recoveredMessages.length > 0 ? recoveredMessages : clientMessages;
   const candidates = source
@@ -188,6 +205,9 @@ function compactConversationMessages(
   }
 
   const promptParts = [
+    "Contexto de perfil:",
+    formatProfileContext(profileContext),
+    "",
     ...(summary ? ["Resumo da conversa:", summary, ""] : []),
     ...(selected.length
       ? [
@@ -214,8 +234,9 @@ export function createHermesContextFromMessage(message: string): HermesContextPa
   const messages: HermesContextMessage[] = currentUserMessage
     ? [{ role: "user", content: currentUserMessage }]
     : [];
+  const profileContext = normalizeChatProfileContext(undefined);
   const summary = buildConversationSummary(messages, currentUserMessage);
-  const compressedContext = compactConversationMessages([], messages, currentUserMessage, summary);
+  const compressedContext = compactConversationMessages([], messages, currentUserMessage, summary, profileContext);
 
   return {
     currentUserMessage,
@@ -224,6 +245,7 @@ export function createHermesContextFromMessage(message: string): HermesContextPa
     compressedContext,
     summary,
     metadata: {
+      profileContext,
       allowLocalOllama: false,
       messageCount: messages.length,
       recoveredMessageCount: 0,
@@ -239,10 +261,17 @@ export async function prepareHermesContext({
   const conversationId = extractConversationId(body);
   const messages = normalizeMessages(body);
   const currentUserMessage = extractCurrentUserMessage(body, messages);
+  const profileContext = normalizeChatProfileContext(body.profileContext);
   const recoveredMessages = await recoverConversationMessages(userId, conversationId);
   const summarySource = recoveredMessages.length > 0 ? recoveredMessages : messages;
   const summary = buildConversationSummary(summarySource, currentUserMessage);
-  const compressedContext = compactConversationMessages(recoveredMessages, messages, currentUserMessage, summary);
+  const compressedContext = compactConversationMessages(
+    recoveredMessages,
+    messages,
+    currentUserMessage,
+    summary,
+    profileContext,
+  );
 
   return {
     conversationId,
@@ -253,6 +282,7 @@ export async function prepareHermesContext({
     summary,
     metadata: {
       requestedModel: typeof body.model === "string" ? body.model : undefined,
+      profileContext,
       allowLocalOllama: body.allowLocalOllama === true,
       messageCount: messages.length,
       recoveredMessageCount: recoveredMessages.length,

@@ -14,6 +14,7 @@ import {
   saveConversation,
   type ChatMessage,
 } from "@/lib/chat-storage";
+import type { ChatProfileContext } from "@/types/chat-profile";
 
 function cleanAssistantContent(content: string): string {
   if (!content) return "";
@@ -124,6 +125,7 @@ export function ChatClient() {
     if (typeof window === "undefined") return 0;
     return Number(localStorage.getItem("yggnarok.kotaro.spent-cost") || "0");
   });
+  const profileContext = useMemo<ChatProfileContext>(() => ({ profileName: "default" }), []);
 
   type FeedbackEntry = { messageId: string; rating: 'like' | 'dislike'; timestamp?: string; model?: string; comment?: string; commentTimestamp?: string };
 
@@ -646,7 +648,9 @@ export function ChatClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...enrichedMessages, { role: "user", content }],
+          conversationId: convId,
           model: modelToUse,
+          profileContext,
         }),
         signal: abort.signal,
       });

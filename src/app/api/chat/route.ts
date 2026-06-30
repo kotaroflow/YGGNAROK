@@ -18,12 +18,19 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   
-  const isBunkerMode = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").includes("example.supabase.co");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const isBunkerMode = supabaseUrl.includes("example.supabase.co");
+  const isLocalDevSupabase = process.env.NODE_ENV === "development" && /127\.0\.0\.1|localhost/.test(supabaseUrl);
   let activeUser: HermesUser | null = user;
   
   if (!activeUser && isBunkerMode) {
     // In local offline bunker mode, mock the master admin user
     activeUser = { email: "admin@yggnarok.local" };
+  }
+
+  if (!activeUser && isLocalDevSupabase) {
+    // Match the local workspace fallback used by the chat shell during development.
+    activeUser = { id: "local-dev-user", email: "admin@yggnarok.local" };
   }
 
   if (!activeUser) {

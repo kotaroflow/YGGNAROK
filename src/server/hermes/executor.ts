@@ -8,6 +8,7 @@ import { decideHermesFallback, type HermesFallbackDecision } from "./fallback";
 import type { IntentClassification } from "./intent";
 import type { HermesContextPackage } from "./memory";
 import type { HermesModelDecision } from "./model-selector";
+import type { ChatProfileContext } from "@/types/chat-profile";
 
 export type HermesExecutionRequest = {
   context: HermesContextPackage;
@@ -30,8 +31,18 @@ export type HermesExecutionResult = HermesCommandResult & {
 };
 
 function buildOpenRouterMessages(req: HermesExecutionRequest): OpenRouterChatMessage[] {
-  const messages: OpenRouterChatMessage[] = req.context.summary
-    ? [{ role: "system", content: `Resumo da conversa:\n${req.context.summary}` }]
+  const systemBlocks: string[] = [];
+
+  if (req.context.metadata.profileContext) {
+    systemBlocks.push(buildProfileContextBlock(req.context.metadata.profileContext));
+  }
+
+  if (req.context.summary) {
+    systemBlocks.push(`Resumo da conversa:\n${req.context.summary}`);
+  }
+
+  const messages: OpenRouterChatMessage[] = systemBlocks.length > 0
+    ? [{ role: "system", content: systemBlocks.join("\n\n") }]
     : [];
 
   messages.push(...req.context.compressedContext.messages
@@ -43,6 +54,20 @@ function buildOpenRouterMessages(req: HermesExecutionRequest): OpenRouterChatMes
   }
 
   return messages.length > 0 ? messages : [{ role: "user", content: req.context.compressedContext.prompt }];
+}
+
+function buildProfileContextBlock(profileContext: ChatProfileContext) {
+  const lines = [`Perfil ativo: ${profileContext.profileName || "default"}`];
+
+  if (profileContext.profileId) {
+    lines.push(`Profile ID: ${profileContext.profileId}`);
+  }
+
+  if (profileContext.profileGoal) {
+    lines.push(`Objetivo do perfil: ${profileContext.profileGoal}`);
+  }
+
+  return lines.join("\n");
 }
 
 function buildHermesCliPrompt(req: HermesExecutionRequest) {
