@@ -3,13 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasUsablePublicSupabaseEnv, isExplicitAuthDevBypassEnabled } from "@/lib/supabase/env";
 
 const publicRoutes = new Set(["/login", "/cadastro"]);
+const mercadoLivreOAuthCallbackPath = "/mercadolivre-oauth";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
   const { pathname } = request.nextUrl;
-  const isPublicRoute = publicRoutes.has(pathname) || pathname.startsWith("/auth");
+  const isMercadoLivreOAuthCallback = pathname === mercadoLivreOAuthCallbackPath;
+  const isPublicRoute =
+    publicRoutes.has(pathname) || pathname.startsWith("/auth") || isMercadoLivreOAuthCallback;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
@@ -75,7 +78,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublicRoute) {
+  if (user && isPublicRoute && !isMercadoLivreOAuthCallback) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
